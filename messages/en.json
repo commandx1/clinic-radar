@@ -1,0 +1,47 @@
+{
+  "metadata": {
+    "title": "ClinicRadar",
+    "description": "Competitor analysis + task engine"
+  },
+  "auth": {
+    "login": {
+      "title": "Log in",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Log in",
+      "submitting": "Logging in…",
+      "noAccount": "Don't have an account?",
+      "signupLink": "Sign up"
+    },
+    "signup": {
+      "title": "Sign up",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign up",
+      "submitting": "Signing up…",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Log in",
+      "checkEmailTitle": "Check your email",
+      "checkEmailBody": "Click the link we sent you to verify your account."
+    }
+  },
+  "app": {
+    "signOut": "Sign out"
+  },
+  "business": {
+    "yourBusiness": "Your business",
+    "googlePlaceIdLabel": "Google Place ID",
+    "linkYourBusiness": "Link your business",
+    "form": {
+      "name": "Business name",
+      "googlePlaceId": "Google Place ID",
+      "category": "Category (optional)",
+      "submit": "Link",
+      "submitting": "Saving…",
+      "genericError": "Something went wrong."
+    },
+    "errors": {
+      "already_linked": "This business is already linked to an account."
+    }
+  }
+}

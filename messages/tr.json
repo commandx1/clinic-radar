@@ -1,0 +1,47 @@
+{
+  "metadata": {
+    "title": "ClinicRadar",
+    "description": "Rakip analizi + görev motoru"
+  },
+  "auth": {
+    "login": {
+      "title": "Giriş yap",
+      "email": "E-posta",
+      "password": "Şifre",
+      "submit": "Giriş yap",
+      "submitting": "Giriş yapılıyor…",
+      "noAccount": "Hesabın yok mu?",
+      "signupLink": "Kayıt ol"
+    },
+    "signup": {
+      "title": "Kayıt ol",
+      "email": "E-posta",
+      "password": "Şifre",
+      "submit": "Kayıt ol",
+      "submitting": "Kayıt oluyor…",
+      "hasAccount": "Zaten hesabın var mı?",
+      "loginLink": "Giriş yap",
+      "checkEmailTitle": "E-postanı kontrol et",
+      "checkEmailBody": "Hesabını doğrulamak için gönderdiğimiz bağlantıya tıkla."
+    }
+  },
+  "app": {
+    "signOut": "Çıkış yap"
+  },
+  "business": {
+    "yourBusiness": "İşletmen",
+    "googlePlaceIdLabel": "Google Place ID",
+    "linkYourBusiness": "İşletmeni bağla",
+    "form": {
+      "name": "İşletme adı",
+      "googlePlaceId": "Google Place ID",
+      "category": "Kategori (opsiyonel)",
+      "submit": "Bağla",
+      "submitting": "Kaydediliyor…",
+      "genericError": "Bir şeyler ters gitti."
+    },
+    "errors": {
+      "already_linked": "Bu işletme zaten bağlı bir hesapta kayıtlı."
+    }
+  }
+}

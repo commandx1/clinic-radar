@@ -20,6 +20,8 @@ Bu doküman, `05-ai-pipeline.md` ve `09-task-engine.md` içindeki mantığın re
 - `region_category_cache` TTL: **7 gün** (yoğun bölgeler) — **14 gün** (düşük yoğunluklu bölgeler, aynı geo_cell'de <5 aktif kullanıcı varsa).
 - Yorum trend hesaplamasına dahil edilen pencere: **son 90 gün**. 90 günden eski yorumlar temaların varlığını etkiler ama trend yönünü (artıyor/azalıyor) etkilemez.
 - Rakip yorumları haftalık yeniden çekilir (Pro plan); Free plan'da aylık.
+- Bir place için tek seferde çekilecek maksimum yorum sayısı **200** ile sınırlıdır (`REVIEWS_FETCH_MAX_PER_PLACE`) — bu, tipik bir klinik için 90 günlük pencereyi rahatça kapsar ve anormal derecede yüksek yorum hacmine sahip bir işletme için Apify actor maliyetini/çalışma süresini sınırlar. Bu sınır sert bir tarih filtresi değildir; en yeni yorumlar öncelikli çekilir (`reviewsSort: newest`), dolayısıyla 90 günden eski yorumlar da (varsa, 200 sınırına dahilse) saklanmaya devam eder.
+- **Tema trendi (`theme_summary.trend`):** AI tarafından değil, uygulama kodunda hesaplanır — bir temanın negatif mention oranı (`neg / (pos + neg)`) mevcut analiz döngüsünde bir önceki döngüye göre karşılaştırılır. Delta ≤ **−10 yüzde puanı** → `improving`, ≥ **+10 yüzde puanı** → `worsening`, aradaysa `stable` (`THEME_TREND_DELTA_THRESHOLD`). Mevcut döngüde temanın toplam mention sayısı **< 5** ise (`THEME_TREND_MIN_MENTIONS`, Bölüm D'deki gürültü eşiğiyle tutarlı) ya da tema önceki döngüde yoksa (ilk analiz dahil) trend **NULL** bırakılır. Tema eşleştirmesi normalize edilmiş isimle yapılır (trim + lowercase, fuzzy eşleştirme yok — `05-ai-pipeline.md`'deki toplulaştırma kuralıyla aynı); model bir temayı döngüler arasında farklı adlandırırsa eşleşme kaçar ve trend NULL kalır (bilinçli sınırlama).
 
 ## D. Görev Oluşturma Kuralları
 
@@ -29,14 +31,14 @@ Bu doküman, `05-ai-pipeline.md` ve `09-task-engine.md` içindeki mantığın re
 2. **Mutlak kalite sorunu** (`source_type = 'absolute_quality'`): kullanıcının **kendi** yorumlarında bir temanın negatif mention oranı **%30'u** aşıyorsa VE toplam mention sayısı **≥5** ise, rakip karşılaştırmasında fark olmasa bile (yani tüm rakipler de aynı konuda kötü olsa bile) görev üretilir. Bu kural, "herkes kötüyse sorun değil" körlüğünü engellemek için var — bölgedeki tüm klinikler aynı konuda zayıfsa bu hâlâ hasta memnuniyetini etkileyen gerçek bir sorundur, sadece rekabet avantajı sağlamaz.
 
 - Bir tema için (her iki kaynak türünde de) görev oluşturulması için: ilgili yorum grubunda o temaya dair **en az 5 negatif/pozitif mention** olmalı (gürültüyü elemek için — 1-2 münferit yorumdan görev türetilmez).
-- Aynı tema için kullanıcıda zaten `open` durumda bir görev varsa, yeni analiz döngüsünde **duplicate görev oluşturulmaz** — mevcut görev güncellenir (mention_count, priority yeniden hesaplanır).
+- Aynı tema için kullanıcıda zaten `open` durumda bir görev varsa, yeni analiz döngüsünde **duplicate görev oluşturulmaz** — mevcut görev güncellenir (impact_score, effort_score, priority ve title_i18n/description_i18n yeni analiz çıktısıyla yeniden yazılır).
 - Bir analiz döngüsünde en fazla **5 yeni görev** oluşturulur (kullanıcıyı boğmamak için) — kalan fırsatlar "gelecek dönem" havuzunda tutulur.
 
 ## E. Görev Yaşam Döngüsü Kuralları
 - Görev durumları: `open` → `done` | `dismissed`.
 - Bir görev **14 gün** içinde `open` durumda kalırsa, önceliği (`09-task-engine.md`'deki formülle) yeniden hesaplanır — yeni yorumlar temaya destek veriyorsa öncelik artar, azalıyorsa düşer.
 - Bir görev **60 gün** boyunca `open` kalır ve öncelik "low"a düşerse, otomatik olarak `dismissed` durumuna alınır ve kullanıcıya bildirilir.
-- `dismissed` bir görev, aynı temada yeni bir negatif sinyal patlaması olursa (mention_count önceki döngüye göre 2x artarsa) yeniden `open` olarak türetilebilir.
+- `dismissed` bir görev, aynı temada yeni bir negatif sinyal patlaması olursa (kullanıcının **kendi** yorumlarındaki `negative_mentions` önceki döngüye göre en az **2x** artarsa, `DISMISSED_REOPEN_NEGATIVE_MULTIPLIER`) yeniden `open` olarak türetilir — rakip tarafındaki mention artışı bu kuralı tetiklemez. Gürültüyü elemek için yeni `negative_mentions` sayısı ayrıca Bölüm D'deki görev oluşturma eşiğini (`TASK_MENTION_THRESHOLD`) de geçmelidir (ör. 1→2 mention artışı 2x olsa da eşik altında kaldığı için reopen tetiklemez). Reopen için tema eşleştirmesi de normalize edilmiş isimle yapılır (trim + lowercase), `05-ai-pipeline.md`'deki toplulaştırma kuralıyla tutarlı.
 
 ## F. Skor Hesaplama Kuralları
 - **Clinic Score** (0-100): kullanıcının kendi rating'i, review_count trendi ve tamamlanan görev oranının ağırlıklı ortalaması. Kesin formül `09-task-engine.md`'de.

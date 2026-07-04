@@ -1,10 +1,87 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
+import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
+import { getNextAnalysisAvailableAt, isAnalysisCooldownActive } from "@/lib/task-engine/analysis-cooldown";
+import { calculatePotentialRatingGain } from "@/lib/task-engine/potential-rating-gain";
+import type { Json } from "@/types/database.types";
 
-import { BusinessForm } from "./business-form";
+import { AnalysisRunTrigger } from "./analysis-run-trigger";
+import { resolveOpenTasks } from "./resolve-open-tasks";
+import { pickLocale } from "./resolve-tasks-shared";
+import { StatCard } from "./stat-card";
+import { TaskList } from "./task-list";
+import { TrendChart, type TrendPoint } from "./trend-chart";
 
-export default async function BusinessPage() {
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+interface ExecutiveMetrics {
+  latestSnapshot: { score: number; competitor_rank: number | null; executive_summary: Json | null } | null;
+  competitorTotal: number;
+  criticalIssuesCount: number;
+  doneCount: number;
+  totalTasksCount: number;
+  potentialRatingGain: number;
+  trendPoints: TrendPoint[];
+}
+
+async function loadExecutiveMetrics(supabase: SupabaseClient, businessId: string): Promise<ExecutiveMetrics> {
+  const { data: snapshots } = await supabase
+    .from("clinic_score_history")
+    .select("score, competitor_rank, snapshot_at, executive_summary")
+    .eq("business_id", businessId)
+    .order("snapshot_at", { ascending: true });
+
+  const latest = snapshots && snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
+
+  const { count: competitorCount } = await supabase
+    .from("competitors")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId);
+
+  const { count: criticalIssuesCount } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId)
+    .eq("priority", "high")
+    .eq("status", "open");
+
+  const { count: doneCount } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId)
+    .eq("status", "done");
+
+  const { count: totalTasksCount } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId);
+
+  const { data: highPriorityOpenTasks } = await supabase
+    .from("tasks")
+    .select("impact_score")
+    .eq("business_id", businessId)
+    .eq("priority", "high")
+    .eq("status", "open");
+
+  return {
+    latestSnapshot: latest
+      ? { score: latest.score ?? 0, competitor_rank: latest.competitor_rank, executive_summary: latest.executive_summary }
+      : null,
+    competitorTotal: (competitorCount ?? 0) + 1,
+    criticalIssuesCount: criticalIssuesCount ?? 0,
+    doneCount: doneCount ?? 0,
+    totalTasksCount: totalTasksCount ?? 0,
+    potentialRatingGain: calculatePotentialRatingGain((highPriorityOpenTasks ?? []).map((t) => t.impact_score)),
+    trendPoints: (snapshots ?? []).map((s) => ({
+      snapshotAt: s.snapshot_at,
+      score: s.score,
+      competitorRank: s.competitor_rank,
+    })),
+  };
+}
+
+export default async function OverviewPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -12,33 +89,89 @@ export default async function BusinessPage() {
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, name, google_place_id, category")
+    .select("id, name, category, google_place_id, last_scraped_at")
     .eq("user_id", user!.id)
     .maybeSingle();
 
-  const t = await getTranslations("business");
+  const { data: subscription } = await supabase
+    .from("subscriptions")
+    .select("plan")
+    .eq("user_id", user!.id)
+    .maybeSingle();
 
-  if (business) {
-    return (
-      <div className="flex max-w-md flex-col gap-2">
-        <h1 className="text-xl font-semibold">{t("yourBusiness")}</h1>
-        <div className="rounded border border-black/[.08] p-4 dark:border-white/[.145]">
-          <p className="font-medium">{business.name}</p>
-          {business.category && (
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">{business.category}</p>
-          )}
-          <p className="mt-2 text-xs text-zinc-500">
-            {t("googlePlaceIdLabel")}: {business.google_place_id}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const t = await getTranslations("business.overview");
+  const locale = await getLocale();
+
+  const metrics = await loadExecutiveMetrics(supabase, business!.id);
+  const topTasks = (await resolveOpenTasks(supabase, business!.id, locale)).slice(0, 3);
+  const nextAnalysisAvailableAt = getNextAnalysisAvailableAt(business!.last_scraped_at, subscription?.plan);
+  const executiveSummary = metrics.latestSnapshot?.executive_summary
+    ? pickLocale(metrics.latestSnapshot.executive_summary, locale)
+    : null;
 
   return (
-    <div className="flex max-w-md flex-col gap-4">
-      <h1 className="text-xl font-semibold">{t("linkYourBusiness")}</h1>
-      <BusinessForm />
+    <div className="flex flex-col gap-6">
+      <AnalysisRunTrigger
+        business={business!}
+        nextAnalysisAvailableAt={nextAnalysisAvailableAt ? nextAnalysisAvailableAt.toISOString() : null}
+        cooldownActive={isAnalysisCooldownActive(nextAnalysisAvailableAt)}
+      />
+
+      {executiveSummary && (
+        <Card>
+          <CardContent className="flex flex-col gap-1">
+            <p className="text-xs text-muted-foreground">{t("executiveSummaryTitle")}</p>
+            <p className="text-sm leading-relaxed">{executiveSummary}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {metrics.latestSnapshot ? (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+          <StatCard label={t("clinicScore")} value={String(metrics.latestSnapshot.score)} />
+          <StatCard
+            label={t("competitorRank")}
+            value={
+              metrics.latestSnapshot.competitor_rank !== null
+                ? t("competitorRankValue", {
+                    rank: metrics.latestSnapshot.competitor_rank,
+                    total: metrics.competitorTotal,
+                  })
+                : "-"
+            }
+          />
+          <StatCard
+            label={t("criticalIssues")}
+            value={t("criticalIssuesValue", { count: metrics.criticalIssuesCount })}
+          />
+          <StatCard
+            label={t("completedTasks")}
+            value={t("completedTasksValue", { done: metrics.doneCount, total: metrics.totalTasksCount })}
+          />
+          <StatCard
+            label={t("potentialRatingGain")}
+            value={t("potentialRatingGainValue", { value: metrics.potentialRatingGain.toFixed(1) })}
+          />
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">{t("notEnoughData")}</p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <h2 className="text-lg font-semibold">{t("topTasksTitle")}</h2>
+        {topTasks.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t("topTasksEmpty")}</p>
+        ) : (
+          <TaskList tasks={topTasks} showTitle={false} />
+        )}
+      </div>
+
+      {metrics.trendPoints.length >= 2 && (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">{t("trendPreviewTitle")}</h2>
+          <TrendChart points={metrics.trendPoints.slice(-8)} />
+        </div>
+      )}
     </div>
   );
 }

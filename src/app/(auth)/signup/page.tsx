@@ -2,76 +2,56 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 
-import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+import { useSignupForm } from "./use-signup-form";
 
 export default function SignupPage() {
   const t = useTranslations("auth.signup");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    errorMessage,
+    isPending,
+    isSuccess,
+    handleSubmit,
+  } = useSignupForm();
 
-  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    const supabase = createClient();
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    setLoading(false);
-
-    if (signUpError) {
-      setError(signUpError.message);
-      return;
-    }
-
-    setSuccess(true);
-  }
-
-  if (success) {
+  if (isSuccess) {
     return (
       <div className="flex flex-col gap-2">
         <h1 className="text-xl font-semibold">{t("checkEmailTitle")}</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">{t("checkEmailBody")}</p>
+        <p className="text-sm text-muted-foreground">{t("checkEmailBody")}</p>
       </div>
     );
   }
 
   return (
-    <form
-      onSubmit={(e) => {
-        void handleSubmit(e);
-      }}
-      className="flex flex-col gap-4"
-    >
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">{t("title")}</h1>
 
-      <label className="flex flex-col gap-1 text-sm">
-        {t("email")}
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="signup-email">{t("email")}</Label>
+        <Input
+          id="signup-email"
           type="email"
           required
           value={email}
           onChange={(e) => {
             setEmail(e.target.value);
           }}
-          className="rounded border border-black/[.15] px-3 py-2 dark:border-white/[.2] dark:bg-zinc-900"
         />
-      </label>
+      </div>
 
-      <label className="flex flex-col gap-1 text-sm">
-        {t("password")}
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="signup-password">{t("password")}</Label>
+        <Input
+          id="signup-password"
           type="password"
           required
           minLength={6}
@@ -79,21 +59,16 @@ export default function SignupPage() {
           onChange={(e) => {
             setPassword(e.target.value);
           }}
-          className="rounded border border-black/[.15] px-3 py-2 dark:border-white/[.2] dark:bg-zinc-900"
         />
-      </label>
+      </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
-      >
-        {loading ? t("submitting") : t("submit")}
-      </button>
+      <Button type="submit" disabled={isPending}>
+        {isPending ? t("submitting") : t("submit")}
+      </Button>
 
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-sm text-muted-foreground">
         {t("hasAccount")}{" "}
         <Link href="/login" className="font-medium underline">
           {t("loginLink")}

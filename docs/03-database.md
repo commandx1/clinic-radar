@@ -23,12 +23,13 @@ subscriptions (
 
 businesses (
   id uuid primary key,
-  user_id uuid references users(id),
+  user_id uuid references users(id),          -- unique: Free/Pro'da kullanıcı başına 1 işletme (bkz. 02-business-rules.md Bölüm A)
   google_place_id text unique,
   name text,
   category text,               -- Google'ın ham kategorisi
   normalized_category text,    -- eşleştirme sonrası normalize kategori (bkz. Açık Sorular)
   lat float, lng float,
+  geo_cell text,                -- geohash(lat,lng, precision=6), app tarafında hesaplanır (bkz. region_category_cache.geo_cell ile aynı fonksiyon)
   rating float,
   review_count int,
   last_scraped_at timestamptz
@@ -39,6 +40,7 @@ clinic_score_history (
   business_id uuid references businesses(id),
   score int,                   -- Clinic Score (0-100), bkz. 09-task-engine.md
   competitor_rank int,
+  executive_summary jsonb,     -- {tr, en} | null — Aşama 3 çıktısı (05-ai-pipeline.md); başarısızlıkta null, UI o zaman kartı gizler
   snapshot_at timestamptz      -- haftalık snapshot, trend grafiği için
 )
 
@@ -102,11 +104,11 @@ review_analysis (
 theme_summary (
   id uuid primary key,
   business_id uuid references businesses(id),  -- her zaman kullanıcının kendi işletmesi; owner_type kimin yorumlarının özetlendiğini ayırt eder
-  owner_type text,               -- 'own' | 'competitor'
+  owner_type text,               -- 'own' | 'competitor' — 'competitor' satırları TEK bir rakibi değil, TÜM seçili rakiplerin toplamını temsil eder (rakip kimliğini tutan ayrı bir kolon yok, bkz. 05-ai-pipeline.md)
   theme text,
   positive_mentions int,
   negative_mentions int,
-  trend text,                    -- 'improving' | 'worsening' | 'stable'
+  trend text,                    -- 'improving' | 'worsening' | 'stable' | null — AI değil, kod tarafında döngüler arası negatif oran deltasından hesaplanır (02-business-rules.md Bölüm C)
   period_start date,
   period_end date,
   updated_at timestamptz
@@ -117,8 +119,8 @@ theme_summary (
 tasks (
   id uuid primary key,
   business_id uuid references businesses(id),
-  title text,
-  description text,
+  title_i18n jsonb,               -- {tr: string, en: string}, not null — bkz. 06-prompts.md Aşama 2
+  description_i18n jsonb,         -- {tr: string, en: string} | null, aynı şekil
   based_on_competitor_id uuid,   -- source_type='absolute_quality' ise null olabilir
   source_type text,              -- 'competitive_gap' | 'absolute_quality', bkz. 02-business-rules.md Bölüm D
   theme text,
@@ -137,5 +139,5 @@ tasks (
 - `region_category_cache(normalized_category, geo_cell)` unique — cache lookup için.
 - `tasks(business_id, status)` — dashboard task listesi için.
 
-## Açık soru: kategori normalizasyonu
-Google kategorileri tutarsız ("Dentist" vs "Cosmetic dentist" vs "Orthodontist") — ve ürün global olduğu için bu etiketler Google'ın döndürdüğü **yerel dilde** de gelir (ör. "Zahnarzt", "Diş Hekimi", "Dentiste"). MVP için basit bir statik eşleştirme tablosu (`category_aliases`) öneriyoruz; sabit/kürator bir Türkçe kategori listesi değil — belirsiz/çok dilli durumlarda Claude'a "bu iki kategori aynı iş kolunda mı" sorusu sorulabilir (Faz 1.1), bu soru dilden bağımsız çalışır çünkü Claude kategori adının hangi dilde olduğuna bakmaksızın anlamını karşılaştırabilir.
+## Kategori normalizasyonu (Faz 1 kararı)
+Google kategorileri tutarsız ("Dentist" vs "Cosmetic dentist" vs "Orthodontist") — ve ürün global olduğu için bu etiketler Google'ın döndürdüğü **yerel dilde** de gelir (ör. "Zahnarzt", "Diş Hekimi", "Dentiste"). Faz 1'de bu bir DB tablosu değil, kod içinde statik bir eşleştirme (`src/lib/category/normalize.ts`, `CATEGORY_ALIASES` map) olarak tutulur — yaşayan/genişleyen bir liste, tek seferlik bir teslimat değil. Eşlenmeyen bir ham kategori (`trim().toLowerCase()` sonrası map'te yoksa) kendi değerine normalize edilir, yani sadece birebir aynı yazılmış diğer kayıtlarla eşleşir, farklı dildeki eşdeğeriyle otomatik eşleşmez — bu kabul edilen bir MVP sınırlamasıdır. Belirsiz/çok dilli durumlarda Claude'a "bu iki kategori aynı iş kolunda mı" sorusu sorulması (dilden bağımsız çalışır) Faz 1.1'e bırakılmıştır.

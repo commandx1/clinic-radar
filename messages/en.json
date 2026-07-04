@@ -32,6 +32,30 @@
     "yourBusiness": "Your business",
     "googlePlaceIdLabel": "Google Place ID",
     "linkYourBusiness": "Link your business",
+    "tabs": {
+      "overview": "Overview",
+      "tasks": "Tasks",
+      "competitors": "Competitors",
+      "reviews": "Reviews",
+      "themes": "Themes",
+      "trend": "Trend"
+    },
+    "overview": {
+      "clinicScore": "Clinic Score",
+      "competitorRank": "Competitor Rank",
+      "competitorRankValue": "{rank}/{total}",
+      "criticalIssues": "Critical Issues",
+      "criticalIssuesValue": "{count} critical issues",
+      "completedTasks": "Completed Tasks",
+      "completedTasksValue": "{done}/{total}",
+      "potentialRatingGain": "Potential Rating Gain",
+      "potentialRatingGainValue": "+{value} points potential",
+      "notEnoughData": "Not enough data yet — run analysis a few times to see your Clinic Score.",
+      "executiveSummaryTitle": "Executive Summary",
+      "topTasksTitle": "Top priorities",
+      "topTasksEmpty": "No open tasks. Run analysis to generate some.",
+      "trendPreviewTitle": "Trend"
+    },
     "form": {
       "name": "Business name",
       "googlePlaceId": "Google Place ID",
@@ -41,7 +65,128 @@
       "genericError": "Something went wrong."
     },
     "errors": {
-      "already_linked": "This business is already linked to an account."
+      "already_linked": "This business is already linked to an account.",
+      "business_already_exists": "You already have a business linked. Each account supports one business."
+    },
+    "enrichmentFailed": {
+      "title": "We couldn't fetch your business data",
+      "body": "We couldn't retrieve details for this Google Place ID. Please check the ID and try linking your business again."
+    },
+    "competitors": {
+      "discovering": {
+        "title": "Scanning competitors in your area",
+        "subtitle": "This can take up to a minute."
+      },
+      "selection": {
+        "title": "Choose your competitors",
+        "subtitle": "Select between 3 and {max} businesses to track.",
+        "continueButton": "Continue",
+        "continueButtonSubmitting": "Saving…",
+        "minRequiredHint": "Select {count} more (at least 3 required).",
+        "limitedResults": "We found a limited number of strong competitors in your area.",
+        "reviewCount": "{count} reviews",
+        "retry": "Try again"
+      },
+      "errors": {
+        "discover_failed": "We couldn't scan competitors right now. Please try again.",
+        "business_not_enriched": "Your business data isn't ready yet.",
+        "plan_limit_exceeded": "You've selected more competitors than your plan allows.",
+        "save_failed": "We couldn't save your selection. Please try again.",
+        "genericError": "Something went wrong."
+      },
+      "list": {
+        "title": "Competitors",
+        "empty": "No competitors yet.",
+        "reviewCount": "{count} reviews",
+        "manageButton": "Manage competitors",
+        "cancelButton": "Cancel"
+      }
+    },
+    "analysis": {
+      "runButton": "Run analysis",
+      "runButtonPending": "Running analysis… this can take a few minutes",
+      "lastScrapedAt": "Last analyzed: {date}",
+      "neverScraped": "Analysis hasn't run yet.",
+      "cooldownNotice": "Next analysis available on {date}.",
+      "errors": {
+        "business_not_enriched": "Your business data isn't ready yet.",
+        "insufficient_competitors": "Select at least 3 competitors before running analysis.",
+        "apify_call_failed": "We couldn't fetch reviews right now. Please try again.",
+        "review_save_failed": "We couldn't save the fetched reviews. Please try again.",
+        "ai_provider_not_configured": "Analysis isn't available right now. Please try again later.",
+        "analysis_cooldown_active": "You can run analysis again on {date}.",
+        "genericError": "Something went wrong."
+      }
+    },
+    "tasks": {
+      "title": "Tasks",
+      "empty": "No tasks yet. Run analysis to generate some.",
+      "priority": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "impactEffort": "Impact {impact}/100 · Effort {effort}/5",
+      "basedOnCompetitor": "Based on {name}",
+      "evidence": {
+        "competitiveGap": "This theme appears positively {competitorPositive} times in competitor reviews — {ownPositive} times in yours.",
+        "absoluteQuality": "In the last {days} days, this theme has {ownNegative} negative mentions in your own reviews."
+      },
+      "completeButton": "Complete",
+      "dismissButton": "Dismiss",
+      "errors": {
+        "not_found": "This task no longer exists.",
+        "update_failed": "We couldn't update this task. Please try again.",
+        "genericError": "Something went wrong."
+      },
+      "history": {
+        "title": "Task History",
+        "empty": "No completed or dismissed tasks yet.",
+        "status": {
+          "done": "Completed",
+          "dismissed": "Dismissed"
+        },
+        "completedAt": "Completed on {date}",
+        "viewHistory": "View task history",
+        "viewOpenTasks": "Back to open tasks"
+      }
+    },
+    "reviews": {
+      "title": "Reviews",
+      "empty": "No reviews yet.",
+      "repliedBadge": "Replied",
+      "notRepliedBadge": "Not replied",
+      "viewOnGoogle": "View on Google",
+      "filters": {
+        "ratingLabel": "Rating",
+        "all": "All",
+        "repliedLabel": "Reply status",
+        "repliedAll": "All",
+        "repliedYes": "Replied",
+        "repliedNo": "Not replied",
+        "sortLabel": "Sort",
+        "sortNewest": "Newest first",
+        "sortOldest": "Oldest first"
+      }
+    },
+    "themes": {
+      "title": "Themes",
+      "empty": "No theme data yet. Run analysis to generate it.",
+      "own": "Your business",
+      "competitorsCombined": "Competitors (combined)",
+      "positive": "{count} positive",
+      "negative": "{count} negative",
+      "trend": {
+        "improving": "Improving",
+        "worsening": "Worsening",
+        "stable": "Stable"
+      }
+    },
+    "trend": {
+      "title": "Trend",
+      "notEnoughData": "Not enough data yet. Trend becomes meaningful as more analysis cycles run.",
+      "clinicScoreLabel": "Clinic Score",
+      "competitorRankLabel": "Competitor Rank"
     }
   }
 }

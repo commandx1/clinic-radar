@@ -32,6 +32,30 @@
     "yourBusiness": "İşletmen",
     "googlePlaceIdLabel": "Google Place ID",
     "linkYourBusiness": "İşletmeni bağla",
+    "tabs": {
+      "overview": "Genel Bakış",
+      "tasks": "Görevler",
+      "competitors": "Rakipler",
+      "reviews": "Yorumlar",
+      "themes": "Temalar",
+      "trend": "Trend"
+    },
+    "overview": {
+      "clinicScore": "Clinic Score",
+      "competitorRank": "Rakip Sırası",
+      "competitorRankValue": "{rank}/{total}",
+      "criticalIssues": "Kritik Konular",
+      "criticalIssuesValue": "{count} kritik konu",
+      "completedTasks": "Tamamlanan Görevler",
+      "completedTasksValue": "{done}/{total}",
+      "potentialRatingGain": "Potansiyel Puan Artışı",
+      "potentialRatingGainValue": "+{value} puan potansiyeli",
+      "notEnoughData": "Henüz yeterli veri yok — Clinic Score'unu görmek için analizi birkaç kez çalıştır.",
+      "executiveSummaryTitle": "Yönetici Özeti",
+      "topTasksTitle": "Öncelikli görevler",
+      "topTasksEmpty": "Açık görev yok. Görev üretmek için analizi çalıştır.",
+      "trendPreviewTitle": "Trend"
+    },
     "form": {
       "name": "İşletme adı",
       "googlePlaceId": "Google Place ID",
@@ -41,7 +65,128 @@
       "genericError": "Bir şeyler ters gitti."
     },
     "errors": {
-      "already_linked": "Bu işletme zaten bağlı bir hesapta kayıtlı."
+      "already_linked": "Bu işletme zaten bağlı bir hesapta kayıtlı.",
+      "business_already_exists": "Zaten bağlı bir işletmen var. Her hesap tek bir işletmeyi destekler."
+    },
+    "enrichmentFailed": {
+      "title": "İşletme verini çekemedik",
+      "body": "Bu Google Place ID için detayları alamadık. Lütfen ID'yi kontrol edip işletmeni tekrar bağlamayı dene."
+    },
+    "competitors": {
+      "discovering": {
+        "title": "Bölgendeki rakipler taranıyor",
+        "subtitle": "Bu işlem bir dakikaya kadar sürebilir."
+      },
+      "selection": {
+        "title": "Rakiplerini seç",
+        "subtitle": "Takip etmek için 3 ile {max} arası işletme seç.",
+        "continueButton": "Devam Et",
+        "continueButtonSubmitting": "Kaydediliyor…",
+        "minRequiredHint": "{count} rakip daha seçmelisin (en az 3 gerekli).",
+        "limitedResults": "Bölgenizde sınırlı sayıda güçlü rakip bulundu.",
+        "reviewCount": "{count} yorum",
+        "retry": "Tekrar dene"
+      },
+      "errors": {
+        "discover_failed": "Rakipleri şu anda tarayamadık. Lütfen tekrar dene.",
+        "business_not_enriched": "İşletme verin henüz hazır değil.",
+        "plan_limit_exceeded": "Planının izin verdiğinden daha fazla rakip seçtin.",
+        "save_failed": "Seçimini kaydedemedik. Lütfen tekrar dene.",
+        "genericError": "Bir şeyler ters gitti."
+      },
+      "list": {
+        "title": "Rakipler",
+        "empty": "Henüz rakip yok.",
+        "reviewCount": "{count} yorum",
+        "manageButton": "Rakipleri yönet",
+        "cancelButton": "Vazgeç"
+      }
+    },
+    "analysis": {
+      "runButton": "Analizi çalıştır",
+      "runButtonPending": "Analiz çalışıyor… birkaç dakika sürebilir",
+      "lastScrapedAt": "Son analiz: {date}",
+      "neverScraped": "Analiz henüz çalıştırılmadı.",
+      "cooldownNotice": "Sıradaki analiz {date} tarihinde çalıştırılabilir.",
+      "errors": {
+        "business_not_enriched": "İşletme verin henüz hazır değil.",
+        "insufficient_competitors": "Analiz çalıştırmadan önce en az 3 rakip seçmelisin.",
+        "apify_call_failed": "Yorumları şu anda çekemedik. Lütfen tekrar dene.",
+        "review_save_failed": "Çekilen yorumları kaydedemedik. Lütfen tekrar dene.",
+        "ai_provider_not_configured": "Analiz şu anda kullanılamıyor. Lütfen daha sonra tekrar dene.",
+        "analysis_cooldown_active": "Analizi {date} tarihinde tekrar çalıştırabilirsin.",
+        "genericError": "Bir şeyler ters gitti."
+      }
+    },
+    "tasks": {
+      "title": "Görevler",
+      "empty": "Henüz görev yok. Görev üretmek için analizi çalıştır.",
+      "priority": {
+        "high": "Yüksek",
+        "medium": "Orta",
+        "low": "Düşük"
+      },
+      "impactEffort": "Etki {impact}/100 · Zorluk {effort}/5",
+      "basedOnCompetitor": "{name} rakibine göre",
+      "evidence": {
+        "competitiveGap": "Rakip yorumlarında bu tema {competitorPositive} kez olumlu geçiyor; senin yorumlarında {ownPositive} kez.",
+        "absoluteQuality": "Son {days} günde kendi yorumlarında bu temaya dair {ownNegative} olumsuz mention var."
+      },
+      "completeButton": "Tamamla",
+      "dismissButton": "Reddet",
+      "errors": {
+        "not_found": "Bu görev artık mevcut değil.",
+        "update_failed": "Bu görevi güncelleyemedik. Lütfen tekrar dene.",
+        "genericError": "Bir şeyler ters gitti."
+      },
+      "history": {
+        "title": "Görev Geçmişi",
+        "empty": "Henüz tamamlanmış veya reddedilmiş görev yok.",
+        "status": {
+          "done": "Tamamlandı",
+          "dismissed": "Reddedildi"
+        },
+        "completedAt": "{date} tarihinde tamamlandı",
+        "viewHistory": "Görev geçmişini görüntüle",
+        "viewOpenTasks": "Açık görevlere dön"
+      }
+    },
+    "reviews": {
+      "title": "Yorumlar",
+      "empty": "Henüz yorum yok.",
+      "repliedBadge": "Yanıtlandı",
+      "notRepliedBadge": "Yanıtlanmadı",
+      "viewOnGoogle": "Google'da görüntüle",
+      "filters": {
+        "ratingLabel": "Puan",
+        "all": "Tümü",
+        "repliedLabel": "Yanıt durumu",
+        "repliedAll": "Tümü",
+        "repliedYes": "Yanıtlandı",
+        "repliedNo": "Yanıtlanmadı",
+        "sortLabel": "Sırala",
+        "sortNewest": "En yeni",
+        "sortOldest": "En eski"
+      }
+    },
+    "themes": {
+      "title": "Temalar",
+      "empty": "Henüz tema verisi yok. Üretmek için analizi çalıştır.",
+      "own": "İşletmen",
+      "competitorsCombined": "Rakipler (toplam)",
+      "positive": "{count} pozitif",
+      "negative": "{count} negatif",
+      "trend": {
+        "improving": "İyileşiyor",
+        "worsening": "Kötüleşiyor",
+        "stable": "Sabit"
+      }
+    },
+    "trend": {
+      "title": "Trend",
+      "notEnoughData": "Henüz yeterli veri yok. Analiz döngüleri arttıkça trend anlamlı hale gelir.",
+      "clinicScoreLabel": "Clinic Score",
+      "competitorRankLabel": "Rakip Sırası"
     }
   }
 }

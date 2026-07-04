@@ -37,6 +37,7 @@ export type Database = {
       businesses: {
         Row: {
           category: string | null
+          geo_cell: string | null
           google_place_id: string | null
           id: string
           last_scraped_at: string | null
@@ -50,6 +51,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          geo_cell?: string | null
           google_place_id?: string | null
           id?: string
           last_scraped_at?: string | null
@@ -63,6 +65,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          geo_cell?: string | null
           google_place_id?: string | null
           id?: string
           last_scraped_at?: string | null
@@ -78,7 +81,7 @@ export type Database = {
           {
             foreignKeyName: "businesses_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -88,6 +91,7 @@ export type Database = {
         Row: {
           business_id: string
           competitor_rank: number | null
+          executive_summary: Json | null
           id: string
           score: number | null
           snapshot_at: string
@@ -95,6 +99,7 @@ export type Database = {
         Insert: {
           business_id: string
           competitor_rank?: number | null
+          executive_summary?: Json | null
           id?: string
           score?: number | null
           snapshot_at?: string
@@ -102,6 +107,7 @@ export type Database = {
         Update: {
           business_id?: string
           competitor_rank?: number | null
+          executive_summary?: Json | null
           id?: string
           score?: number | null
           snapshot_at?: string
@@ -317,7 +323,7 @@ export type Database = {
           business_id: string
           completed_at: string | null
           created_at: string
-          description: string | null
+          description_i18n: Json | null
           effort_score: number | null
           id: string
           impact_score: number | null
@@ -326,14 +332,14 @@ export type Database = {
           source_type: string
           status: string
           theme: string | null
-          title: string
+          title_i18n: Json
         }
         Insert: {
           based_on_competitor_id?: string | null
           business_id: string
           completed_at?: string | null
           created_at?: string
-          description?: string | null
+          description_i18n?: Json | null
           effort_score?: number | null
           id?: string
           impact_score?: number | null
@@ -342,14 +348,14 @@ export type Database = {
           source_type: string
           status?: string
           theme?: string | null
-          title: string
+          title_i18n: Json
         }
         Update: {
           based_on_competitor_id?: string | null
           business_id?: string
           completed_at?: string | null
           created_at?: string
-          description?: string | null
+          description_i18n?: Json | null
           effort_score?: number | null
           id?: string
           impact_score?: number | null
@@ -358,7 +364,7 @@ export type Database = {
           source_type?: string
           status?: string
           theme?: string | null
-          title?: string
+          title_i18n?: Json
         }
         Relationships: [
           {
@@ -447,6 +453,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_businesses_in_geo_cell: {
+        Args: { target_geo_cell: string }
+        Returns: number
+      }
       is_business_owner: {
         Args: { target_business_id: string }
         Returns: boolean

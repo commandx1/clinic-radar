@@ -29,6 +29,9 @@ Bir görev 14 gün `open` kalırsa:
 ## Otomatik dismiss (60 gün kuralı)
 Görev 60 gün `open` kalır ve `priority = low` ise → `status = dismissed`, kullanıcıya bildirim (`02-business-rules.md` Bölüm G).
 
+## Dismissed görev reopen (2x negatif patlama kuralı)
+Bu kontrol analiz döngüsü içinde (`analysis/run` route'u) tema özeti (`theme_summary`) kaydından sonra, görev upsert'inden önce çalışır — bkz. `02-business-rules.md` Bölüm E.
+
 ## Clinic Score formülü (ilk versiyon, kalibre edilecek)
 ```
 clinic_score =

@@ -30,6 +30,7 @@ const EXAMPLE_COORDINATES: readonly { label: string; lat: number; lng: number }[
 
 interface CliOptions {
   query: string;
+  label: string | null;
   lat: number;
   lng: number;
   radiusKm: number;
@@ -56,7 +57,9 @@ function printHelp(): void {
     "  --count <num>         Örneklenecek klinik sayısı (varsayılan: 25)",
     "  --window-days <num>   Hız penceresi, gün (varsayılan: 90)",
     "  --max-reviews <num>   Klinik başına çekilecek en yeni yorum sayısı (varsayılan: 100)",
-    "  --out <path>          Rapor çıktı yolu (varsayılan: docs/research/review-velocity-<slug>-<tarih>.md)",
+    '  --label <str>         Dosya adı etiketi, örn. "dental-waco" — aynı query ile farklı',
+    "                        şehir/koşu raporlarının birbirinin üzerine yazmasını önler",
+    "  --out <path>          Rapor çıktı yolu (varsayılan: docs/research/review-velocity-<label|query-slug>-<tarih>.md)",
     "  --help                Bu mesajı göster ve çık",
     "",
     "Örnek koordinatlar:",
@@ -169,10 +172,13 @@ function parseCliOptions(argv: string[]): CliOptions {
     ? parseNumberFlag(flags.get("max-reviews"), "max-reviews")
     : 100;
 
-  const defaultOut = `docs/research/review-velocity-${slugify(query)}-${todayIsoDate()}.md`;
+  const rawLabel = flags.get("label");
+  const label = rawLabel !== undefined && rawLabel.trim() !== "" ? rawLabel.trim() : null;
+
+  const defaultOut = `docs/research/review-velocity-${slugify(label ?? query)}-${todayIsoDate()}.md`;
   const out = flags.get("out") ?? defaultOut;
 
-  return { query, lat, lng, radiusKm, count, windowDays, maxReviews, out };
+  return { query, label, lat, lng, radiusKm, count, windowDays, maxReviews, out };
 }
 
 interface ClinicVelocity {
@@ -305,7 +311,7 @@ function buildMarkdownReport(
 
   return `# Yorum Hızı Ölçümü — "${options.query}"
 
-**Parametreler:** lat=${String(options.lat)}, lng=${String(options.lng)}, radius-km=${String(options.radiusKm)}, count=${String(options.count)}, window-days=${String(options.windowDays)}, max-reviews=${String(options.maxReviews)}
+**Parametreler:** lat=${String(options.lat)}, lng=${String(options.lng)}, radius-km=${String(options.radiusKm)}, count=${String(options.count)}, window-days=${String(options.windowDays)}, max-reviews=${String(options.maxReviews)}${options.label !== null ? `, label=${options.label}` : ""}
 **Tarih:** ${todayIsoDate()}
 
 Bu rapor \`docs/11-risks-assumptions.md\` Bölüm A, Risk 1 için erken sinyal verisidir:

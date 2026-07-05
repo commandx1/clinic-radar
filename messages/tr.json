@@ -60,6 +60,7 @@
       "name": "İşletme adı",
       "googlePlaceId": "Google Place ID",
       "category": "Kategori (opsiyonel)",
+      "currentTool": "Şu an rakip/itibar takibi için ne kullanıyorsunuz?",
       "submit": "Bağla",
       "submitting": "Kaydediliyor…",
       "genericError": "Bir şeyler ters gitti."
@@ -130,13 +131,18 @@
       "basedOnCompetitor": "{name} rakibine göre",
       "evidence": {
         "competitiveGap": "Rakip yorumlarında bu tema {competitorPositive} kez olumlu geçiyor; senin yorumlarında {ownPositive} kez.",
+        "competitorBreakdown": "({strongCount}/{totalCount} rakipte güçlü)",
         "absoluteQuality": "Son {days} günde kendi yorumlarında bu temaya dair {ownNegative} olumsuz mention var."
       },
       "completeButton": "Tamamla",
       "dismissButton": "Reddet",
+      "checklist": {
+        "title": "Adımlar"
+      },
       "errors": {
         "not_found": "Bu görev artık mevcut değil.",
         "update_failed": "Bu görevi güncelleyemedik. Lütfen tekrar dene.",
+        "invalid_body": "Geçersiz istek.",
         "genericError": "Bir şeyler ters gitti."
       },
       "history": {
@@ -187,6 +193,26 @@
       "notEnoughData": "Henüz yeterli veri yok. Analiz döngüleri arttıkça trend anlamlı hale gelir.",
       "clinicScoreLabel": "Clinic Score",
       "competitorRankLabel": "Rakip Sırası"
+    }
+  },
+  "emails": {
+    "common": {
+      "cta": "ClinicRadar'da görüntüle",
+      "footer": "Bu e-postayı ClinicRadar hesabınıza kayıtlı bir işletmeniz olduğu için alıyorsunuz."
+    },
+    "weeklyDigest": {
+      "subject": "{businessName} için haftalık ClinicRadar özeti",
+      "heading": "Haftalık özet — {businessName}",
+      "intro": "Son 7 gündeki bildirimlerin özeti:",
+      "newTaskLine": "Yeni görev: {theme}",
+      "dismissedLine": "Otomatik reddedildi (60 gün): {theme}",
+      "themeSpikeLine": "Kritik sinyal: \"{theme}\" temasında ani artış",
+      "empty": "Bu hafta yeni bildirim yok."
+    },
+    "themeSpike": {
+      "subject": "{businessName}: \"{theme}\" temasında ani artış",
+      "heading": "Kritik sinyal tespit edildi",
+      "body": "{businessName} için \"{theme}\" temasındaki mention sayısı önceki döngüye göre {multiplier}x arttı. Hemen incelemeni öneririz."
     }
   }
 }

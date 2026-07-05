@@ -4,9 +4,43 @@ Bu doküman, ürünün "wow" özelliğinin (Opportunity Score) ve görev yaşam 
 
 ## Opportunity Score bileşenleri
 
-Her görev, Aşama 2 Claude çağrısından (`06-prompts.md`) iki ham skorla gelir:
-- **impact_score** (0-100): iyileştirilirse puan/itibar üzerindeki tahmini etki. Claude bunu mention_count, sentiment yoğunluğu ve rakip sayısındaki tutarlılığa göre tahmin eder.
-- **effort_score** (1-5): uygulama zorluğu. 1 = hızlı/kolay (ör. "Google profiline fotoğraf ekle"), 5 = zor/uzun soluklu (ör. "randevu sistemini değiştir").
+Her görev iki skorla değerlendirilir:
+- **impact_score** (0-100): Artık Aşama 2 Claude çağrısından ALINMAZ — `src/lib/task-engine/impact-score.ts` içinde kod tarafında, rakip yaygınlığı + own eksikliği + trend kırılımından deterministik hesaplanır (bkz. "Impact score bileşenleri (v1)" altbölümü).
+- **effort_score** (1-5): uygulama zorluğu. Aşama 2 Claude çağrısından (`06-prompts.md`) gelir. 1 = hızlı/kolay (ör. "Google profiline fotoğraf ekle"), 5 = zor/uzun soluklu (ör. "randevu sistemini değiştir").
+
+### Impact score bileşenleri (v1)
+
+İki aday tipi (`candidate_source_type`) için farklı formül kullanılır:
+
+**`competitive_gap`** (rakip bu temada güçlü, klinik zayıf/eksik):
+```
+competitor_prevalence = rakibin bu temadaki pozitif mention oranı × 100   (0-100)
+own_deficiency        = (1 - kliniğin bu temadaki pozitif mention oranı) × 100
+                         (own bu temada hiç veri üretmediyse tam eksiklik = 100)
+trend_adjustment      = own tema trend'ine göre +IMPACT_SCORE_TREND_WORSENING_BONUS /
+                         IMPACT_SCORE_TREND_IMPROVING_PENALTY / 0
+
+impact_score = clamp(
+    competitor_prevalence * IMPACT_SCORE_COMPETITOR_PREVALENCE_WEIGHT +
+    own_deficiency        * IMPACT_SCORE_OWN_DEFICIENCY_WEIGHT +
+    trend_adjustment,
+  0, 100)
+```
+
+**`absolute_quality`** (rakip fark etmeksizin kliniğin kendi ciddi/tekrar eden sorunu — rakip verisi bu tipte anlamsız, `competitor_prevalence = null`):
+```
+own_deficiency   = kliniğin bu temadaki negatif mention oranı × 100
+volume           = clamp((negatif mention sayısı / IMPACT_SCORE_MENTION_VOLUME_SCALE) * 100, 0, 100)
+trend_adjustment = (yukarıdaki ile aynı mantık)
+
+impact_score = clamp(
+    own_deficiency * IMPACT_SCORE_ABSOLUTE_QUALITY_DEFICIENCY_WEIGHT +
+    volume         * IMPACT_SCORE_ABSOLUTE_QUALITY_VOLUME_WEIGHT +
+    trend_adjustment,
+  0, 100)
+```
+
+Ağırlık/eşik sabitleri `src/lib/constants.ts` içinde tek yerde tutulur (`IMPACT_SCORE_*`, `IMPACT_SCORE_MENTION_VOLUME_SCALE`) — kalibrasyon için buradan değiştirilir. Görev kartında "neden bu skor" kırılımını göstermek için `ImpactScoreBreakdown` (competitor_prevalence, own_deficiency, trend, trend_adjustment) ham bileşenleriyle birlikte döndürülür ve saklanır (`tasks.impact_score_breakdown`).
 
 ## Priority türetme (kod tarafında, promptta değil)
 ```

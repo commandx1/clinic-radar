@@ -32,7 +32,8 @@ businesses (
   geo_cell text,                -- geohash(lat,lng, precision=6), app tarafında hesaplanır (bkz. region_category_cache.geo_cell ile aynı fonksiyon)
   rating float,
   review_count int,
-  last_scraped_at timestamptz
+  last_scraped_at timestamptz,
+  current_tool text            -- onboarding zorunlu sorusu "şu an rakip/itibar takibi için ne kullanıyorsunuz?" (11-risks-assumptions.md Bölüm B/E); DB'de nullable (eski satırlar), zorunluluk app katmanında
 )
 
 clinic_score_history (
@@ -114,6 +115,27 @@ theme_summary (
   updated_at timestamptz
 )
 
+-- ============ Analiz Koşuları ============
+
+-- Her analysis/run çağrısının (manuel veya cron) yaşam döngüsü kaydı:
+-- cron dedup/gözlemlenebilirlik için. Cron service role ile yazar (RLS muaf);
+-- manuel rota authed client ile yazar — is_business_owner tabanlı
+-- select/insert/update policy'leri vardır, delete policy bilinçli olarak yoktur
+-- (koşu kayıtları denetim izidir). bkz. 05-ai-pipeline.md.
+analysis_runs (
+  id uuid primary key,
+  business_id uuid references businesses(id),
+  trigger text,                -- 'manual' | 'cron'
+  status text,                 -- 'running' | 'succeeded' | 'failed'
+  error text,                  -- status='failed' ise hata mesajı, aksi halde null
+  started_at timestamptz,
+  finished_at timestamptz,     -- koşu bitene kadar null
+  scrape_success boolean,      -- Apify job'ı başarılı mı; scrape hiç denenmediyse (örn. insufficient_competitors) null — Risk 3 sinyali (11-risks-assumptions.md)
+  fetched_reviews int,         -- Apify'dan dönen ham yorum sayısı (yorum başına maliyet trendinin paydası)
+  scrape_latency_ms int,       -- fetchReviewsForPlaces duvar saati süresi
+  scrape_cost_usd numeric      -- tahmini maliyet: fetched_reviews × APIFY_PRICE_PER_REVIEW_USD; env tanımsızsa null (run-sync yanıtı gerçek usage taşımaz)
+)
+
 -- ============ Görevler ============
 
 tasks (
@@ -134,10 +156,14 @@ tasks (
 )
 ```
 
+## Yetkilendirme (RLS + GRANT)
+Her tabloda RLS açık ve `authenticated` rolüne satır bazlı policy'lerle eşleşen `grant`'lar veriliyor. **Önemli:** `service_role`'ün `rolbypassrls=true` olması yalnızca RLS policy değerlendirmesini atlar, Postgres'in tablo düzeyindeki `GRANT` kontrolünü atlamaz — ikisi ayrı mekanizma. `20260711000000_service_role_grants.sql`, cron pipeline'ının (`run-cron-analysis-cycle.ts`, `execute-analysis.ts`, `run-daily-maintenance.ts`, `auto-dismiss.ts`, `weekly-digest.ts`, `record-notification.ts`) fiilen dokunduğu tablo/operasyon çiftlerine `service_role` grant'ı ekler — bu olmadan admin client her sorguda "permission denied" alıyordu (Faz 1.2 sonunda keşfedilip düzeltildi). Yeni bir tablo eklerken cron veya `scripts/*.ts` bakım script'lerinden erişilecekse aynı migration'da `service_role`'e de grant vermeyi unutma.
+
 ## İndeks önerileri
 - `reviews(business_id, owner_type, published_at)` — trend sorguları için.
 - `region_category_cache(normalized_category, geo_cell)` unique — cache lookup için.
 - `tasks(business_id, status)` — dashboard task listesi için.
+- `analysis_runs(business_id)` ve `analysis_runs(started_at desc)` — cron dedup ("bu hafta koşuldu mu?") ve son koşu sorguları için.
 
 ## Kategori normalizasyonu (Faz 1 kararı)
 Google kategorileri tutarsız ("Dentist" vs "Cosmetic dentist" vs "Orthodontist") — ve ürün global olduğu için bu etiketler Google'ın döndürdüğü **yerel dilde** de gelir (ör. "Zahnarzt", "Diş Hekimi", "Dentiste"). Faz 1'de bu bir DB tablosu değil, kod içinde statik bir eşleştirme (`src/lib/category/normalize.ts`, `CATEGORY_ALIASES` map) olarak tutulur — yaşayan/genişleyen bir liste, tek seferlik bir teslimat değil. Eşlenmeyen bir ham kategori (`trim().toLowerCase()` sonrası map'te yoksa) kendi değerine normalize edilir, yani sadece birebir aynı yazılmış diğer kayıtlarla eşleşir, farklı dildeki eşdeğeriyle otomatik eşleşmez — bu kabul edilen bir MVP sınırlamasıdır. Belirsiz/çok dilli durumlarda Claude'a "bu iki kategori aynı iş kolunda mı" sorusu sorulması (dilden bağımsız çalışır) Faz 1.1'e bırakılmıştır.

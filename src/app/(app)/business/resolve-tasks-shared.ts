@@ -3,7 +3,9 @@ import type { createClient } from "@/lib/supabase/server";
 import { normalizeTheme } from "@/lib/task-engine/reopen";
 import type { Json } from "@/types/database.types";
 
-import type { TaskCardData, TaskEvidence } from "./task-card-body";
+import type { TaskCardData, TaskChecklistItem, TaskEvidence } from "./task-card-body";
+
+// (bkz. ThemeCompetitorBreakdownLookup tanımı aşağıda)
 
 export type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -15,6 +17,17 @@ export interface ThemeSummaryCounts {
 }
 
 export type ThemeSummaryLookup = Map<string, ThemeSummaryCounts>;
+
+// bkz. docs/10-roadmap.md Faz 1.2 madde 3 — tema başına rakip bazlı kırılım:
+// kaç rakipte bu tema "güçlü" (positive > negative) geçiyor / toplam kaç
+// rakipte bu temaya dair herhangi bir mention var. Görev kartında
+// "N rakibinden M'i güçlü" satırı için kullanılır; skorlamayı etkilemez.
+export interface ThemeCompetitorBreakdown {
+  strongCount: number;
+  totalCount: number;
+}
+
+export type ThemeCompetitorBreakdownLookup = Map<string, ThemeCompetitorBreakdown>;
 
 export function pickLocale(value: Json, locale: string): string {
   const bilingual = value as unknown as BilingualText;
@@ -32,6 +45,40 @@ interface TaskRowBase {
   // DB kolonu `string` (bkz. database.types.ts) — gerçek değerler her zaman
   // "competitive_gap" | "absolute_quality", burada literal union'a daraltılır.
   source_type?: string | null;
+  checklist_i18n?: Json | null;
+}
+
+interface RawChecklistItem {
+  tr: unknown;
+  en: unknown;
+  done: unknown;
+}
+
+function isRawChecklistItem(value: unknown): value is RawChecklistItem {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as RawChecklistItem).tr === "string" &&
+    typeof (value as RawChecklistItem).en === "string" &&
+    typeof (value as RawChecklistItem).done === "boolean"
+  );
+}
+
+function toChecklist(value: Json | null | undefined, locale: string): TaskChecklistItem[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const items: TaskChecklistItem[] = [];
+  for (const raw of value) {
+    if (!isRawChecklistItem(raw)) {
+      continue;
+    }
+    items.push({
+      text: locale === "en" ? (raw.en as string) : (raw.tr as string),
+      done: raw.done as boolean,
+    });
+  }
+  return items.length > 0 ? items : undefined;
 }
 
 type TaskSourceType = "competitive_gap" | "absolute_quality" | null;
@@ -46,6 +93,7 @@ function toSourceType(value: string | null | undefined): TaskSourceType {
 function computeEvidence(
   task: TaskRowBase,
   themeSummaryLookup: ThemeSummaryLookup | undefined,
+  competitorBreakdownLookup?: ThemeCompetitorBreakdownLookup,
 ): TaskEvidence | undefined {
   if (!task.theme || !themeSummaryLookup) {
     return undefined;
@@ -54,6 +102,7 @@ function computeEvidence(
   const own = themeSummaryLookup.get(`own|${normalized}`);
   const competitor = themeSummaryLookup.get(`competitor|${normalized}`);
   const sourceType = toSourceType(task.source_type);
+  const breakdown = competitorBreakdownLookup?.get(normalized);
 
   if (sourceType === "competitive_gap") {
     if (!competitor) {
@@ -64,6 +113,8 @@ function computeEvidence(
       ownNegative: own?.negative ?? 0,
       competitorPositive: competitor.positive,
       competitorNegative: competitor.negative,
+      competitorStrongCount: breakdown?.strongCount,
+      competitorTotalCount: breakdown?.totalCount,
     };
   }
 
@@ -101,6 +152,7 @@ export function toTaskCardData(
   locale: string,
   competitorNameById: Map<string, string>,
   themeSummaryLookup?: ThemeSummaryLookup,
+  competitorBreakdownLookup?: ThemeCompetitorBreakdownLookup,
 ): TaskCardData {
   return {
     title: pickLocale(task.title_i18n, locale),
@@ -113,6 +165,7 @@ export function toTaskCardData(
     competitorName: task.based_on_competitor_id
       ? (competitorNameById.get(task.based_on_competitor_id) ?? null)
       : null,
-    evidence: computeEvidence(task, themeSummaryLookup),
+    evidence: computeEvidence(task, themeSummaryLookup, competitorBreakdownLookup),
+    checklist: toChecklist(task.checklist_i18n, locale),
   };
 }

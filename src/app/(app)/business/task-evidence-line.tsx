@@ -22,12 +22,16 @@ export function TaskEvidenceLine({
   }
 
   if (sourceType === "competitive_gap") {
+    const strongCount = evidence.competitorStrongCount;
+    const totalCount = evidence.competitorTotalCount;
+    const hasBreakdown = typeof strongCount === "number" && typeof totalCount === "number";
     return (
       <p className="text-xs text-muted-foreground">
         {t("competitiveGap", {
           competitorPositive: evidence.competitorPositive,
           ownPositive: evidence.ownPositive,
         })}
+        {hasBreakdown ? ` ${t("competitorBreakdown", { strongCount, totalCount })}` : null}
       </p>
     );
   }

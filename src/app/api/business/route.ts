@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       name: parsed.data.name,
       google_place_id: parsed.data.google_place_id,
       category: parsed.data.category ?? null,
+      current_tool: parsed.data.current_tool,
     })
     .select()
     .single();

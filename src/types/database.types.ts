@@ -34,9 +34,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      analysis_runs: {
+        Row: {
+          business_id: string
+          error: string | null
+          fetched_reviews: number | null
+          finished_at: string | null
+          id: string
+          scrape_cost_usd: number | null
+          scrape_latency_ms: number | null
+          scrape_success: boolean | null
+          started_at: string
+          status: string
+          trigger: string
+        }
+        Insert: {
+          business_id: string
+          error?: string | null
+          fetched_reviews?: number | null
+          finished_at?: string | null
+          id?: string
+          scrape_cost_usd?: number | null
+          scrape_latency_ms?: number | null
+          scrape_success?: boolean | null
+          started_at?: string
+          status: string
+          trigger: string
+        }
+        Update: {
+          business_id?: string
+          error?: string | null
+          fetched_reviews?: number | null
+          finished_at?: string | null
+          id?: string
+          scrape_cost_usd?: number | null
+          scrape_latency_ms?: number | null
+          scrape_success?: boolean | null
+          started_at?: string
+          status?: string
+          trigger?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_runs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           category: string | null
+          current_tool: string | null
           geo_cell: string | null
           google_place_id: string | null
           id: string
@@ -51,6 +102,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          current_tool?: string | null
           geo_cell?: string | null
           google_place_id?: string | null
           id?: string
@@ -65,6 +117,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          current_tool?: string | null
           geo_cell?: string | null
           google_place_id?: string | null
           id?: string
@@ -153,6 +206,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "competitors_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          business_id: string
+          created_at: string
+          emailed_at: string | null
+          id: string
+          payload: Json
+          type: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          emailed_at?: string | null
+          id?: string
+          payload?: Json
+          type: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          emailed_at?: string | null
+          id?: string
+          payload?: Json
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
@@ -321,12 +409,14 @@ export type Database = {
         Row: {
           based_on_competitor_id: string | null
           business_id: string
+          checklist_i18n: Json | null
           completed_at: string | null
           created_at: string
           description_i18n: Json | null
           effort_score: number | null
           id: string
           impact_score: number | null
+          impact_score_breakdown: Json | null
           last_priority_recalc_at: string | null
           priority: string | null
           source_type: string
@@ -337,12 +427,14 @@ export type Database = {
         Insert: {
           based_on_competitor_id?: string | null
           business_id: string
+          checklist_i18n?: Json | null
           completed_at?: string | null
           created_at?: string
           description_i18n?: Json | null
           effort_score?: number | null
           id?: string
           impact_score?: number | null
+          impact_score_breakdown?: Json | null
           last_priority_recalc_at?: string | null
           priority?: string | null
           source_type: string
@@ -353,12 +445,14 @@ export type Database = {
         Update: {
           based_on_competitor_id?: string | null
           business_id?: string
+          checklist_i18n?: Json | null
           completed_at?: string | null
           created_at?: string
           description_i18n?: Json | null
           effort_score?: number | null
           id?: string
           impact_score?: number | null
+          impact_score_breakdown?: Json | null
           last_priority_recalc_at?: string | null
           priority?: string | null
           source_type?: string
@@ -386,6 +480,7 @@ export type Database = {
       theme_summary: {
         Row: {
           business_id: string
+          competitor_id: string | null
           id: string
           negative_mentions: number
           owner_type: string
@@ -398,6 +493,7 @@ export type Database = {
         }
         Insert: {
           business_id: string
+          competitor_id?: string | null
           id?: string
           negative_mentions?: number
           owner_type: string
@@ -410,6 +506,7 @@ export type Database = {
         }
         Update: {
           business_id?: string
+          competitor_id?: string | null
           id?: string
           negative_mentions?: number
           owner_type?: string
@@ -426,6 +523,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "theme_summary_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitors"
             referencedColumns: ["id"]
           },
         ]

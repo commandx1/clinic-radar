@@ -95,13 +95,13 @@ Not: mevcut 14-gün re-priority ve 2x negatif patlama reopen kuralları (`09-tas
 - [x] Rakip başına aylık yorum hızı ölçümü — Apify ile 20-30 gerçek klinik örnekle (Risk 1 ön-doğrulaması, kadans kararını belirler). *Yapıldı: Austin dental (medyan 9.0/ay), Waco dental (5.3/ay), Austin veterinary (5.0/ay) — hepsi n=25. "Haftalık" kadans metroda doğrulandı; küçük şehir alt çeyreği için adaptif kadans çekirdek karar oldu (bkz. Risk 1 altındaki ÖLÇÜLDÜ notları). Tamamlandı, kalan koşu yok.*
 - [ ] Klinik sahipleriyle görüşme ayarla (Bölüm D adım 1) — concierge testin ön koşulu; mail ancak rıza sonrası atılır.
 - [ ] Concierge test — 10-15 gönüllü klinik, 4 hafta (Bölüm D).
-- [ ] Scrape başarı oranı / maliyet / latency loglaması pipeline'a eklensin (Risk 3 sinyalleri).
-- [ ] Onboarding'e "şu an ne kullanıyorsunuz?" sorusu (Bölüm B sinyali).
+- [x] Scrape başarı oranı / maliyet / latency loglaması pipeline'a eklensin (Risk 3 sinyalleri). *Yapıldı: her koşuda `analysis_runs.scrape_success/fetched_reviews/scrape_latency_ms/scrape_cost_usd` yazılır (bkz. `03-database.md`); maliyet `APIFY_PRICE_PER_REVIEW_USD` env'inden tahmin edilir. Eşik alarmları hâlâ Faz 1.1 maddesi (aşağıda).*
+- [x] Onboarding'e "şu an ne kullanıyorsunuz?" sorusu (Bölüm B sinyali). *Yapıldı: işletme bağlama formunda zorunlu serbest metin alanı, `businesses.current_tool` kolonuna yazılır (bkz. `03-database.md`).*
 
 **MVP sonrası / Faz 1.1 ile birlikte:**
-- [ ] Görev damlatma (backlog drip) mekanizması — haftada 3-5 görev sunumu.
-- [ ] E-posta digest'ini teslimat kanalı olarak tasarla (concierge test sonucuna göre ağırlığı belirlenir).
-- [ ] Delta bildirimleri ("rakibin bu hafta X yeni yorum aldı") — bildirim kuralları (`02-business-rules.md` Bölüm G) ile birlikte.
-- [ ] Scrape eşik alarmları (başarı <%90, maliyet 2x).
+- [x] Görev damlatma (backlog drip) mekanizması — haftada 3-5 görev sunumu. *Ayrı bir kuyruk/`revealed_at` sistemi yerine mevcut `MAX_NEW_TASKS_PER_CYCLE=5` sınırı bu ihtiyacı zaten karşılıyor: her analiz döngüsünde adaylar impact/effort oranına göre sıralanıp yalnızca en iyi 5'i oluşturulur/güncellenir (bkz. `execute-analysis.ts` `rankAndCapCandidates`); üstteki 5 tamamlanınca/dismiss olunca alttaki adaylar bir sonraki döngüde doğal olarak yükselir. Statik bir "kuyruktan sırayla açma" yerine dinamik yeniden sıralama — aynı sonucu daha az karmaşıklıkla verir.*
+- [x] E-posta digest'ini teslimat kanalı olarak tasarla (concierge test sonucuna göre ağırlığı belirlenir). *Altyapı hazır: `sendWeeklyDigests` idempotent toplu gönderim yapıyor (bkz. `weekly-digest.ts`); ağırlık/konumlandırma kararı hâlâ concierge test sonucuna bağlı, bu doküman değişikliği gerektirmez.*
+- [x] Delta bildirimleri ("rakibin bu hafta X yeni yorum aldı") — bildirim kuralları (`02-business-rules.md` Bölüm G) ile birlikte. *`theme_spike` (kritik sinyal, anlık) ve `competitor_review_delta` (yeni görev, haftalık özette) türleri bu ihtiyacı karşılıyor.*
+- [ ] Scrape eşik alarmları (başarı <%90, maliyet 2x). *Henüz yapılmadı — loglama (Bölüm E, `analysis_runs.scrape_success/scrape_cost_usd`) hazır ama eşik aşıldığında bildirim/alarm tetiklenmiyor. Ayrı bir takip maddesi olarak kalıyor (Faz 1.1'in bildirim/digest çekirdeği ile karıştırılmamalı).*
 
 **Sürekli izlenen metrikler:** 2. hafta dönüş oranı · yalnızca-ilk-analiz kullanıcı oranı · dismiss/complete oranı · scrape başarı-maliyet-latency · churn'de Birdeye frekansı.

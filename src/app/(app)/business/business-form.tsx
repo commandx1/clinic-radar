@@ -17,6 +17,8 @@ export function BusinessForm() {
     setGooglePlaceId,
     category,
     setCategory,
+    currentTool,
+    setCurrentTool,
     errorMessage,
     isPending,
     handleSubmit,
@@ -55,6 +57,18 @@ export function BusinessForm() {
           value={category}
           onChange={(e) => {
             setCategory(e.target.value);
+          }}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="business-current-tool">{t("currentTool")}</Label>
+        <Input
+          id="business-current-tool"
+          required
+          value={currentTool}
+          onChange={(e) => {
+            setCurrentTool(e.target.value);
           }}
         />
       </div>

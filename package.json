@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "prepare": "husky"
+    "prepare": "husky",
+    "backfill:checklists": "tsx scripts/backfill-task-checklists.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
@@ -43,6 +44,7 @@
     "prettier": "^3.9.4",
     "supabase": "^2.109.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.0",
     "typescript": "^5",
     "typescript-eslint": "^8.62.1"
   },

@@ -42,7 +42,7 @@ Klasik NLP mimarisinde (embedding → ayrı theme detection → ayrı intent det
 ```
 
 ## Aşama 1 detayı
-- **Ne zaman çalışır:** yeni yorum çekildiğinde (ilk analiz + haftalık/aylık yenileme).
+- **Ne zaman çalışır:** yeni yorum çekildiğinde (ilk analiz + haftalık/aylık yenileme). Haftalık yenileme Faz 1.1'de gerçek: Pro plan işletmeleri `/api/cron/weekly-analysis` üzerinden otomatik yeniden analiz edilir (bkz. `04-api.md`); her koşu — manuel ya da cron — `analysis_runs` tablosuna loglanır (`03-database.md`); koşuyla birlikte scrape gözlemlenebilirlik metrikleri de yazılır (`scrape_success`, `fetched_reviews`, `scrape_latency_ms`, `scrape_cost_usd` — Risk 3 sinyalleri, bkz. `11-risks-assumptions.md`; ölçüm `executeAnalysis` içinde yapılır, davranışı değiştirmez). **Cron sınırlaması:** otomatik run'larda `outputLanguage = defaultLocale ("en")` kullanılır — TR kullanıcı cron çıktısını İngilizce alabilir; kabul edilen bir Faz 1.1 sınırıdır (kalıcı çözüm: kullanıcı locale tercihinin persist edilmesi, sonraya).
 - **Input:** bir işletmenin (own ya da bir competitor) son 90 günlük yorumları, ham metin + puan + dil.
 - **Dil tespiti ve temizlik:** aynı çağrının içinde, prompt'ta talep edilir — ayrı adım değil.
 - **Output şeması:** `06-prompts.md`'de tanımlı (toplulaştırılmış tema listesi — yorum bazlı değil), `theme_summary` tablosuna yazılır. `review_analysis` (yorum bazlı emotion/urgency/confidence) bu şema ile üretilemiyor — Faz 1'de yazılmıyor, hiçbir kod da okumuyor; yorum bazlı sinyal gerektiğinde Aşama 1 prompt şeması ayrıca genişletilmeli (ertelenen bir geliştirme).

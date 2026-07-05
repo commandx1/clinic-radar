@@ -8,3 +8,12 @@ export const updateTaskStatusSchema = z.object({
 });
 
 export type UpdateTaskStatusInput = z.infer<typeof updateTaskStatusSchema>;
+
+// bkz. docs/10-roadmap.md — checklist alt adımını tiklemek durumu ("status")
+// değiştirmez, ayrı bir dal olarak aynı PATCH uç noktasından yönetilir.
+export const updateTaskChecklistSchema = z.object({
+  checklistIndex: z.number().int().min(0),
+  done: z.boolean(),
+});
+
+export type UpdateTaskChecklistInput = z.infer<typeof updateTaskChecklistSchema>;

@@ -26,7 +26,7 @@
       - shadcn/ui — primitive UI bileşenleri (`src/components/ui/`, Base UI + Tailwind, `npx shadcn add` ile üretilir)
 
       ## Mimari Kurallar
-    - RLS her zaman açık; hiçbir tabloya `user_id` bypass eden bir servis-rol sorgusu authenticated context dışında yazılmaz.
+    - RLS her zaman açık; hiçbir tabloya `user_id` bypass eden bir servis-rol sorgusu authenticated context dışında yazılmaz. **Dar istisna:** `CRON_SECRET` korumalı `src/app/api/cron/**` route'ları — kullanıcı oturumu olmadan çalıştıkları için service-role kullanır, o da yalnızca `src/lib/supabase/admin.ts` üzerinden.
       - Ham yorum metni (`reviews.text`) asla UI'da birebir gösterilmez — sadece Claude'un paraphrase edilmiş özeti (`theme_summary`) gösterilir. Bu bir iş kuralı, güvenlik/telif nedeniyle var — bkz. `docs/02-business-rules.md`.
       - AI pipeline çıktıları her zaman saf JSON (prose wrapper yok), çıktı dili parametrik — kullanıcının arayüz diline göre üretilir (bkz. `docs/06-prompts.md`), sabit Türkçe değil.
       - Arayüz metinleri hardcode edilmez, `messages/{locale}.json` üzerinden next-intl ile çevrilir — yeni bir sayfa/bileşen yazarken çeviri anahtarı ekle, doğrudan string yazma.
@@ -36,7 +36,8 @@
 ## Kod Kuralları
 
 - TypeScript strict, `any` yok.
-- Supabase client'ları server/browser context'e göre ayrı helper'lardan alınır, route handler'larda service-role key kullanılmaz (RLS'e güveniyoruz).
+- Supabase client'ları server/browser context'e göre ayrı helper'lardan alınır, route handler'larda service-role key kullanılmaz (RLS'e güveniyoruz). **Dar istisna:** service-role yalnızca `src/lib/supabase/admin.ts`'te tanımlanır ve yalnızca `CRON_SECRET` korumalı `src/app/api/cron/**` route'larında ve elle çalıştırılan tek seferlik bakım script'lerinde (`scripts/*.ts`, ör. `backfill-task-checklists.ts` — kullanıcı oturumu olmadan tüm işletmeler üzerinde toplu işlem yapar) kullanılır — başka hiçbir yerde import edilmez.
+- **`rolbypassrls` GRANT yerine geçmez.** `service_role`'ün `rolbypassrls=true` olması sadece RLS policy'lerini atlar, tablo düzeyindeki `GRANT`'ı atlamaz — her ikisi de gerekir. Yeni bir tablo eklerken `authenticated`'a verdiğin `grant`'ların service-role tarafından da (cron/script erişiyorsa) gerekip gerekmediğini kontrol et (bkz. `20260711000000_service_role_grants.sql` — bu tam olarak eksik olduğu için "permission denied" veren bir bug'ı düzeltti).
 - Migration'lar SQL dosyaları olarak `supabase/migrations/` altında, her migration tek bir mantıksal değişiklik içerir.
 - Yeni bir tablo/alan eklerken önce `docs/03-database.md`'yi güncelle, sonra migration yaz — döküman kod ile senkron kalmalı.
   - Faz 1 kapsamı dışındaki şeyleri (otomatik yorum isteme SMS/email, çok dilli **yorum analizi**/tercüme, doctor/treatment breakdown, agency panel) şimdi implemente etme — `docs/10-roadmap.md`. (Arayüz i18n'i bu kapsamın dışında, Faz 1'de.)
@@ -60,100 +61,64 @@
   - AI pipeline değişikliklerinde şema validasyonu (Zod/JSON schema) zorunlu; validasyon başarısızsa bir kez retry, yine başarısızsa o business'ın analizi "pending" olarak işaretlenir, asla yarım/yanlış veri gösterilmez.
   - **`supabase db reset` kullanıcıya sormadan ÇALIŞTIRILMAZ.** Lokal DB'deki gerçek veriyi (reviews, theme_summary, tasks, kullanıcı hesapları vb.) siler; bu veri `supabase/seed.sql`'de değil (seed sadece test kullanıcısı/business/competitor fixture'larını kapsar, canlı Apify/AI çıktısını değil). Yeni bir migration eklerken mevcut veriyi koruyan `supabase migration up` kullanılır. `db reset` gerçekten kaçınılmazsa (ör. migration sırası bozulmuşsa) önce kullanıcıya sorulur, ardından reviews/theme_summary/tasks `pg_dump` ile yedeklenip reset sonrası geri yüklenir.
 
-## Orchestration workflow
+## Orchestration philosophy
 
-Use Fable 5 as the lead engineer and orchestrator.
+Default to the coding model assigned to the current session, doing the work directly. For most day-to-day engineering tasks, the session's default coding model is sufficient. Escalate only when the reasoning complexity clearly exceeds its strengths.
 
-Fable 5 should:
+Do not treat orchestration as mandatory per task. Escalation is the exception, not the front door.
 
-- understand the goal
-- create the plan
-- split work into clear tasks
-- choose the right route for each task
-- delegate work when another agent or Codex is a better fit
-- review outputs from delegated work
-- make the final quality decision
+## Default route: default model, direct
 
-Fable 5 should not do mechanical work unless it is necessary.
+The default model handles, without asking permission or explaining routing:
 
-Avoid using Fable 5 for:
-
-- broad file scanning
-- repetitive file edits
-- boilerplate generation
-- routine test writing
-- formatting-only changes
-- running tests without interpretation
-- simple refactors with clear acceptance criteria
-
-## Routing rules
-
-Before doing any task, first choose one of these routes:
-
-- Fable direct
-- deep-reasoner
-- fast-worker
-- Codex
-- no action
-
-Always explain the routing choice in one sentence.
-
-Use Fable direct for:
-
-- planning
-- task decomposition
-- final review
-- quality decisions
-- product or architecture direction
-- deciding whether to accept, revise, or escalate
-
-Use deep-reasoner for:
-
-- architecture decisions
-- complex debugging
-- algorithmic decisions
-- reasoning-heavy trade-offs
-- risky refactors
-- second-opinion analysis before important changes
-
-Use fast-worker for:
-
-- boilerplate
+- boilerplate, CRUD, small features
 - tests
-- formatting
-- simple edits
-- small refactors
-- repetitive mechanical changes
-- small documentation updates
-
-Use Codex for:
-
+- formatting and lint fixes
+- small-to-medium refactors with clear acceptance criteria
 - well-specified implementation tasks
+- routine documentation
+- straightforward bug fixes with an obvious cause
+
+For these, just do the work. No plan-and-confirm step, no "Route:/Reason:" preamble, no delegation brief. Overhead here costs more than the task itself.
+
+## Escalation triggers (when to bring in a stronger model)
+
+Escalate to a deep-reasoner / top-tier model ONLY when at least one of these is true:
+
+- an architecture or system-design decision with real long-term cost if wrong
+- a bug that has survived one direct diagnosis attempt, or spans multiple files/subsystems with a non-obvious cause
+- an algorithmic or performance trade-off where correctness/edge cases are hard to reason about
+- a refactor that touches shared/critical code and is hard to reverse
+- security-sensitive authentication or authorization changes
+- database schema or migration decisions that are difficult to roll back
+- public API contract changes
+- concurrency, race-condition, or distributed-system issues
+- multiple plausible implementations exist and the trade-offs cannot be resolved confidently from the available context
+
+Before escalating for the last reason, first try to resolve it by gathering more context (read more of the codebase, check existing conventions, ask the user a clarifying question) — prefer solving with better context over escalating to a stronger model. Escalating doesn't help if the real gap is missing information, not reasoning power.
+
+When escalating, state in one line why (which trigger above applies), then hand off. Don't pre-emptively escalate "just in case" — if unsure whether it qualifies, attempt it directly first and escalate only if you hit a wall.
+
+## Respect existing architecture and scope
+
+- Do not introduce new abstractions, patterns, or frameworks unless the task explicitly requires them or they are necessary to satisfy the acceptance criteria.
+- Follow existing naming, file organization, error-handling, and architectural conventions unless the task explicitly requires changing them.
+- Fix root causes when they are clearly identifiable and within the requested scope.
+- Avoid masking bugs with defensive code unless explicitly requested.
+- Existing public behavior remains unchanged unless the task explicitly requires a behavior change.
+- No unnecessary refactoring. If the task doesn't require touching something, don't touch it, even if you think it could be "better."
+- If you notice unrelated issues while working, mention them separately in your summary instead of fixing them, unless they block the requested task.
+
+## Delegation route (Sonnet worker)
+
+Use a Sonnet worker (`general-purpose` subagent, `model: "sonnet"`) for:
+
+- well-specified implementation tasks that are large/mechanical enough to benefit from an isolated brief
 - codebase investigation
-- terminal verification
-- UI verification
-- test, lint, or build checks
-- independent engineering review
+- terminal/build/lint/test verification
+- independent review of your own output before accepting it, on anything escalation-worthy
 
-If a task clearly matches a subagent or Codex role, prefer delegation instead of doing the work directly.
-
-If you do not delegate, briefly explain why.
-
-Return all important results to Fable 5 before final acceptance.
-
-## Codex execution rule
-
-When the selected route is Codex, do not continue the implementation yourself as Fable 5.
-
-Instead:
-
-1. Create a self-contained Codex brief.
-2. Include the task, files or area, constraints, acceptance criteria, and verification command.
-3. Use the available Codex command or Codex workflow to delegate the task.
-4. Wait for Codex to return the result.
-5. Review the Codex result as Fable 5 before accepting it.
-
-Codex brief format:
+Delegation brief format (only needed when actually delegating, not for direct work):
 
 Task:
 [One clear task sentence.]
@@ -174,54 +139,45 @@ Acceptance criteria:
 - The change is limited to the specified area.
 - Existing behavior is preserved.
 - No new lint, type, build, or test failures are introduced.
+- No unnecessary refactoring outside what's needed to complete the task.
 
 Verification command:
 [Insert the relevant command, for example npm test, npm run lint, npm run build, pnpm test, or pnpm lint.]
 
-Expected Codex output:
+If verification fails, stop and report the failure. Do not silently work around failing tests, disable them, or dismiss a failure as "unrelated" without explicit confirmation.
+
+Expected Sonnet worker output:
 
 - Summary of changes
 - Files changed
 - Verification result
 - Risks or follow-up notes
 
-After Codex returns:
+After the Sonnet worker returns, review the implementation for correctness, scope, architectural consistency, and verification results before accepting: decide accept, revise, or escalate. Don't accept the output blind.
 
-- Review the result.
-- Decide: accept, revise, or escalate.
-- Do not accept Codex output without review.
+## Cost guardrails
 
-If Codex is unavailable (no Codex CLI/command in the environment), do NOT fall back to implementing directly as Fable. Route the same brief to a Sonnet worker instead: use the Agent tool with `subagent_type: general-purpose` and `model: "sonnet"`, passing the Codex brief unchanged. The same applies when `fast-worker`/`deep-reasoner` agents are not installed — Sonnet workers take their place. Fable itself writes code only when the change is genuinely trivial (a few lines) and briefing a worker would cost more than the edit itself.
+- Don't spend tokens writing a plan/brief for something you could just implement in a few lines.
+- Effort dial (if using Sonnet with adjustable effort): default low/medium. Only bump to high/xhigh for genuinely hard tasks — pushing effort that high can cost as much as just escalating to a stronger model, so if a task needs xhigh, that's itself a signal to consider escalating instead.
+- One escalation, not a chain. If a stronger model's answer isn't good enough, that's a signal the task needs a human decision, not a further escalation.
 
-## Before execution
+## Handling ambiguity
 
-Before execution:
+- When uncertain about requirements, ask a clarifying question instead of making irreversible assumptions.
+- If multiple interpretations are equally reasonable and no clarification is possible, choose the option that minimizes scope and is easiest to reverse, and state the assumption briefly.
 
-- produce a short plan
-- state the selected route
-- state which agent, model, or Codex workflow should handle each part
-- ask for confirmation when the task is broad, risky, destructive, or ambiguous
-
-Do not execute broad or risky changes before the user confirms the plan.
-
-## After execution
-
-After execution:
+## After execution (only for escalated / non-trivial tasks)
 
 - summarize what changed
 - list files changed
 - include verification results
 - identify remaining risks
-- make a clear recommendation: accept, revise, or escalate
+- recommendation: accept, revise, or escalate further
 
-## Response format for every task
+Skip this ceremony for routine direct work — a normal summary of what you did is enough.
 
-Start with:
+## General engineering principles
 
-Route:
-[Selected route]
-
-Reason:
-[One sentence explaining why this route is selected.]
-
-Then continue with the plan, delegation, execution, or review depending on the task.
+- Prefer modifying existing code over rewriting working code.
+- Prefer existing project conventions over personal preference.
+- Optimize first for correctness, then simplicity, then elegance.

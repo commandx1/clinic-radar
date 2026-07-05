@@ -28,6 +28,7 @@ export function useBusinessForm() {
   const [name, setName] = useState("");
   const [googlePlaceId, setGooglePlaceId] = useState("");
   const [category, setCategory] = useState("");
+  const [currentTool, setCurrentTool] = useState("");
 
   const mutation = useMutation({
     mutationFn: createBusiness,
@@ -42,6 +43,7 @@ export function useBusinessForm() {
       name,
       google_place_id: googlePlaceId,
       category: category || undefined,
+      current_tool: currentTool,
     });
   }
 
@@ -59,6 +61,8 @@ export function useBusinessForm() {
     setGooglePlaceId,
     category,
     setCategory,
+    currentTool,
+    setCurrentTool,
     errorMessage,
     isPending: mutation.isPending,
     handleSubmit,

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 import { TaskCardBody, type TaskCardData } from "./task-card-body";
-import { useTaskActions } from "./use-task-list-actions";
+import { useTaskActions, useTaskChecklistToggle } from "./use-task-list-actions";
 
 export interface TaskListItem extends TaskCardData {
   id: string;
@@ -15,13 +15,25 @@ export interface TaskListItem extends TaskCardData {
 function TaskRow({ task }: { task: TaskListItem }) {
   const t = useTranslations("business.tasks");
   const { isPending, errorMessage, complete, dismiss } = useTaskActions(task.id);
+  const {
+    pendingIndex: checklistPendingIndex,
+    errorMessage: checklistErrorMessage,
+    toggle: toggleChecklistItem,
+  } = useTaskChecklistToggle(task.id);
 
   return (
     <Card>
       <CardContent className="flex flex-col gap-2">
-        <TaskCardBody task={task} />
+        <TaskCardBody
+          task={task}
+          onToggleChecklistItem={toggleChecklistItem}
+          checklistPendingIndex={checklistPendingIndex}
+        />
 
         {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+        {checklistErrorMessage && (
+          <p className="text-sm text-destructive">{checklistErrorMessage}</p>
+        )}
 
         <div className="flex gap-2">
           <Button

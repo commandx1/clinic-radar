@@ -13,6 +13,10 @@ export interface ThemeTrendInput {
   trend: "improving" | "worsening" | "stable" | null;
   positive_mentions: number;
   negative_mentions: number;
+  // bkz. docs/10-roadmap.md Faz 1.2 madde 3 — dolu ise bu satır tek bir rakibe
+  // özeldir (görev kartı kanıt satırı için), null ise own ya da toplulaştırılmış
+  // rakip satırıdır (skorlama/Themes sayfası/bildirimler bunu okur, davranış aynı).
+  competitor_id?: string | null;
 }
 
 export interface ExecutiveSummaryInput {

@@ -60,6 +60,7 @@
       "name": "Business name",
       "googlePlaceId": "Google Place ID",
       "category": "Category (optional)",
+      "currentTool": "What do you currently use for competitor/reputation tracking?",
       "submit": "Link",
       "submitting": "Saving…",
       "genericError": "Something went wrong."
@@ -130,13 +131,18 @@
       "basedOnCompetitor": "Based on {name}",
       "evidence": {
         "competitiveGap": "This theme appears positively {competitorPositive} times in competitor reviews — {ownPositive} times in yours.",
+        "competitorBreakdown": "(strong in {strongCount}/{totalCount} competitors)",
         "absoluteQuality": "In the last {days} days, this theme has {ownNegative} negative mentions in your own reviews."
       },
       "completeButton": "Complete",
       "dismissButton": "Dismiss",
+      "checklist": {
+        "title": "Steps"
+      },
       "errors": {
         "not_found": "This task no longer exists.",
         "update_failed": "We couldn't update this task. Please try again.",
+        "invalid_body": "Invalid request.",
         "genericError": "Something went wrong."
       },
       "history": {
@@ -187,6 +193,26 @@
       "notEnoughData": "Not enough data yet. Trend becomes meaningful as more analysis cycles run.",
       "clinicScoreLabel": "Clinic Score",
       "competitorRankLabel": "Competitor Rank"
+    }
+  },
+  "emails": {
+    "common": {
+      "cta": "View in ClinicRadar",
+      "footer": "You're receiving this because you have a business linked to your ClinicRadar account."
+    },
+    "weeklyDigest": {
+      "subject": "Your weekly ClinicRadar summary for {businessName}",
+      "heading": "Weekly summary — {businessName}",
+      "intro": "Here's what happened in the last 7 days:",
+      "newTaskLine": "New task: {theme}",
+      "dismissedLine": "Auto-dismissed (60 days): {theme}",
+      "themeSpikeLine": "Critical signal: sudden spike in \"{theme}\"",
+      "empty": "No new notifications this week."
+    },
+    "themeSpike": {
+      "subject": "{businessName}: sudden spike in \"{theme}\"",
+      "heading": "Critical signal detected",
+      "body": "Mentions of \"{theme}\" for {businessName} increased {multiplier}x compared to the previous cycle. We recommend reviewing it right away."
     }
   }
 }

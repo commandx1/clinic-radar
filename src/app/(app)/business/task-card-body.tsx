@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { TaskEvidenceLine } from "./task-evidence-line";
 
@@ -10,6 +11,15 @@ export interface TaskEvidence {
   ownNegative: number;
   competitorPositive: number;
   competitorNegative: number;
+  // bkz. docs/10-roadmap.md Faz 1.2 madde 3 — rakip bazlı tema kırılımı (N rakibinden M'i güçlü).
+  // Kırılım verisi yoksa (competitor_id'li satır bulunamadıysa) undefined kalır.
+  competitorStrongCount?: number;
+  competitorTotalCount?: number;
+}
+
+export interface TaskChecklistItem {
+  text: string;
+  done: boolean;
 }
 
 export interface TaskCardData {
@@ -22,6 +32,7 @@ export interface TaskCardData {
   competitorName: string | null;
   source_type?: "competitive_gap" | "absolute_quality" | null;
   evidence?: TaskEvidence;
+  checklist?: TaskChecklistItem[];
 }
 
 const PRIORITY_BADGE_VARIANT: Record<string, "destructive" | "default" | "secondary"> = {
@@ -30,7 +41,17 @@ const PRIORITY_BADGE_VARIANT: Record<string, "destructive" | "default" | "second
   low: "secondary",
 };
 
-export function TaskCardBody({ task, leadingBadge }: { task: TaskCardData; leadingBadge?: ReactNode }) {
+export function TaskCardBody({
+  task,
+  leadingBadge,
+  onToggleChecklistItem,
+  checklistPendingIndex,
+}: {
+  task: TaskCardData;
+  leadingBadge?: ReactNode;
+  onToggleChecklistItem?: (index: number, done: boolean) => void;
+  checklistPendingIndex?: number | null;
+}) {
   const t = useTranslations("business.tasks");
 
   return (
@@ -57,6 +78,32 @@ export function TaskCardBody({ task, leadingBadge }: { task: TaskCardData; leadi
         </p>
       )}
       <TaskEvidenceLine sourceType={task.source_type} evidence={task.evidence} />
+
+      {task.checklist && task.checklist.length > 0 && (
+        <div className="flex flex-col gap-1.5 pt-1">
+          <p className="text-xs font-medium text-muted-foreground">{t("checklist.title")}</p>
+          <ul className="flex flex-col gap-1.5">
+            {task.checklist.map((item, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <Checkbox
+                  checked={item.done}
+                  disabled={!onToggleChecklistItem || checklistPendingIndex === index}
+                  onCheckedChange={(checked) => {
+                    onToggleChecklistItem?.(index, checked);
+                  }}
+                />
+                <span
+                  className={
+                    item.done ? "text-sm text-muted-foreground line-through" : "text-sm"
+                  }
+                >
+                  {item.text}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </>
   );
 }

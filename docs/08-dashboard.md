@@ -29,9 +29,15 @@ Kullanıcı detay okumadan durumu görmeli. 5 metrik:
 
 **Trend** — `clinic_score_history`'den zaman serisi grafiği (Clinic Score ve Competitor Rank'in zaman içindeki değişimi). Veri biriktikçe anlamlı olur — ilk haftalarda "yeterli veri birikiyor" mesajı gösterilir.
 
+## Monthly Report (Faz 2 — teslim edildi)
+Overview sekmesinde, en az bir `clinic_score_history` snapshot'ı varsa görünen bir "Aylık raporu indir (PDF)" aksiyonu — ayrı bir nav sekmesi/sayfası değil. `GET /api/business/:id/monthly-report` (kullanıcı oturumuyla, RLS) `@react-pdf/renderer` ile tek sayfalık bir PDF üretir: Clinic Score + son 30 güne göre delta, Competitor Rank, Critical Issues, bu dönem tamamlanan görev sayısı, Potential Rating Gain, own theme_summary'den en çok bahsedilen 3 pozitif/3 negatif tema, executive summary metni. "Dönem" son 30 gün olarak sabit değil — kadans adaptif/haftalık olduğu için tam 30 gün öncesine en yakın (o tarihten önceki en son) snapshot'a düşülür; hiç yoksa delta gösterilmez (bkz. `src/lib/reports/monthly-report-data.ts`).
+
+**Font notu:** react-pdf'in gömülü Helvetica'sı Türkçe karakterleri (ı, ş, ğ) desteklemiyor; Google Fonts'un CDN "latin"/"latin-ext" alt kümeleri de Türkçe alfabeyi tek dosyada karşılamıyor (ı "latin"de, ş/ğ "latin-ext"te — ikisi ayrı embed edilemiyor). Çözüm: Google'ın kaynak deposundaki değişken Noto Sans fontundan Regular/Bold statik enstantane çıkarılıp Latin+Latin Extended-A aralığına subset'lenerek `src/lib/reports/fonts/`'a gömüldü (bkz. `pdf-fonts.ts`, `OFL-NOTICE.md`). Turbopack `require.resolve` ile relative bir .ttf'i statik import sanıp build'i kırdığı için yol `process.cwd()` bazlı kuruluyor ve `next.config.ts`'teki `outputFileTracingIncludes` ile serverless bundle'a elle dahil ediliyor.
+
+E-posta ile gönderim (roadmap'teki "PDF/e-posta" ifadesindeki ikinci kanal) bu iterasyonda kapsanmadı — yalnızca indirme aksiyonu var; weekly-digest altyapısına eklenmesi ayrı bir iterasyon.
+
 ## Sekmeler — Faz 2 (ertelenen)
 Bunlar MVP'de **eklenmiyor** çünkü yorumdan doktor ismi / tedavi türü çıkarımı ayrı bir NLP problemi ve ek veri kalitesi riski taşıyor. Şema zaten buna izin veriyor (theme alanı serbest metin), ileride ek bir extraction aşaması olarak eklenebilir.
 
 - **Doctor Analysis** — yorumlardan doktor/personel ismi çıkarımı, kişi bazlı sentiment.
 - **Treatments** — tedavi türü bazlı kırılım (implant, ortodonti vb.).
-- **Monthly Report** — PDF/e-posta olarak dışa aktarılabilir aylık özet (ajans kullanımı için white-label potansiyeli).

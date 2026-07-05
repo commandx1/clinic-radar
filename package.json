@@ -2,6 +2,9 @@
   "name": "clinic-radar",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "18 || 20 || >=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,6 +17,7 @@
     "@anthropic-ai/sdk": "^0.110.0",
     "@base-ui/react": "^1.6.0",
     "@google/genai": "^2.10.0",
+    "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
     "@tanstack/react-query": "^5.101.2",

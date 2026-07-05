@@ -27,6 +27,7 @@ Next.js API routes (veya ayrı Node servisi) üzerinden REST. Tüm endpoint'ler 
 | GET | `/api/business/:id/themes` | `theme_summary` tablosundan kendi vs rakip kırılımı. |
 | GET | `/api/business/:id/trend` | `clinic_score_history`'den zaman serisi. |
 | GET | `/api/business/:id/competitors` | Seçilen rakiplerin özet kartları (puan, yorum sayısı, güçlü/zayıf temalar). |
+| GET | `/api/business/:id/monthly-report` | Faz 2 — aylık özeti tek sayfalık PDF olarak döner (`application/pdf`, `Content-Disposition: attachment`). Kullanıcı oturumuyla (RLS) çalışır; `business_id` kullanıcıya ait değilse 404. Detay: `08-dashboard.md`. |
 
 ## Webhook'lar
 - `POST /api/webhooks/apify` — Apify actor run tamamlandığında tetiklenir, ilgili run_id'ye bağlı analiz job'ını başlatır. **Implemente edilmiyor** (bkz. yukarıdaki `analysis/run` notu) — Faz 1.1'in cron yenilemesi bilinçli olarak senkron batch teslim edildiği için bu webhook'a hâlâ ihtiyaç doğmadı; ancak senkron desen süre bütçesine sığmazsa değerlendirilir.

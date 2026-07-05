@@ -1,5 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getNextAnalysisAvailableAt, isAnalysisCooldownActive } from "@/lib/task-engine/analysis-cooldown";
@@ -100,6 +101,7 @@ export default async function OverviewPage() {
     .maybeSingle();
 
   const t = await getTranslations("business.overview");
+  const tReport = await getTranslations("business.monthlyReport");
   const locale = await getLocale();
 
   const metrics = await loadExecutiveMetrics(supabase, business!.id);
@@ -155,6 +157,15 @@ export default async function OverviewPage() {
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">{t("notEnoughData")}</p>
+      )}
+
+      {metrics.latestSnapshot && (
+        <a
+          href={`/api/business/${business!.id}/monthly-report`}
+          className={buttonVariants({ variant: "outline", size: "sm", className: "self-start" })}
+        >
+          {tReport("downloadButton")}
+        </a>
       )}
 
       <div className="flex flex-col gap-2">

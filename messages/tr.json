@@ -193,6 +193,26 @@
       "notEnoughData": "Henüz yeterli veri yok. Analiz döngüleri arttıkça trend anlamlı hale gelir.",
       "clinicScoreLabel": "Clinic Score",
       "competitorRankLabel": "Rakip Sırası"
+    },
+    "monthlyReport": {
+      "downloadButton": "Aylık raporu indir (PDF)",
+      "title": "Aylık Rapor",
+      "generatedOn": "Oluşturulma tarihi: {date}",
+      "period": "Dönem: {start} — {end}",
+      "clinicScore": "Clinic Score",
+      "scoreDelta": "{sign}{value} (dönem başına göre)",
+      "competitorRank": "Rakip Sıralaması",
+      "competitorRankValue": "{total} rakip arasında {rank}.",
+      "criticalIssues": "Kritik Sorunlar",
+      "completedTasks": "Bu Dönem Tamamlanan Görevler",
+      "potentialRatingGain": "Potansiyel Puan Artışı",
+      "executiveSummaryTitle": "Yönetici Özeti",
+      "topPositiveThemesTitle": "Öne Çıkan Pozitif Temalar",
+      "topNegativeThemesTitle": "İyileştirilmesi Gereken Alanlar",
+      "noThemes": "Henüz yeterli yorum verisi yok.",
+      "positiveMentions": "{count} pozitif bahis",
+      "negativeMentions": "{count} negatif bahis",
+      "footer": "ClinicRadar tarafından oluşturuldu — clinicradar.app"
     }
   },
   "emails": {

@@ -47,11 +47,16 @@ Faz 1.2'nin "tamamlandı" işaretlenmiş kod değişiklikleri diskte duruyordu a
 - `scripts/backfill-task-checklists.ts` lint hataları (import sırası, `console.log` yasak, template literal tip hataları, `.env.local` yüklenmiyordu, catch değişkeni tipsizdi) — script çalışır hale getirildi ve doğrulandı (`--dry-run` gerçek yerel DB'ye karşı test edildi).
 
 ## Faz 2
+- [x] **Monthly Report (PDF export)** — Overview'de "Aylık raporu indir (PDF)" aksiyonu, `GET /api/business/:id/monthly-report` (bkz. `04-api.md`, `08-dashboard.md`). E-posta kanalı (roadmap'te anılan ikinci teslimat yolu) bu iterasyonda kapsanmadı, sıradaki iterasyona bırakıldı (aşağıdaki "bilinen kısıtlar" bölümüne bkz.).
 - Karışık dilli yorum kırılımı — turistik/uluslararası hasta çeken klinikler için yorumları dil/köken bazında ayrıştırma (herhangi bir ülkede uygulanabilir, tek bir ülkeye özel bir senaryo değil)
 - Ajans / white-label paneli (çoklu işletme yönetimi)
 - Doctor Analysis, Treatments sekmeleri (`08-dashboard.md`)
-- Monthly Report (PDF export)
 - Akıllı rakip önerisi (fiyat segmenti, tedavi türü benzerliği — şu an kullanıcı checkbox ile seçtiği için ertelendi)
+
+### Faz 2 — Bilinen kısıtlar (ignore edilmedi, sıradaki iterasyonda bakılacak)
+- [ ] **Monthly Report e-posta kanalı yok.** Roadmap'in orijinal maddesi "PDF/e-posta olarak dışa aktarılabilir" diyordu; yalnızca PDF indirme aksiyonu teslim edildi. E-posta ile otomatik gönderim (ör. ay sonunda `weekly-digest.ts` altyapısına benzer bir cron) ayrı bir iterasyon — mevcut haftalık cron'a yeni bir sorumluluk eklemeden önce kadans/maliyet etkisi değerlendirilmeli.
+- [ ] **Monthly Report "dönem" tanımı sabit değil.** Kadans adaptif/haftalık olduğu için tam 30 gün öncesine denk gelen bir `clinic_score_history` snapshot'ı nadiren var; en yakın önceki snapshot'a düşülüyor, hiç yoksa Clinic Score deltası gösterilmiyor (bug değil, veri kısıtı — bkz. `monthly-report-data.ts` yorumu). Free planda (aylık kadans) bu durum Pro'ya göre daha sık yaşanır.
+- [ ] **Ajans/white-label paneli, Doctor Analysis, Treatments, karışık dilli yorum kırılımı, akıllı rakip önerisi** henüz başlanmadı — her biri ayrı bir NLP/veri modeli veya çoklu-tenant mimari kararı gerektiriyor (bkz. yukarıdaki madde açıklamaları), tek bir oturumda "aynı anda" sağlıklı teslim edilemeyecek kadar büyük; birer sonraki iterasyonda tek tek ele alınmalı.
 
 ## Faz 3
 - AI arama görünürlüğü modülü (ChatGPT/Gemini/Perplexity'de klinik nasıl öneriliyor)

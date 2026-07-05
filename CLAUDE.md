@@ -24,6 +24,9 @@
       - next-intl — arayüz i18n (cihaz diline göre otomatik seçim, URL öneki yok, Faz 1'den itibaren global — bkz. `docs/07-ui.md`)
       - TanStack Query (@tanstack/react-query) — client-side mutasyonlar için (bkz. Kod Kuralları)
       - shadcn/ui — primitive UI bileşenleri (`src/components/ui/`, Base UI + Tailwind, `npx shadcn add` ile üretilir)
+      - `@react-pdf/renderer` — Monthly Report PDF export (`src/lib/reports/`, bkz. `docs/08-dashboard.md`)
+
+      **Node sürümü:** `.nvmrc` + `package.json engines` → `18 || 20 || >=22`. `nvm`'in varsayılanı 21.x ise bazı bağımlılıklar (`@supabase/supabase-js` realtime client'ı native `WebSocket` bekler, Node 21'de yok) ve `npm install` sırasında EBADENGINE uyarıları çıkar — `nvm use 22` (veya `.nvmrc` otomatik algılamasıyla) çalıştır.
 
       ## Mimari Kurallar
     - RLS her zaman açık; hiçbir tabloya `user_id` bypass eden bir servis-rol sorgusu authenticated context dışında yazılmaz. **Dar istisna:** `CRON_SECRET` korumalı `src/app/api/cron/**` route'ları — kullanıcı oturumu olmadan çalıştıkları için service-role kullanır, o da yalnızca `src/lib/supabase/admin.ts` üzerinden.

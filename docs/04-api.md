@@ -25,6 +25,7 @@ Next.js API routes (veya ayrı Node servisi) üzerinden REST. Tüm endpoint'ler 
 |---|---|---|
 | GET | `/api/business/:id/overview` | Executive özet: Clinic Score, Competitor Rank, Critical Issues sayısı, tamamlanan görev oranı, Potential Rating Gain (bkz. `08-dashboard.md`). |
 | GET | `/api/business/:id/themes` | `theme_summary` tablosundan kendi vs rakip kırılımı. |
+| GET | `/api/business/:id/treatments` | Faz 2 — `theme_summary.treatment` alanına göre kendi vs rakip (birleşik) kırılımı, tema yerine tedavi/hizmet türü bazında toplulaştırılmış. `themes` ile aynı şekilde ayrı bir REST route değil, `/business/treatments` sayfası SSR sırasında doğrudan sorgular (bkz. `08-dashboard.md`). |
 | GET | `/api/business/:id/trend` | `clinic_score_history`'den zaman serisi. |
 | GET | `/api/business/:id/competitors` | Seçilen rakiplerin özet kartları (puan, yorum sayısı, güçlü/zayıf temalar). |
 | GET | `/api/business/:id/monthly-report` | Faz 2 — aylık özeti tek sayfalık PDF olarak döner (`application/pdf`, `Content-Disposition: attachment`). Kullanıcı oturumuyla (RLS) çalışır; `business_id` kullanıcıya ait değilse 404. Detay: `08-dashboard.md`. |

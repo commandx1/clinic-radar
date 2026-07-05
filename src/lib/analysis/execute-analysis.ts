@@ -221,6 +221,7 @@ function toThemeTrendRows(
     positive_mentions: t.positive_mentions,
     negative_mentions: t.negative_mentions,
     competitor_id: competitorId,
+    treatment: t.treatment,
   }));
 }
 
@@ -243,6 +244,7 @@ async function replaceThemeSummaryRows(
         positive_mentions: t.positive_mentions,
         negative_mentions: t.negative_mentions,
         trend: t.trend,
+        treatment: t.treatment ?? null,
         period_start: periodStart,
         period_end: periodEnd,
       })),

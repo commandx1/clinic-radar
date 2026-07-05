@@ -68,10 +68,16 @@ export default async function ThemesPage() {
     .eq("user_id", user!.id)
     .maybeSingle();
 
+  // bkz. docs/10-roadmap.md Faz 1.2 madde 3 / bug fix: `competitor_id` dolu
+  // satırlar (görev kartı kanıt satırı için eklenen rakip bazlı kırılım)
+  // burada hariç tutulur — aksi halde buildThemeRows'un `existing.competitor`
+  // ataması (toplama değil) sorgu sırasına göre rastgele TEK bir rakibin
+  // sayısını "Competitors (combined)" diye gösterirdi.
   const { data: summaries } = await supabase
     .from("theme_summary")
     .select("theme, owner_type, positive_mentions, negative_mentions, trend")
-    .eq("business_id", business!.id);
+    .eq("business_id", business!.id)
+    .is("competitor_id", null);
 
   const t = await getTranslations("business.themes");
   const rows = buildThemeRows(summaries ?? []);

@@ -25,7 +25,7 @@ Kullanıcı detay okumadan durumu görmeli. 5 metrik:
 
 **Not (Faz 1 ilk sürüm):** Reviews sekmesi şu an tema etiketleri olmadan gönderildi — `review_analysis` (yorum-bazlı tema/duygu granülaritesi tutan tek tablo) hiçbir kod yolunda doldurulmuyor, `theme_summary` ise dönem bazlı bir toplam olup tek bir yoruma bağlanamıyor. Yorum başına tema etiketi eklemek AI pipeline/prompt sözleşmesinde (`05-ai-pipeline.md`, `06-prompts.md`) bir genişleme gerektiriyor — ayrı bir iterasyona bırakıldı.
 
-**Themes** — `theme_summary` tablosundan kendi vs rakip karşılaştırması, tema bazlı pozitif/negatif mention sayıları.
+**Themes** — `theme_summary` tablosundan kendi vs rakip karşılaştırması, tema bazlı pozitif/negatif mention sayıları. **Bug fix (Faz 2 kapanışı):** sorgu `competitor_id IS NULL` filtresi eklenmeden yazılmıştı; Faz 1.2'nin rakip bazlı kırılım satırları (`competitor_id` dolu) devreye girdiğinde `buildThemeRows`'un `existing.competitor = cell` ataması (toplama değil) sorgu sırasına göre rastgele TEK bir rakibin sayısını "Competitors (combined)" diye gösteriyordu — filtre eklenip gerçek oturumla doğrulandı.
 
 **Trend** — `clinic_score_history`'den zaman serisi grafiği (Clinic Score ve Competitor Rank'in zaman içindeki değişimi). Veri biriktikçe anlamlı olur — ilk haftalarda "yeterli veri birikiyor" mesajı gösterilir.
 
@@ -36,8 +36,10 @@ Overview sekmesinde, en az bir `clinic_score_history` snapshot'ı varsa görüne
 
 E-posta ile gönderim (roadmap'teki "PDF/e-posta" ifadesindeki ikinci kanal) bu iterasyonda kapsanmadı — yalnızca indirme aksiyonu var; weekly-digest altyapısına eklenmesi ayrı bir iterasyon.
 
+## Treatments (Faz 2 — teslim edildi)
+`/business/treatments` — yeni bir nav sekmesi. `theme_summary.treatment` alanına (Aşama 1 çıktısı, bkz. `05-ai-pipeline.md`) göre own vs rakip (birleşik) kırılımı, Themes sayfasıyla aynı kart/badge tasarımı ama tema yerine tedavi türü bazında toplulaştırılmış. Aynı tedavi türüne birden fazla tema bağlanabilir (ör. "implant ağrısı" + "implant randevu süreci" → "implant") — sayfa bunları tek satırda toplar, tema kırılımını göstermez (o zaten Themes'te var). `treatment IS NULL` olan satırlar (genel temalar) hariç tutulur. Sorgu `competitor_id IS NULL` filtresi kullanır (Themes'teki bug fix'iyle aynı gerekçe).
+
 ## Sekmeler — Faz 2 (ertelenen)
-Bunlar MVP'de **eklenmiyor** çünkü yorumdan doktor ismi / tedavi türü çıkarımı ayrı bir NLP problemi ve ek veri kalitesi riski taşıyor. Şema zaten buna izin veriyor (theme alanı serbest metin), ileride ek bir extraction aşaması olarak eklenebilir.
+Doctor Analysis MVP'de **eklenmiyor** çünkü yorumdan doktor/personel ismi çıkarımı ayrı bir NLP problemi ve ek veri kalitesi/gizlilik riski taşıyor (kişi ismi çıkarımı, temadan farklı bir hassasiyet seviyesi). Şema zaten buna izin veriyor (theme alanı serbest metin), ileride ek bir extraction aşaması olarak eklenebilir.
 
 - **Doctor Analysis** — yorumlardan doktor/personel ismi çıkarımı, kişi bazlı sentiment.
-- **Treatments** — tedavi türü bazlı kırılım (implant, ortodonti vb.).

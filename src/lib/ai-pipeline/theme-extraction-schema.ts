@@ -8,6 +8,12 @@ export const themeItemSchema = z.object({
   sentiment: z.enum(["positive", "negative", "mixed"]),
   mention_count: z.number().int().min(0),
   summary: z.string(),
+  // bkz. docs/10-roadmap.md Faz 2 "Treatments" — tema belirli bir tedavi/hizmet
+  // türüyle ilişkiliyse (implant, ortodonti, botoks vb.) burada serbest metin
+  // olarak belirtilir; kategoriden bağımsız, kapalı bir liste DEĞİL (ürün
+  // herhangi bir sağlık/estetik kategorisine açık). Tema genel bir konuyla
+  // ilgiliyse (ör. "bekleme süresi") null bırakılır.
+  treatment: z.string().nullable(),
 });
 
 export const themeExtractionOutputSchema = z.object({
@@ -29,7 +35,12 @@ export function buildStage1SystemPrompt(outputLanguage: string): string {
     "Sen bir müşteri deneyimi analistisin. Sana bir işletmenin Google Maps " +
     "yorumları verilecek. Görevin, yorumlardaki tekrar eden temaları, bu " +
     "temalara dair duygu tonunu ve aciliyetini çıkarmak. Yorumlardan asla " +
-    "birebir alıntı yapma, her zaman kendi cümlelerinle özetle. " +
+    "birebir alıntı yapma, her zaman kendi cümlelerinle özetle. Her tema " +
+    "belirli bir tedavi/hizmet türüyle (ör. implant, ortodonti, botoks, dolgu — " +
+    "işletmenin kategorisine göre değişir, kapalı bir liste yok) ilgiliyse bunu " +
+    "\"treatment\" alanında belirt; tema genel bir konuyla ilgiliyse (ör. bekleme " +
+    "süresi, resepsiyon nezaketi, fiyat şeffaflığı) \"treatment\" alanını null " +
+    "bırak — bir tedavi türü uydurma. " +
     `"summary" alanlarını "${outputLanguage}" dilinde yaz. Sadece belirtilen ` +
     "JSON şemasında yanıt ver."
   );
@@ -57,5 +68,6 @@ export function buildStage1UserPrompt(params: {
     "- sentiment: positive | negative | mixed",
     "- mention_count: bu temaya değinen yorum sayısı",
     "- summary: kendi cümlelerinle 1 cümlelik özet (asla alıntı değil)",
+    '- treatment: ilgili tedavi/hizmet türü (ör. "implant", "ortodonti") ya da null',
   ].join("\n");
 }

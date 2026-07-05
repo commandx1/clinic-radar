@@ -10,6 +10,7 @@ const TAB_PATHS = [
   { href: "/business/competitors", key: "competitors" },
   { href: "/business/reviews", key: "reviews" },
   { href: "/business/themes", key: "themes" },
+  { href: "/business/treatments", key: "treatments" },
   { href: "/business/trend", key: "trend" },
 ] as const;
 

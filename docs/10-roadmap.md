@@ -48,15 +48,20 @@ Faz 1.2'nin "tamamlandı" işaretlenmiş kod değişiklikleri diskte duruyordu a
 
 ## Faz 2
 - [x] **Monthly Report (PDF export)** — Overview'de "Aylık raporu indir (PDF)" aksiyonu, `GET /api/business/:id/monthly-report` (bkz. `04-api.md`, `08-dashboard.md`). E-posta kanalı (roadmap'te anılan ikinci teslimat yolu) bu iterasyonda kapsanmadı, sıradaki iterasyona bırakıldı (aşağıdaki "bilinen kısıtlar" bölümüne bkz.).
+- [x] **Treatments sekmesi** — `/business/treatments`, Aşama 1'e eklenen opsiyonel `treatment` alanına göre own vs rakip (birleşik) toplulaştırma (bkz. `05-ai-pipeline.md`, `08-dashboard.md`, migration `20260712000000_theme_summary_treatment.sql`). Gerçek oturumla (sahte session cookie'siyle authenticated SSR isteği) uçtan uca doğrulandı.
 - Karışık dilli yorum kırılımı — turistik/uluslararası hasta çeken klinikler için yorumları dil/köken bazında ayrıştırma (herhangi bir ülkede uygulanabilir, tek bir ülkeye özel bir senaryo değil)
 - Ajans / white-label paneli (çoklu işletme yönetimi)
-- Doctor Analysis, Treatments sekmeleri (`08-dashboard.md`)
+- Doctor Analysis sekmesi (`08-dashboard.md`)
 - Akıllı rakip önerisi (fiyat segmenti, tedavi türü benzerliği — şu an kullanıcı checkbox ile seçtiği için ertelendi)
+
+### Faz 2 kapanışında bulunup düzeltilen sorunlar
+- **Themes sayfası bug'ı:** `theme_summary` sorgusu `competitor_id IS NULL` filtrelemiyordu; Faz 1.2'nin rakip bazlı kırılım satırları devreye girdiğinde `buildThemeRows`'un `existing.competitor = cell` ataması (toplama değil) sorgu sırasına göre rastgele TEK bir rakibin sayısını "Competitors (combined)" diye gösterecekti — Treatments sayfası yazılırken theme_summary'nin tüm okuyucuları taranırken fark edildi, filtre eklendi, gerçek oturumla yeniden doğrulandı (bkz. `08-dashboard.md`).
 
 ### Faz 2 — Bilinen kısıtlar (ignore edilmedi, sıradaki iterasyonda bakılacak)
 - [ ] **Monthly Report e-posta kanalı yok.** Roadmap'in orijinal maddesi "PDF/e-posta olarak dışa aktarılabilir" diyordu; yalnızca PDF indirme aksiyonu teslim edildi. E-posta ile otomatik gönderim (ör. ay sonunda `weekly-digest.ts` altyapısına benzer bir cron) ayrı bir iterasyon — mevcut haftalık cron'a yeni bir sorumluluk eklemeden önce kadans/maliyet etkisi değerlendirilmeli.
 - [ ] **Monthly Report "dönem" tanımı sabit değil.** Kadans adaptif/haftalık olduğu için tam 30 gün öncesine denk gelen bir `clinic_score_history` snapshot'ı nadiren var; en yakın önceki snapshot'a düşülüyor, hiç yoksa Clinic Score deltası gösterilmiyor (bug değil, veri kısıtı — bkz. `monthly-report-data.ts` yorumu). Free planda (aylık kadans) bu durum Pro'ya göre daha sık yaşanır.
-- [ ] **Ajans/white-label paneli, Doctor Analysis, Treatments, karışık dilli yorum kırılımı, akıllı rakip önerisi** henüz başlanmadı — her biri ayrı bir NLP/veri modeli veya çoklu-tenant mimari kararı gerektiriyor (bkz. yukarıdaki madde açıklamaları), tek bir oturumda "aynı anda" sağlıklı teslim edilemeyecek kadar büyük; birer sonraki iterasyonda tek tek ele alınmalı.
+- [ ] **Treatments, mevcut analiz verisi üretilene kadar boş görünür.** `treatment` alanı yalnızca YENİ bir analiz koşusundan sonra dolar (Aşama 1 prompt değişikliği geriye dönük eski `theme_summary` satırlarını güncellemez) — checklist backfill'e benzer bir tek seferlik backfill script'i şimdilik yazılmadı, çünkü treatment ataması AI'ın ham yorum metnine bakmasını gerektiriyor (ham yorum metni zaten saklanıyor, `reviews.text`) ve maliyeti var; ilk gerçek kullanıcı geri bildirimine göre değerlendirilecek.
+- [ ] **Ajans/white-label paneli, Doctor Analysis, karışık dilli yorum kırılımı, akıllı rakip önerisi** henüz başlanmadı — her biri ayrı bir NLP/veri modeli veya çoklu-tenant mimari kararı gerektiriyor (bkz. yukarıdaki madde açıklamaları), tek bir oturumda "aynı anda" sağlıklı teslim edilemeyecek kadar büyük; birer sonraki iterasyonda tek tek ele alınmalı.
 
 ## Faz 3
 - AI arama görünürlüğü modülü (ChatGPT/Gemini/Perplexity'de klinik nasıl öneriliyor)

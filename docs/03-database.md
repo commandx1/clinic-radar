@@ -105,8 +105,10 @@ review_analysis (
 theme_summary (
   id uuid primary key,
   business_id uuid references businesses(id),  -- her zaman kullanıcının kendi işletmesi; owner_type kimin yorumlarının özetlendiğini ayırt eder
-  owner_type text,               -- 'own' | 'competitor' — 'competitor' satırları TEK bir rakibi değil, TÜM seçili rakiplerin toplamını temsil eder (rakip kimliğini tutan ayrı bir kolon yok, bkz. 05-ai-pipeline.md)
+  owner_type text,               -- 'own' | 'competitor' — competitor_id NULL olan 'competitor' satırları TEK bir rakibi değil, TÜM seçili rakiplerin toplamını temsil eder
+  competitor_id uuid references competitors(id),  -- Faz 1.2: dolu ise bu satır TEK bir rakibe özel (görev kartı "N rakibinden M'i güçlü" kırılımı için); own satırlarda ve toplulaştırılmış competitor satırında NULL — bkz. 05-ai-pipeline.md, 09-task-engine.md
   theme text,
+  treatment text,                -- Faz 2: tema belirli bir tedavi/hizmet türüyle ilişkiliyse serbest metin (implant, botoks vb.), genel bir temaysa null — bkz. 05-ai-pipeline.md Aşama 1, 08-dashboard.md Treatments
   positive_mentions int,
   negative_mentions int,
   trend text,                    -- 'improving' | 'worsening' | 'stable' | null — AI değil, kod tarafında döngüler arası negatif oran deltasından hesaplanır (02-business-rules.md Bölüm C)
@@ -114,6 +116,12 @@ theme_summary (
   period_end date,
   updated_at timestamptz
 )
+
+-- ÖNEMLİ: competitor_id dolu (rakip bazlı kırılım) satırlar owner_type='competitor'
+-- toplulaştırılmış satırıyla AYNI theme/owner_type'a sahip olabilir — bu tabloyu
+-- okuyan her yeni kod `competitor_id IS NULL` filtresi eklemeli, aksi halde
+-- competitor sayıları çift sayılır/yanlış satırla ezilir (Themes sayfasında
+-- yaşanmış gerçek bir bug, bkz. docs/10-roadmap.md Faz 2 notu).
 
 -- ============ Analiz Koşuları ============
 

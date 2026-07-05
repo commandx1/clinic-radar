@@ -17,6 +17,9 @@ export interface ThemeTrendInput {
   // özeldir (görev kartı kanıt satırı için), null ise own ya da toplulaştırılmış
   // rakip satırıdır (skorlama/Themes sayfası/bildirimler bunu okur, davranış aynı).
   competitor_id?: string | null;
+  // bkz. docs/10-roadmap.md Faz 2 "Treatments" — tema belirli bir tedavi/hizmet
+  // türüyle ilişkiliyse dolu, genel bir tema ise null (bkz. theme-extraction-schema.ts).
+  treatment?: string | null;
 }
 
 export interface ExecutiveSummaryInput {

@@ -38,7 +38,8 @@
       "competitors": "Rakipler",
       "reviews": "Yorumlar",
       "themes": "Temalar",
-      "trend": "Trend"
+      "trend": "Trend",
+      "treatments": "Tedaviler"
     },
     "overview": {
       "clinicScore": "Clinic Score",
@@ -213,6 +214,14 @@
       "positiveMentions": "{count} pozitif bahis",
       "negativeMentions": "{count} negatif bahis",
       "footer": "ClinicRadar tarafından oluşturuldu — clinicradar.app"
+    },
+    "treatments": {
+      "title": "Tedaviler",
+      "empty": "Henüz tedaviyle ilişkilendirilmiş tema verisi yok. Analiz çalıştırarak oluşturabilirsiniz.",
+      "own": "İşletmeniz",
+      "competitorsCombined": "Rakipler (birleşik)",
+      "positive": "{count} pozitif",
+      "negative": "{count} negatif"
     }
   },
   "emails": {

@@ -16,7 +16,9 @@ import { estimateScrapeCostUsd, type ScrapeMetrics } from "@/lib/analysis/scrape
 import { fetchReviewsForPlaces, type ScrapedReview } from "@/lib/apify/google-reviews";
 import {
   ABSOLUTE_QUALITY_NEGATIVE_RATIO_THRESHOLD,
+  AI_ANALYSIS_MIN_OWN_REVIEWS_FOR_WINDOW,
   AI_ANALYSIS_WINDOW_DAYS,
+  AI_ANALYSIS_WINDOW_DAYS_STEPS,
   MAX_NEW_TASKS_PER_CYCLE,
   REVIEWS_FETCH_MAX_PER_PLACE,
   TASK_MENTION_THRESHOLD,
@@ -108,6 +110,40 @@ function hasResult(r: Stage1Result): r is Stage1Result & { result: ThemeExtracti
   return r.result !== null;
 }
 
+// bkz. docs/11-risks-assumptions.md Risk 1 — sabit 90 günlük pencere, düşük
+// yorum hızlı işletmelerde DB'de zaten mevcut eski yorumları görmezden gelip
+// her temayı TASK_MENTION_THRESHOLD'un altında bırakabilir. Own tarafında
+// metinli yorum sayısı en dar adımda (90 gün) yetersizse, pencere own+rakip
+// için AYNI ANDA (adil kıyas bozulmadan) bir sonraki adıma genişletilir.
+async function determineAnalysisWindowDays(
+  supabase: AnalysisSupabaseClient,
+  ownBusinessId: string,
+): Promise<number> {
+  const maxDays = AI_ANALYSIS_WINDOW_DAYS_STEPS[AI_ANALYSIS_WINDOW_DAYS_STEPS.length - 1];
+  const maxCutoffIso = new Date(Date.now() - maxDays * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data } = await supabase
+    .from("reviews")
+    .select("published_at")
+    .eq("business_id", ownBusinessId)
+    .eq("owner_type", "own")
+    .not("text", "is", null)
+    .gte("published_at", maxCutoffIso);
+
+  const publishedAtMs = (data ?? [])
+    .filter((row): row is { published_at: string } => row.published_at !== null)
+    .map((row) => new Date(row.published_at).getTime());
+
+  for (const days of AI_ANALYSIS_WINDOW_DAYS_STEPS) {
+    const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
+    const count = publishedAtMs.filter((ms) => ms >= cutoffMs).length;
+    if (count >= AI_ANALYSIS_MIN_OWN_REVIEWS_FOR_WINDOW) {
+      return days;
+    }
+  }
+  return maxDays;
+}
+
 async function fetchRecentReviews(
   supabase: AnalysisSupabaseClient,
   ownerIds: string[],
@@ -140,12 +176,13 @@ async function runStage1ForOwners(
   owners: OwnerInfo[],
   reviewsByOwnerId: Map<string, ReviewInput[]>,
   outputLanguage: string,
+  windowDays: number,
 ): Promise<Stage1Result[]> {
   return Promise.all(
     owners.map(async (owner): Promise<Stage1Result> => {
       const reviews = reviewsByOwnerId.get(owner.id) ?? [];
       const result = await withRetryOnce(() =>
-        extractThemes({ businessName: owner.name, category: owner.category, reviews, outputLanguage }),
+        extractThemes({ businessName: owner.name, category: owner.category, reviews, outputLanguage, windowDays }),
       );
       return { owner, result };
     }),
@@ -222,6 +259,7 @@ function toThemeTrendRows(
     negative_mentions: t.negative_mentions,
     competitor_id: competitorId,
     treatment: t.treatment,
+    severity: t.severity,
   }));
 }
 
@@ -245,6 +283,7 @@ async function replaceThemeSummaryRows(
         negative_mentions: t.negative_mentions,
         trend: t.trend,
         treatment: t.treatment ?? null,
+        severity: t.severity ?? "normal",
         period_start: periodStart,
         period_end: periodEnd,
       })),
@@ -371,7 +410,17 @@ function filterCandidates(
         return false;
       }
       const total = own.positive_mentions + own.negative_mentions;
-      if (own.negative_mentions < TASK_MENTION_THRESHOLD || total === 0) {
+      if (total === 0 || own.negative_mentions === 0) {
+        return false;
+      }
+      // bkz. docs/02-business-rules.md Bölüm D — sağlık/güvenlik zararı, ciddi
+      // etik/yasal risk ya da dolandırıcılık iddiası içeren bir tema
+      // 'critical' işaretlenmişse, tek bir olumsuz yorum bile mention-sayı
+      // eşiğini atlayıp görev üretebilir (ciddiyet, sıklıktan bağımsızdır).
+      if (own.severity === "critical") {
+        return true;
+      }
+      if (own.negative_mentions < TASK_MENTION_THRESHOLD) {
         return false;
       }
       return own.negative_mentions / total > ABSOLUTE_QUALITY_NEGATIVE_RATIO_THRESHOLD;
@@ -416,6 +465,7 @@ function attachImpactScores(
         ? computeAbsoluteQualityImpactScore(
             ownTheme ?? { positive_mentions: 0, negative_mentions: 0 },
             ownTrend,
+            ownTheme?.severity ?? "normal",
           )
         : computeCompetitiveGapImpactScore(
             competitorByTheme.get(key) ?? { positive_mentions: 0, negative_mentions: 0 },
@@ -650,7 +700,8 @@ async function runAnalysisPipeline(
   notifyContext: { isPro: boolean; ownerEmail: string | null },
 ) {
   const now = new Date();
-  const periodStartDate = new Date(now.getTime() - AI_ANALYSIS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const windowDays = await determineAnalysisWindowDays(supabase, business.id);
+  const periodStartDate = new Date(now.getTime() - windowDays * 24 * 60 * 60 * 1000);
   const cutoffIso = periodStartDate.toISOString();
   const periodStart = cutoffIso.slice(0, 10);
   const periodEnd = now.toISOString().slice(0, 10);
@@ -671,7 +722,7 @@ async function runAnalysisPipeline(
     cutoffIso,
   );
 
-  const stage1Results = await runStage1ForOwners(owners, reviewsByOwnerId, outputLanguage);
+  const stage1Results = await runStage1ForOwners(owners, reviewsByOwnerId, outputLanguage, windowDays);
   const ownStage1 = stage1Results.find((r) => r.owner.ownerType === "own") ?? null;
   const competitorStage1Results = stage1Results.filter((r) => r.owner.ownerType === "competitor");
 

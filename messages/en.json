@@ -157,7 +157,8 @@
       "evidence": {
         "competitiveGap": "This theme appears positively {competitorPositive} times in competitor reviews — {ownPositive} times in yours.",
         "competitorBreakdown": "(strong in {strongCount}/{totalCount} competitors)",
-        "absoluteQuality": "In the last {days} days, this theme has {ownNegative} negative mentions in your own reviews."
+        "absoluteQuality": "In the last {days} days, this theme has {ownNegative} negative mentions in your own reviews.",
+        "criticalBadge": "Critical"
       },
       "completeButton": "Complete",
       "dismissButton": "Dismiss",

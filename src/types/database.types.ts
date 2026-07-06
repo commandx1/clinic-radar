@@ -502,6 +502,7 @@ export type Database = {
           period_end: string | null
           period_start: string | null
           positive_mentions: number
+          severity: string
           theme: string
           treatment: string | null
           trend: string | null
@@ -516,6 +517,7 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           positive_mentions?: number
+          severity?: string
           theme: string
           treatment?: string | null
           trend?: string | null
@@ -530,6 +532,7 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           positive_mentions?: number
+          severity?: string
           theme?: string
           treatment?: string | null
           trend?: string | null

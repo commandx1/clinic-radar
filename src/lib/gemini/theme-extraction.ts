@@ -17,6 +17,7 @@ export async function extractThemes(params: {
   category: string | null;
   reviews: ReviewInput[];
   outputLanguage: string;
+  windowDays: number;
 }): Promise<ThemeExtractionOutput | null> {
   const client = getGeminiClient();
 

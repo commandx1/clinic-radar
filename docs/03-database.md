@@ -117,6 +117,7 @@ theme_summary (
   positive_mentions int,
   negative_mentions int,
   trend text,                    -- 'improving' | 'worsening' | 'stable' | null — AI değil, kod tarafında döngüler arası negatif oran deltasından hesaplanır (02-business-rules.md Bölüm C)
+  severity text,                 -- 'normal' | 'critical', default 'normal' — Aşama 1 modeli sağlık/güvenlik zararı, ciddi etik/yasal risk ya da dolandırıcılık iddiası içeren EN AZ BİR yorum tespit ederse 'critical'; own tarafında bu, mention sayısından bağımsız olarak görev üretim eşiğini atlar (02-business-rules.md Bölüm D)
   period_start date,
   period_end date,
   updated_at timestamptz

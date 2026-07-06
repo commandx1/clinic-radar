@@ -14,6 +14,12 @@ export type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 export interface ThemeSummaryCounts {
   positive: number;
   negative: number;
+  // Bu satırın kapsadığı gerçek gün sayısı (period_start/period_end farkı) —
+  // pencere düşük yorum hızlı işletmelerde adaptif genişletilebildiği için
+  // (bkz. execute-analysis.ts determineAnalysisWindowDays) sabit bir sayı varsayılamaz.
+  periodDays?: number;
+  // bkz. docs/02-business-rules.md Bölüm D — theme_summary.severity === 'critical'.
+  isCritical?: boolean;
 }
 
 export type ThemeSummaryLookup = Map<string, ThemeSummaryCounts>;
@@ -127,6 +133,8 @@ function computeEvidence(
       ownNegative: own.negative,
       competitorPositive: competitor?.positive ?? 0,
       competitorNegative: competitor?.negative ?? 0,
+      periodDays: own.periodDays,
+      isCritical: own.isCritical,
     };
   }
 

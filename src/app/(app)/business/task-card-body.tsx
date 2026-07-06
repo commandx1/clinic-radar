@@ -16,6 +16,13 @@ export interface TaskEvidence {
   // Kırılım verisi yoksa (competitor_id'li satır bulunamadıysa) undefined kalır.
   competitorStrongCount?: number;
   competitorTotalCount?: number;
+  // Bu kanıtın kapsadığı gerçek gün sayısı (adaptif pencere — bkz. resolve-tasks-shared.ts).
+  // Yoksa (eski satırlar) AI_ANALYSIS_WINDOW_DAYS'e düşülür.
+  periodDays?: number;
+  // bkz. docs/02-business-rules.md Bölüm D — own tarafında sağlık/güvenlik
+  // zararı, ciddi etik/yasal risk ya da dolandırıcılık iddiası içeren tek bir
+  // yorum bile bu temayı 'critical' yapabilir (mention sayısından bağımsız).
+  isCritical?: boolean;
 }
 
 export interface TaskChecklistItem {

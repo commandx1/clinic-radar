@@ -157,7 +157,8 @@
       "evidence": {
         "competitiveGap": "Rakip yorumlarında bu tema {competitorPositive} kez olumlu geçiyor; senin yorumlarında {ownPositive} kez.",
         "competitorBreakdown": "({strongCount}/{totalCount} rakipte güçlü)",
-        "absoluteQuality": "Son {days} günde kendi yorumlarında bu temaya dair {ownNegative} olumsuz mention var."
+        "absoluteQuality": "Son {days} günde kendi yorumlarında bu temaya dair {ownNegative} olumsuz mention var.",
+        "criticalBadge": "Kritik"
       },
       "completeButton": "Tamamla",
       "dismissButton": "Reddet",

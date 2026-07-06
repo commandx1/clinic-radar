@@ -14,6 +14,12 @@ export const themeItemSchema = z.object({
   // herhangi bir sağlık/estetik kategorisine açık). Tema genel bir konuyla
   // ilgiliyse (ör. "bekleme süresi") null bırakılır.
   treatment: z.string().nullable(),
+  // bkz. docs/02-business-rules.md Bölüm D — bu temaya dair yorumlardan EN AZ
+  // BİRİ sağlık/güvenlik zararı, ciddi bir etik/yasal risk ya da dolandırıcılık
+  // iddiası içeriyorsa 'critical'; sıradan bir memnuniyetsizlikse (bekleme
+  // süresi, fiyat, resepsiyon nezaketi vb.) 'normal'. mention_count'tan bağımsız
+  // — tek bir yorum bile 'critical' olabilir.
+  severity: z.enum(["normal", "critical"]),
 });
 
 export const themeExtractionOutputSchema = z.object({
@@ -40,7 +46,14 @@ export function buildStage1SystemPrompt(outputLanguage: string): string {
     "işletmenin kategorisine göre değişir, kapalı bir liste yok) ilgiliyse bunu " +
     "\"treatment\" alanında belirt; tema genel bir konuyla ilgiliyse (ör. bekleme " +
     "süresi, resepsiyon nezaketi, fiyat şeffaflığı) \"treatment\" alanını null " +
-    "bırak — bir tedavi türü uydurma. " +
+    "bırak — bir tedavi türü uydurma. Bir temaya değinen yorumlardan EN AZ BİRİ " +
+    "sağlık/güvenlik zararı (ör. yanlış tedavi, hasta zarar görmüş), ciddi bir " +
+    "etik/yasal risk ya da dolandırıcılık iddiası içeriyorsa \"severity\" alanını " +
+    "\"critical\" yap — bu, kaç kişinin aynı şeyi söylediğinden bağımsızdır, tek " +
+    "bir yorum bile yeterlidir. Sıradan bir memnuniyetsizlik (uzun bekleme, " +
+    "yüksek fiyat, resepsiyon nezaketsizliği vb.) için \"normal\" kullan — " +
+    "\"critical\"ı sadece gerçekten ciddi durumlar için kullan, aksi halde " +
+    "gürültü yaratırsın. " +
     `"summary" alanlarını "${outputLanguage}" dilinde yaz. Sadece belirtilen ` +
     "JSON şemasında yanıt ver."
   );
@@ -50,6 +63,7 @@ export function buildStage1UserPrompt(params: {
   businessName: string;
   category: string | null;
   reviews: ReviewInput[];
+  windowDays: number;
 }): string {
   const reviewList = params.reviews.map((r) => ({
     rating: r.rating,
@@ -60,7 +74,7 @@ export function buildStage1UserPrompt(params: {
 
   return [
     `İşletme: ${params.businessName}${params.category ? ` (${params.category})` : ""}`,
-    `Yorumlar (son 90 gün, ${String(params.reviews.length)} adet):`,
+    `Yorumlar (son ${String(params.windowDays)} gün, ${String(params.reviews.length)} adet):`,
     JSON.stringify(reviewList),
     "",
     "Her tekrar eden tema için:",
@@ -69,5 +83,6 @@ export function buildStage1UserPrompt(params: {
     "- mention_count: bu temaya değinen yorum sayısı",
     "- summary: kendi cümlelerinle 1 cümlelik özet (asla alıntı değil)",
     '- treatment: ilgili tedavi/hizmet türü (ör. "implant", "ortodonti") ya da null',
+    "- severity: normal | critical (sağlık/güvenlik zararı, ciddi etik/yasal risk ya da dolandırıcılık iddiası içeren EN AZ BİR yorum varsa critical, aksi halde normal)",
   ].join("\n");
 }

@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 
+import { Badge } from "@/components/ui/badge";
 import { AI_ANALYSIS_WINDOW_DAYS } from "@/lib/constants";
 
 import type { TaskEvidence } from "./task-card-body";
@@ -38,9 +39,14 @@ export function TaskEvidenceLine({
 
   if (sourceType === "absolute_quality") {
     return (
-      <p className="text-xs text-muted-foreground">
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {evidence.isCritical ? (
+          <Badge variant="destructive" className="text-[10px]">
+            {t("criticalBadge")}
+          </Badge>
+        ) : null}
         {t("absoluteQuality", {
-          days: AI_ANALYSIS_WINDOW_DAYS,
+          days: evidence.periodDays ?? AI_ANALYSIS_WINDOW_DAYS,
           ownNegative: evidence.ownNegative,
         })}
       </p>

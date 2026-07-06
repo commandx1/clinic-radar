@@ -20,6 +20,9 @@ export interface ThemeTrendInput {
   // bkz. docs/10-roadmap.md Faz 2 "Treatments" — tema belirli bir tedavi/hizmet
   // türüyle ilişkiliyse dolu, genel bir tema ise null (bkz. theme-extraction-schema.ts).
   treatment?: string | null;
+  // bkz. docs/02-business-rules.md Bölüm D — 'critical' ise mention_count'tan
+  // bağımsız olarak görev üretimi eşiği atlanır (theme-extraction-schema.ts).
+  severity?: "normal" | "critical";
 }
 
 export interface ExecutiveSummaryInput {

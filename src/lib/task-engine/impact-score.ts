@@ -102,9 +102,15 @@ export function computeCompetitiveGapImpactScore(
 export function computeAbsoluteQualityImpactScore(
   ownTheme: ThemeMentionCounts,
   ownTrend: ThemeTrend,
+  // bkz. docs/02-business-rules.md Bölüm D — 'critical' (sağlık/güvenlik zararı,
+  // ciddi etik/yasal risk, dolandırıcılık iddiası) bir tema, etrafında çok
+  // sayıda olumlu yorum olsa bile oran hesabıyla sulandırılmamalı; deficiency
+  // doğrudan tam kabul edilir (100).
+  severity: "normal" | "critical" = "normal",
 ): ImpactScoreResult {
   const ownTotal = ownTheme.positive_mentions + ownTheme.negative_mentions;
-  const ownDeficiency = clampScore(ratio(ownTheme.negative_mentions, ownTotal) * 100);
+  const ownDeficiency =
+    severity === "critical" ? 100 : clampScore(ratio(ownTheme.negative_mentions, ownTotal) * 100);
   const volume = volumeComponent(ownTheme.negative_mentions);
 
   const adjustment = trendAdjustment(ownTrend);

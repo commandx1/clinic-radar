@@ -30,6 +30,9 @@ impact_score = clamp(
 **`absolute_quality`** (rakip fark etmeksizin kliniğin kendi ciddi/tekrar eden sorunu — rakip verisi bu tipte anlamsız, `competitor_prevalence = null`):
 ```
 own_deficiency   = kliniğin bu temadaki negatif mention oranı × 100
+                   — severity='critical' ise oran hesaplanmaz, sabit 100 kabul edilir
+                     (bkz. 02-business-rules.md Bölüm D "kritik tekil yorum sinyali";
+                     tek ciddi yorum etraftaki olumlu yorumlarla sulandırılmamalı)
 volume           = clamp((negatif mention sayısı / IMPACT_SCORE_MENTION_VOLUME_SCALE) * 100, 0, 100)
 trend_adjustment = (yukarıdaki ile aynı mantık)
 

@@ -21,6 +21,7 @@
 2. **Kadansı yorum hızına bağla:** düşük hacimli kliniklerde döngü "haftalık" değil "iki haftalık/aylık + anlık alarm" olarak konumlansın.
 3. **Delta bildirimleri:** "Rakibin bu hafta 12 yeni yorum aldı, 3'ü fiyat şikayeti" tarzı değişim bildirimleri — tekrarlayan dashboard'dan daha güçlü geri dönme nedeni.
 4. **E-posta digest'i teslimat kanalı yap** (bkz. Bölüm D) — kullanıcının dönmesini bekleme, ona git.
+5. **Adaptif analiz penceresi** (`AI_ANALYSIS_WINDOW_DAYS_STEPS`, `02-business-rules.md` Bölüm C): bu risk aslında **ilk analizde de** gerçekleşebiliyor, sadece sonraki döngülerde değil — 2026-07-06'da prod'da gözlemlendi: gerçek bir klinik (162 own + 200/61/56 rakip yorumu) ilk analizde 0 görev üretti çünkü son 90 günde own tarafında yalnızca 1-2 metinli yorum vardı, hiçbir tema `TASK_MENTION_THRESHOLD`'u (5) geçemedi — DB'de eski ama gerçek yorumlar dururken pencere onları görmezden geliyordu. Sabit kadans yavaşlatma (panzehir #2) bu durumu çözmüyor; pencerenin kendisinin işletmenin gerçek yorum hızına göre genişlemesi gerekiyordu.
 
 Not: mevcut 14-gün re-priority ve 2x negatif patlama reopen kuralları (`09-task-engine.md`) *görev canlılığı* sağlar; bu risk *içerik tazeliği* ile ilgilidir. İkisi farklı problemdir, biri diğerini çözmez.
 

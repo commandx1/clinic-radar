@@ -30,6 +30,14 @@ export const GEOHASH_PRECISION = 6;
 
 // AI pipeline — Aşama 1 analiz penceresi — bkz. docs/05-ai-pipeline.md, docs/02-business-rules.md Bölüm C
 export const AI_ANALYSIS_WINDOW_DAYS = 90;
+// Düşük yorum hızlı işletmelerde (bkz. docs/11-risks-assumptions.md Risk 1) sabit
+// 90 günlük pencere, işletmenin DB'de zaten sahip olduğu eski yorumları göz ardı
+// edip her temayı gürültü eşiğinin (TASK_MENTION_THRESHOLD) altında bırakabilir.
+// Own tarafında metinli yorum sayısı yetersizse pencere bu adımlarla (own+rakip
+// için aynı anda, adil kıyas bozulmadan) kademeli genişletilir — DISCOVERY_RADIUS_KM_STEPS
+// ile aynı desen.
+export const AI_ANALYSIS_WINDOW_DAYS_STEPS = [90, 180, 365] as const;
+export const AI_ANALYSIS_MIN_OWN_REVIEWS_FOR_WINDOW = 5;
 
 // Görev oluşturma eşikleri — bkz. docs/02-business-rules.md Bölüm D
 export const TASK_MENTION_THRESHOLD = 5;

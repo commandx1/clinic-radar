@@ -22,7 +22,7 @@ async function resolveThemeSummaryLookup(
 ): Promise<ThemeSummaryLookup> {
   const { data: summaryRows } = await supabase
     .from("theme_summary")
-    .select("owner_type, theme, positive_mentions, negative_mentions")
+    .select("owner_type, theme, positive_mentions, negative_mentions, period_start, period_end, severity")
     .eq("business_id", businessId)
     .is("competitor_id", null)
     .in("owner_type", ["own", "competitor"]);
@@ -32,9 +32,17 @@ async function resolveThemeSummaryLookup(
     if (!row.theme) {
       continue;
     }
+    const periodDays =
+      row.period_start && row.period_end
+        ? Math.round(
+            (new Date(row.period_end).getTime() - new Date(row.period_start).getTime()) / (24 * 60 * 60 * 1000),
+          )
+        : undefined;
     lookup.set(`${row.owner_type}|${normalizeTheme(row.theme)}`, {
       positive: row.positive_mentions,
       negative: row.negative_mentions,
+      periodDays,
+      isCritical: row.severity === "critical",
     });
   }
   return lookup;

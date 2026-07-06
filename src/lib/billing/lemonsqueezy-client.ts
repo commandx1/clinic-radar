@@ -45,3 +45,24 @@ export async function createCheckout({ userId, email }: CreateCheckoutParams): P
   const body = (await response.json()) as { data: { attributes: { url: string } } };
   return body.data.attributes.url;
 }
+
+export async function cancelSubscription(subscriptionId: string): Promise<void> {
+  const apiKey = process.env.LEMONSQUEEZY_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("lemonsqueezy_not_configured");
+  }
+
+  const response = await fetch(`${LEMONSQUEEZY_API_BASE}/subscriptions/${subscriptionId}`, {
+    method: "DELETE",
+    headers: {
+      Accept: "application/vnd.api+json",
+      "Content-Type": "application/vnd.api+json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`lemonsqueezy_cancel_failed: ${String(response.status)}`);
+  }
+}

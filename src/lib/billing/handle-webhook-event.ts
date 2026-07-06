@@ -2,6 +2,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/database.types";
 
+// subscription_payment_success/subscription_payment_failed kasıtlı olarak
+// burada yok: LemonSqueezy bu event'lerde `data`'yı bir subscription değil,
+// bir subscription-invoice olarak gönderir (variant_id/renews_at yok, status
+// farklı bir sözlükten). O şekli subscription attributes'ıymış gibi işlemek
+// doğru plan/status'ü sonradan gelen subscription_updated'ın üzerine yanlış
+// değerlerle yazıyordu (variant_id → "undefined" → plan "free"'e düşüyordu).
+// Abonelik durumu zaten subscription_updated ile senkron tutulduğu için bu
+// iki event'in ayrıca işlenmesine gerek yok.
 const SUBSCRIPTION_EVENTS = new Set([
   "subscription_created",
   "subscription_updated",
@@ -10,8 +18,6 @@ const SUBSCRIPTION_EVENTS = new Set([
   "subscription_expired",
   "subscription_paused",
   "subscription_unpaused",
-  "subscription_payment_failed",
-  "subscription_payment_success",
 ]);
 
 export interface LemonSqueezyWebhookPayload {

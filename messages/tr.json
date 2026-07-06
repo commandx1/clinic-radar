@@ -265,6 +265,23 @@
       "checkoutError": {
         "title": "Ödeme başlatılamadı",
         "description": "Ödeme oturumu başlatılırken bir sorun oluştu. Lütfen birazdan tekrar deneyin."
+      },
+      "cancel": {
+        "trigger": "Aboneliği iptal et",
+        "dialog": {
+          "title": "Aboneliğini iptal etmek istediğine emin misin?",
+          "description": "Aboneliğin mevcut fatura döneminin sonunda iptal edilecek, o zamana kadar Pro özelliklerine erişimin devam edecek.",
+          "dismiss": "Vazgeç",
+          "confirm": "Evet, iptal et"
+        },
+        "toasts": {
+          "success": "Aboneliğin iptal edildi."
+        },
+        "errors": {
+          "no_active_subscription": "Aktif bir aboneliğin bulunamadı.",
+          "already_canceled": "Aboneliğin zaten iptal edilmiş.",
+          "genericError": "Aboneliğin iptal edilirken bir sorun oluştu. Lütfen birazdan tekrar deneyin."
+        }
       }
     }
   },

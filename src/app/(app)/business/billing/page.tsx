@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 
+import { CancelSubscriptionButton } from "./cancel-subscription-button";
 import { CheckoutLinkButton } from "./checkout-button";
 
 export default async function BillingPage({
@@ -28,6 +29,7 @@ export default async function BillingPage({
   const t = await getTranslations("business.billing");
   const plan = subscription?.plan ?? "free";
   const isPro = plan === "pro";
+  const isActive = subscription?.status === "active";
 
   return (
     <div className="flex max-w-md flex-col gap-4">
@@ -57,9 +59,12 @@ export default async function BillingPage({
           )}
 
           {isPro ? (
-            subscription?.lemonsqueezy_customer_portal_url && (
-              <CheckoutLinkButton href={subscription.lemonsqueezy_customer_portal_url} label={t("manageBilling")} />
-            )
+            <>
+              {subscription?.lemonsqueezy_customer_portal_url && (
+                <CheckoutLinkButton href={subscription.lemonsqueezy_customer_portal_url} label={t("manageBilling")} />
+              )}
+              {isActive && <CancelSubscriptionButton />}
+            </>
           ) : (
             <CheckoutLinkButton href="/api/billing/checkout" label={t("upgradeToPro")} />
           )}

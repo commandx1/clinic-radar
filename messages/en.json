@@ -265,6 +265,23 @@
       "checkoutError": {
         "title": "Checkout failed",
         "description": "We couldn't start your checkout session. Please try again in a moment."
+      },
+      "cancel": {
+        "trigger": "Cancel subscription",
+        "dialog": {
+          "title": "Are you sure you want to cancel your subscription?",
+          "description": "Your subscription will be canceled at the end of the current billing period. You'll keep Pro access until then.",
+          "dismiss": "Keep subscription",
+          "confirm": "Yes, cancel"
+        },
+        "toasts": {
+          "success": "Your subscription has been canceled."
+        },
+        "errors": {
+          "no_active_subscription": "We couldn't find an active subscription.",
+          "already_canceled": "Your subscription is already canceled.",
+          "genericError": "We couldn't cancel your subscription. Please try again in a moment."
+        }
       }
     }
   },

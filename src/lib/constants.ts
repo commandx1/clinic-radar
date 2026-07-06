@@ -40,7 +40,7 @@ export const AI_ANALYSIS_WINDOW_DAYS_STEPS = [90, 180, 365] as const;
 export const AI_ANALYSIS_MIN_OWN_REVIEWS_FOR_WINDOW = 5;
 
 // Görev oluşturma eşikleri — bkz. docs/02-business-rules.md Bölüm D
-export const TASK_MENTION_THRESHOLD = 5;
+export const TASK_MENTION_THRESHOLD = 3;
 export const ABSOLUTE_QUALITY_NEGATIVE_RATIO_THRESHOLD = 0.3;
 export const MAX_NEW_TASKS_PER_CYCLE = 5;
 

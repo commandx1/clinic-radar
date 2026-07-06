@@ -8,7 +8,17 @@ import type { SatisfactionOverview, ThemeMentionCount } from "./satisfaction-ove
 
 type SatisfactionTranslator = Awaited<ReturnType<typeof getTranslations<"business.satisfaction">>>;
 
-function ThemeList({ title, themes, variant }: { title: string; themes: ThemeMentionCount[]; variant: "secondary" | "destructive" }) {
+function ThemeList({
+  title,
+  themes,
+  variant,
+  countKey,
+}: {
+  title: string;
+  themes: ThemeMentionCount[];
+  variant: "secondary" | "destructive";
+  countKey: "positive_mentions" | "negative_mentions";
+}) {
   if (themes.length === 0) {
     return null;
   }
@@ -19,7 +29,7 @@ function ThemeList({ title, themes, variant }: { title: string; themes: ThemeMen
       <div className="flex flex-wrap gap-1">
         {themes.map((theme) => (
           <Badge key={theme.theme} variant={variant}>
-            {theme.theme}
+            {theme.theme} · {theme[countKey]}
           </Badge>
         ))}
       </div>
@@ -64,8 +74,8 @@ export function SatisfactionCard({
 
       {!compact && (overview.topPositive.length > 0 || overview.topNegative.length > 0) && (
         <CardContent className="grid grid-cols-1 gap-3 border-t pt-4 sm:grid-cols-2">
-          <ThemeList title={t("topPositiveTitle")} themes={overview.topPositive} variant="secondary" />
-          <ThemeList title={t("topNegativeTitle")} themes={overview.topNegative} variant="destructive" />
+          <ThemeList title={t("topPositiveTitle")} themes={overview.topPositive} variant="secondary" countKey="positive_mentions" />
+          <ThemeList title={t("topNegativeTitle")} themes={overview.topNegative} variant="destructive" countKey="negative_mentions" />
         </CardContent>
       )}
     </Card>

@@ -41,12 +41,12 @@ export function TaskHistoryList({ tasks }: { tasks: TaskHistoryItem[] }) {
   const t = useTranslations("business.tasks.history");
 
   return (
-    <div className="flex max-w-md flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <h2 className="text-lg font-semibold">{t("title")}</h2>
       {tasks.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("empty")}</p>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {tasks.map((task) => (
             <TaskHistoryRow key={task.id} task={task} />
           ))}

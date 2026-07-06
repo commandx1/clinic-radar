@@ -205,6 +205,17 @@
         "sortOldest": "Oldest first"
       }
     },
+    "satisfaction": {
+      "title": "Overall satisfaction",
+      "ratioLabel": "{value}% positive",
+      "positiveLabel": "Positive",
+      "negativeLabel": "Negative",
+      "positiveCount": "{count} positive mentions",
+      "negativeCount": "{count} negative mentions",
+      "topPositiveTitle": "Top positive themes",
+      "topNegativeTitle": "Top negative themes",
+      "noData": "No review data yet. Run analysis to see your satisfaction overview."
+    },
     "themes": {
       "title": "Themes",
       "empty": "No theme data yet. Run analysis to generate it.",

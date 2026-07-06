@@ -205,6 +205,17 @@
         "sortOldest": "En eski"
       }
     },
+    "satisfaction": {
+      "title": "Genel memnuniyet",
+      "ratioLabel": "%{value} olumlu",
+      "positiveLabel": "Olumlu",
+      "negativeLabel": "Olumsuz",
+      "positiveCount": "{count} olumlu mention",
+      "negativeCount": "{count} olumsuz mention",
+      "topPositiveTitle": "En çok bahsedilen olumlu temalar",
+      "topNegativeTitle": "En çok bahsedilen olumsuz temalar",
+      "noData": "Henüz yorum verisi yok. Memnuniyet özetini görmek için analizi çalıştır."
+    },
     "themes": {
       "title": "Temalar",
       "empty": "Henüz tema verisi yok. Üretmek için analizi çalıştır.",

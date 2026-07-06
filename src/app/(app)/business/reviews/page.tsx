@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 
+import { SatisfactionCard } from "../satisfaction-card";
+import { loadSatisfactionOverview } from "../satisfaction-overview";
 import {
   ReviewsFilterBar,
   type RatingFilter,
@@ -74,12 +76,15 @@ export default async function ReviewsPage({
     .maybeSingle();
 
   const t = await getTranslations("business.reviews");
+  const tSatisfaction = await getTranslations("business.satisfaction");
   const locale = await getLocale();
   const reviews = await loadReviews(supabase, business!.id, filters);
+  const satisfaction = await loadSatisfactionOverview(supabase, business!.id);
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">{t("title")}</h1>
+      <SatisfactionCard t={tSatisfaction} overview={satisfaction} />
       <ReviewsFilterBar filters={filters} />
 
       {reviews.length === 0 ? (

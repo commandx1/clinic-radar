@@ -12,6 +12,8 @@ import { AnalysisRunTrigger } from "./analysis-run-trigger";
 import { OverviewStatsGrid } from "./overview-stats-grid";
 import { resolveOpenTasks } from "./resolve-open-tasks";
 import { pickLocale } from "./resolve-tasks-shared";
+import { SatisfactionCard } from "./satisfaction-card";
+import { loadSatisfactionOverview } from "./satisfaction-overview";
 import { TaskList } from "./task-list";
 import { TrendChart, type TrendPoint } from "./trend-chart";
 
@@ -103,9 +105,11 @@ export default async function OverviewPage() {
 
   const t = await getTranslations("business.overview");
   const tReport = await getTranslations("business.monthlyReport");
+  const tSatisfaction = await getTranslations("business.satisfaction");
   const locale = await getLocale();
 
   const metrics = await loadExecutiveMetrics(supabase, business!.id);
+  const satisfaction = await loadSatisfactionOverview(supabase, business!.id);
   const topTasks = (await resolveOpenTasks(supabase, business!.id, locale)).slice(0, 3);
   const nextAnalysisAvailableAt = getNextAnalysisAvailableAt(business!.last_scraped_at, subscription?.plan);
   const executiveSummary = metrics.latestSnapshot?.executive_summary
@@ -143,6 +147,8 @@ export default async function OverviewPage() {
       ) : (
         <p className="text-sm text-muted-foreground">{t("notEnoughData")}</p>
       )}
+
+      <SatisfactionCard t={tSatisfaction} overview={satisfaction} compact />
 
       {metrics.latestSnapshot && (
         <a

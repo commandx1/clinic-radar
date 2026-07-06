@@ -7,10 +7,17 @@ const RESEND_ENDPOINT = "https://api.resend.com/emails";
 // prod'a alınırken RESEND_FROM_EMAIL env'i ile değiştirilebilir.
 const DEFAULT_FROM = "ClinicRadar <onboarding@resend.dev>";
 
+export interface SendEmailAttachment {
+  filename: string;
+  /** Base64-encoded içerik — Resend attachments API'sinin beklediği format. */
+  content: string;
+}
+
 export interface SendEmailInput {
   to: string;
   subject: string;
   html: string;
+  attachments?: SendEmailAttachment[];
 }
 
 export interface SendEmailResult {
@@ -42,6 +49,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
         to: input.to,
         subject: input.subject,
         html: input.html,
+        ...(input.attachments ? { attachments: input.attachments } : {}),
       }),
     });
 

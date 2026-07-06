@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2Icon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
@@ -23,6 +24,9 @@ export default function LoginPage() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <Link href="/" className="text-sm font-semibold text-primary md:hidden">
+        ClinicRadar
+      </Link>
       <h1 className="text-xl font-semibold">{t("title")}</h1>
 
       <div className="flex flex-col gap-1.5">
@@ -54,6 +58,7 @@ export default function LoginPage() {
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
       <Button type="submit" disabled={isPending}>
+        {isPending && <Loader2Icon className="animate-spin" />}
         {isPending ? t("submitting") : t("submit")}
       </Button>
 

@@ -23,6 +23,20 @@
       "loginLink": "Giriş yap",
       "checkEmailTitle": "E-postanı kontrol et",
       "checkEmailBody": "Hesabını doğrulamak için gönderdiğimiz bağlantıya tıkla."
+    },
+    "errors": {
+      "invalidCredentials": "E-posta veya şifre hatalı.",
+      "userAlreadyRegistered": "Bu e-posta ile zaten bir hesap var.",
+      "emailNotConfirmed": "Giriş yapmadan önce lütfen e-postanı onayla.",
+      "weakPassword": "Şifre en az 6 karakter olmalı.",
+      "generic": "Bir şeyler ters gitti. Lütfen tekrar dene."
+    },
+    "branding": {
+      "headline": "Rakiplerinden önce nereye odaklanman gerektiğini bil.",
+      "subheadline": "ClinicRadar, senin ve rakiplerinin Google yorumlarını kısa, önceliklendirilmiş ve gerçekten etkili bir görev listesine dönüştürür.",
+      "bullet1": "Otomatik rakip keşfi ve takibi",
+      "bullet2": "Etkiye göre önceliklendirilmiş AI görevleri",
+      "bullet3": "Haftalık klinik skoru ve trend raporları"
     }
   },
   "app": {
@@ -39,7 +53,8 @@
       "reviews": "Yorumlar",
       "themes": "Temalar",
       "trend": "Trend",
-      "treatments": "Tedaviler"
+      "treatments": "Tedaviler",
+      "billing": "Faturalandırma"
     },
     "overview": {
       "clinicScore": "Clinic Score",
@@ -50,7 +65,7 @@
       "completedTasks": "Tamamlanan Görevler",
       "completedTasksValue": "{done}/{total}",
       "potentialRatingGain": "Potansiyel Puan Artışı",
-      "potentialRatingGainValue": "+{value} puan potansiyeli",
+      "potentialRatingGainValue": "+{value} puan",
       "notEnoughData": "Henüz yeterli veri yok — Clinic Score'unu görmek için analizi birkaç kez çalıştır.",
       "executiveSummaryTitle": "Yönetici Özeti",
       "topTasksTitle": "Öncelikli görevler",
@@ -64,7 +79,8 @@
       "currentTool": "Şu an rakip/itibar takibi için ne kullanıyorsunuz?",
       "submit": "Bağla",
       "submitting": "Kaydediliyor…",
-      "genericError": "Bir şeyler ters gitti."
+      "genericError": "Bir şeyler ters gitti.",
+      "success": "İşletmen başarıyla bağlandı."
     },
     "errors": {
       "already_linked": "Bu işletme zaten bağlı bir hesapta kayıtlı.",
@@ -87,7 +103,8 @@
         "minRequiredHint": "{count} rakip daha seçmelisin (en az 3 gerekli).",
         "limitedResults": "Bölgenizde sınırlı sayıda güçlü rakip bulundu.",
         "reviewCount": "{count} yorum",
-        "retry": "Tekrar dene"
+        "retry": "Tekrar dene",
+        "saveSuccessToast": "Rakiplerin kaydedildi."
       },
       "errors": {
         "discover_failed": "Rakipleri şu anda tarayamadık. Lütfen tekrar dene.",
@@ -110,6 +127,13 @@
       "lastScrapedAt": "Son analiz: {date}",
       "neverScraped": "Analiz henüz çalıştırılmadı.",
       "cooldownNotice": "Sıradaki analiz {date} tarihinde çalıştırılabilir.",
+      "completeToast": "Analiz tamamlandı.",
+      "steps": {
+        "scraping": "Yorumlar taranıyor...",
+        "themes": "Temalar analiz ediliyor...",
+        "comparison": "Rakip karşılaştırması yapılıyor...",
+        "tasks": "Görevler oluşturuluyor..."
+      },
       "errors": {
         "business_not_enriched": "İşletme verin henüz hazır değil.",
         "insufficient_competitors": "Analiz çalıştırmadan önce en az 3 rakip seçmelisin.",
@@ -137,6 +161,10 @@
       },
       "completeButton": "Tamamla",
       "dismissButton": "Reddet",
+      "toasts": {
+        "completed": "Görev tamamlandı.",
+        "dismissed": "Görev reddedildi."
+      },
       "checklist": {
         "title": "Adımlar"
       },
@@ -222,6 +250,21 @@
       "competitorsCombined": "Rakipler (birleşik)",
       "positive": "{count} pozitif",
       "negative": "{count} negatif"
+    },
+    "billing": {
+      "currentPlan": "Mevcut plan",
+      "plan": {
+        "free": "Free",
+        "pro": "Pro",
+        "agency": "Ajans"
+      },
+      "renewsOn": "Yenilenme tarihi: {date}",
+      "upgradeToPro": "Pro'ya yükselt",
+      "manageBilling": "Faturalandırmayı yönet",
+      "checkoutError": {
+        "title": "Ödeme başlatılamadı",
+        "description": "Ödeme oturumu başlatılırken bir sorun oluştu. Lütfen birazdan tekrar deneyin."
+      }
     }
   },
   "emails": {
@@ -242,6 +285,134 @@
       "subject": "{businessName}: \"{theme}\" temasında ani artış",
       "heading": "Kritik sinyal tespit edildi",
       "body": "{businessName} için \"{theme}\" temasındaki mention sayısı önceki döngüye göre {multiplier}x arttı. Hemen incelemeni öneririz."
+    },
+    "monthlyReport": {
+      "subject": "{businessName} için aylık ClinicRadar raporun",
+      "heading": "Aylık rapor — {businessName}",
+      "intro": "Son 30 günün özeti aşağıda. Tam PDF rapor ekte.",
+      "scoreLine": "Clinic Score: {score}",
+      "rankLine": "Rakip sıralaması: {total} içinde {rank}.",
+      "completedTasksLine": "Bu dönem tamamlanan görev: {count}",
+      "criticalIssuesLine": "Açık kritik görev: {count}",
+      "attachmentNote": "Öne çıkan temalar ve executive summary dahil tam döküm için ekteki PDF'i aç."
+    }
+  },
+  "marketing": {
+    "meta": {
+      "landingDescription": "ClinicRadar, yorumlarını en fazla 10 rakiple karşılaştırır ve aradaki farkı bu hafta bitirebileceğin kısa bir görev listesine çevirir.",
+      "pricingTitle": "Fiyatlandırma — ClinicRadar",
+      "pricingDescription": "Klinikler için basit fiyatlandırma: ücretsiz başla, haftalık yeniden tarama ve aylık raporlar için Pro'ya yükselt."
+    },
+    "nav": {
+      "features": "Özellikler",
+      "pricing": "Fiyatlandırma",
+      "login": "Giriş yap",
+      "startFree": "Ücretsiz başla"
+    },
+    "hero": {
+      "eyebrow": "Pazarlamacılar için değil, klinikler için",
+      "title": "Caddedeki rakip klinik neden senden daha iyi puan alıyor, tam olarak öğren.",
+      "subtitle": "ClinicRadar, yorumlarını en fazla 10 rakiple karşılaştırır ve aradaki farkı bu hafta bitirebileceğin kısa bir görev listesine çevirir.",
+      "ctaPrimary": "Ücretsiz başla",
+      "ctaSecondary": "Nasıl çalıştığını gör",
+      "gapRead": {
+        "own": "Senin kliniğin",
+        "competitor": "Yakındaki rakip",
+        "theme1": "Bekleme süresi",
+        "theme2": "Tedavi sonrası takip",
+        "theme3": "Online randevu",
+        "resolvedTask": "Her ziyaretten sonra bir takip mesajı gönder"
+      }
+    },
+    "howItWorks": {
+      "eyebrow": "Nasıl çalışır",
+      "title": "Üç adım, tek bir haftalık alışkanlık.",
+      "step1": {
+        "title": "Bağlan",
+        "body": "Google İşletme Profilini bağla, yakınındaki 3-10 rakibi seç."
+      },
+      "step2": {
+        "title": "Karşılaştır",
+        "body": "Tüm yorumları okuyup seninle rakiplerin arasındaki farkı tema tema puanlıyoruz."
+      },
+      "step3": {
+        "title": "Tamamla",
+        "body": "Kimsenin açmadığı bir rapor değil, kısa ve önceliklendirilmiş bir görev listesini bitir."
+      }
+    },
+    "features": {
+      "eyebrow": "Neler alıyorsun",
+      "title": "Daha az okuma. Daha çok düzeltme.",
+      "taskEngine": {
+        "title": "Görev motoru",
+        "body": "Her fark, yorumlanması gereken bir grafik değil, somut tek bir aksiyona dönüşür."
+      },
+      "themeAnalysis": {
+        "title": "Tema analizi",
+        "body": "Yorumlar bekleme süresi veya tedavi sonrası takip gibi temalara ayrılır, kendi dilinde."
+      },
+      "weeklyRescan": {
+        "title": "Haftalık yeniden tarama",
+        "body": "Pro planda rakiplerin ayda bir değil, her hafta yeniden kontrol edilir."
+      },
+      "monthlyReport": {
+        "title": "Aylık rapor",
+        "body": "Ekibinle veya yöneticinle paylaşabileceğin tek sayfalık bir PDF özet."
+      }
+    },
+    "pricingTeaser": {
+      "eyebrow": "Fiyatlandırma",
+      "title": "Ücretsiz başla. Hazır olduğunda yükselt.",
+      "viewFullPricing": "Tüm fiyatlandırmayı gör"
+    },
+    "ctaBand": {
+      "title": "Rakiplerinin zaten yorumları var. Neyi doğru yaptıklarını öğren.",
+      "cta": "Ücretsiz başla"
+    },
+    "footer": {
+      "tagline": "Klinikler için rakip istihbaratı.",
+      "product": "Ürün",
+      "account": "Hesap",
+      "login": "Giriş yap",
+      "signup": "Kayıt ol",
+      "legal": "© {year} ClinicRadar"
+    },
+    "pricing": {
+      "title": "Basit fiyatlandırma. İstediğin zaman iptal et.",
+      "subtitle": "Başlamak için bir plan, her hafta kontrol etmek isteyen klinikler için bir plan.",
+      "perMonth": "/ay",
+      "free": {
+        "name": "Free",
+        "tagline": "Görev motorunu kendi hızında dene.",
+        "cta": "Ücretsiz başla",
+        "feature1": "1 işletme",
+        "feature2": "En fazla {count} rakip",
+        "feature3": "Aylık yeniden tarama",
+        "feature4": "Tam görev motoru"
+      },
+      "pro": {
+        "name": "Pro",
+        "badge": "Çoğu klinik buradan başlıyor",
+        "tagline": "Her hafta kontrol etmek isteyen klinikler için.",
+        "cta": "Pro'ya yükselt",
+        "feature1": "1 işletme",
+        "feature2": "En fazla {count} rakip",
+        "feature3": "Haftalık yeniden tarama",
+        "feature4": "Free'deki her şey",
+        "feature5": "Aylık PDF rapor",
+        "feature6": "Anlık kritik sinyal bildirimleri"
+      },
+      "faq": {
+        "title": "Sorular",
+        "q1": "İstediğim zaman iptal edebilir miyim?",
+        "a1": "Evet. Faturalandırma sayfandan istediğin zaman iptal edebilirsin — mevcut dönem bitene kadar Pro erişimin devam eder.",
+        "q2": "Faturalandırmayı kim yönetiyor?",
+        "a2": "Merchant of record'umuz LemonSqueezy, desteklediğimiz her ülke için ödeme, vergi ve faturalandırmayı yönetir.",
+        "q3": "Okuduğunuz yorumları saklıyor musunuz?",
+        "a3": "Yorum metnini analiz etmek için saklıyoruz, ama uygulama sana hiçbir zaman ham yorum metnini göstermiyor — sadece her temanın parafraze edilmiş özetini.",
+        "q4": "Planımı sonra değiştirebilir miyim?",
+        "a4": "Evet, faturalandırma sayfandan istediğin zaman yükselt veya düşür — değişiklik bir sonraki faturalandırma döngünde geçerli olur."
+      }
     }
   }
 }

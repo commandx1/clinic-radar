@@ -10,11 +10,13 @@ import { createClient } from "@/lib/supabase/server";
 // çağrısıyla çekilir, ardından Claude Aşama 1 (own + her rakip paralel),
 // Aşama 2 ve Aşama 3 (executive summary, snapshot yazımından hemen önce) aynı
 // istek içinde çalışır — bu yüzden maxDuration Apify + Claude fazlarının
-// toplamını karşılayacak şekilde yükseltildi (deploy platformunun buna
-// gerçekten izin verdiği doğrulanmalı). İş kuralları (cooldown, uygunluk,
-// run kaydı) dosya başına ~100 satır sınırı (CLAUDE.md) nedeniyle
-// @/lib/analysis/run-manual-analysis.ts içine taşındı.
-export const maxDuration = 450;
+// toplamını karşılayacak şekilde yükseltilmek istendi, ama Vercel Hobby plan
+// serverless fonksiyonlarda 300s ile sınırlıyor (450 denendi, deploy
+// reddedildi). Pro plana geçilirse (800s'ye kadar izin verir) bu değeri
+// tekrar yükselt. İş kuralları (cooldown, uygunluk, run kaydı) dosya başına
+// ~100 satır sınırı (CLAUDE.md) nedeniyle @/lib/analysis/run-manual-analysis.ts
+// içine taşındı.
+export const maxDuration = 300;
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

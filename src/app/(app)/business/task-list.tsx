@@ -14,7 +14,9 @@ export interface TaskListItem extends TaskCardData {
 
 function TaskRow({ task }: { task: TaskListItem }) {
   const t = useTranslations("business.tasks");
-  const { isPending, errorMessage, complete, dismiss } = useTaskActions(task.id);
+  const { isPending, errorMessage, optimisticallyResolved, complete, dismiss } = useTaskActions(
+    task.id,
+  );
   const {
     pendingIndex: checklistPendingIndex,
     errorMessage: checklistErrorMessage,
@@ -22,42 +24,48 @@ function TaskRow({ task }: { task: TaskListItem }) {
   } = useTaskChecklistToggle(task.id);
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-2">
-        <TaskCardBody
-          task={task}
-          onToggleChecklistItem={toggleChecklistItem}
-          checklistPendingIndex={checklistPendingIndex}
-        />
+    <div
+      className={`transition-all duration-200 ${
+        optimisticallyResolved ? "scale-95 opacity-0" : "scale-100 opacity-100"
+      }`}
+    >
+      <Card>
+        <CardContent className="flex flex-col gap-2">
+          <TaskCardBody
+            task={task}
+            onToggleChecklistItem={toggleChecklistItem}
+            checklistPendingIndex={checklistPendingIndex}
+          />
 
-        {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
-        {checklistErrorMessage && (
-          <p className="text-sm text-destructive">{checklistErrorMessage}</p>
-        )}
+          {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+          {checklistErrorMessage && (
+            <p className="text-sm text-destructive">{checklistErrorMessage}</p>
+          )}
 
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            disabled={isPending}
-            onClick={() => {
-              complete();
-            }}
-          >
-            {t("completeButton")}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={isPending}
-            onClick={() => {
-              dismiss();
-            }}
-          >
-            {t("dismissButton")}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={isPending}
+              onClick={() => {
+                complete();
+              }}
+            >
+              {t("completeButton")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => {
+                dismiss();
+              }}
+            >
+              {t("dismissButton")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

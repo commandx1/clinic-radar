@@ -100,9 +100,11 @@ export async function sendWeeklyDigests(
         subject: fillTemplate(messages.subject, { businessName: business.name }),
         html,
       });
-      if (result.skipped) {
-        // RESEND_API_KEY yok — akış devam eder ama bu döngüde emailed_at
-        // işaretlenmez ki key eklendiğinde bildirimler yine gönderilebilsin.
+      if (!result.ok) {
+        // RESEND_API_KEY yok (skipped) veya gönderim gerçekten başarısız
+        // oldu (ör. Resend 4xx/5xx) — her iki durumda da emailed_at
+        // işaretlenmez ki bir sonraki çalıştırmada tekrar denensin.
+        // Başarısız gönderimi "sent" saymak hatayı sessizce gizler.
         skipped += 1;
         continue;
       }

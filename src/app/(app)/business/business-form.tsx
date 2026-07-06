@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,7 @@ export function BusinessForm() {
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
       <Button type="submit" disabled={isPending}>
+        {isPending && <Loader2Icon className="animate-spin" />}
         {isPending ? t("submitting") : t("submit")}
       </Button>
     </form>

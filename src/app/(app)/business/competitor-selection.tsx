@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ export function CompetitorSelection({
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
       <Button disabled={!canSubmit || isPending} onClick={handleSubmit}>
+        {isPending && <Loader2Icon className="size-4 animate-spin" />}
         {isPending ? t("continueButtonSubmitting") : t("continueButton")}
       </Button>
     </div>

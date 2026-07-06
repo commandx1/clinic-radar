@@ -38,6 +38,7 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
           stroke="var(--color-score)"
           strokeWidth={2}
           dot={false}
+          connectNulls
         />
         <Line
           dataKey="competitorRank"
@@ -46,6 +47,7 @@ export function TrendChart({ points }: { points: TrendPoint[] }) {
           stroke="var(--color-competitorRank)"
           strokeWidth={2}
           dot={false}
+          connectNulls
         />
       </LineChart>
     </ChartContainer>

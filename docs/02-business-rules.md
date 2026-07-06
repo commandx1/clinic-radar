@@ -49,6 +49,7 @@ Bu doküman, `05-ai-pipeline.md` ve `09-task-engine.md` içindeki mantığın re
 - Yeni görev oluştuğunda: haftalık özet e-postasına dahil edilir (anlık bildirim yok, MVP'de bildirim yorgunluğunu önlemek için).
 - Bir görev 60 günde otomatik `dismissed` olduğunda: kullanıcıya bilgilendirme e-postası gider.
 - Kritik sinyal (bir temada mention_count bir haftada 3x artarsa): anlık bildirim tetiklenir (Pro plan).
+- **Monthly Report e-postası (Faz 2):** işletme başına ~30 günde bir, PDF rapor eklentili otomatik e-posta (`sendMonthlyReportEmails`, `src/lib/notifications/monthly-report-digest.ts`). Ayrı bir cron değil — `weekly-analysis` günlük tetiklemesindeki `runDailyMaintenance` içinde çalışır (vercel.json'da tek cron path kuralı, bkz. Bölüm altındaki not). İdempotency `businesses.monthly_report_emailed_at` ile sağlanır (weekly-digest'in `notifications.emailed_at` desenine paralel); `RESEND_API_KEY` yoksa gönderim atlanır ve zaman damgası güncellenmez (bir sonraki çalıştırmada tekrar denenir). Maliyet: sadece DB sorguları + PDF render (AI çağrısı yok), günlük tetiklemede sadece cooldown'ı dolan işletmeler işlenir.
 
 ## H. Veri & Gizlilik Kuralları
 - Ham yorum metni veritabanında saklanır (analiz için gereklidir) ama **kullanıcı arayüzünde asla birebir gösterilmez** — sadece Claude'un ürettiği özet gösterilir (bkz. `01-product-vision.md` ürün ilkeleri).

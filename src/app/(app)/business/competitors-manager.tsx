@@ -1,8 +1,10 @@
 "use client";
 
+import { UsersIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -65,7 +67,7 @@ export function CompetitorsManager({
       </div>
 
       {competitors.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("empty")}</p>
+        <EmptyState icon={UsersIcon} message={t("empty")} />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {competitors.map((competitor) => (

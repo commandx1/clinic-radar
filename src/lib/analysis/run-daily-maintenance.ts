@@ -1,6 +1,7 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
 
 import { autoDismissStaleTasks } from "@/lib/notifications/auto-dismiss";
+import { sendMonthlyReportEmails } from "@/lib/notifications/monthly-report-digest";
 import { sendWeeklyDigests } from "@/lib/notifications/weekly-digest";
 import type { Database } from "@/types/database.types";
 
@@ -10,6 +11,8 @@ interface DailyMaintenanceSummary {
   autoDismissed: number;
   digestSent: number;
   digestSkipped: number;
+  monthlyReportSent: number;
+  monthlyReportSkipped: number;
 }
 
 // bkz. docs/02-business-rules.md Bölüm G + docs/09-task-engine.md "Otomatik
@@ -24,7 +27,7 @@ export async function runDailyMaintenance(supabase: CronSupabaseClient): Promise
 
   if (error) {
     console.error("Günlük bakım için işletmeler okunamadı:", error);
-    return { autoDismissed: 0, digestSent: 0, digestSkipped: 0 };
+    return { autoDismissed: 0, digestSent: 0, digestSkipped: 0, monthlyReportSent: 0, monthlyReportSkipped: 0 };
   }
 
   let autoDismissed = 0;
@@ -34,6 +37,13 @@ export async function runDailyMaintenance(supabase: CronSupabaseClient): Promise
   }
 
   const { sent, skipped } = await sendWeeklyDigests(supabase);
+  const monthlyReport = await sendMonthlyReportEmails(supabase);
 
-  return { autoDismissed, digestSent: sent, digestSkipped: skipped };
+  return {
+    autoDismissed,
+    digestSent: sent,
+    digestSkipped: skipped,
+    monthlyReportSent: monthlyReport.sent,
+    monthlyReportSkipped: monthlyReport.skipped,
+  };
 }

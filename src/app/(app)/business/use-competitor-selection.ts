@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { MIN_COMPETITORS } from "@/lib/constants";
 import type { DiscoverCandidate } from "@/lib/validations/competitors";
@@ -27,6 +28,7 @@ export function useCompetitorSelection(
   planMaxCompetitors: number,
   initialSelectedPlaceIds: string[] = [],
 ) {
+  const t = useTranslations("business.competitors.selection");
   const tErrors = useTranslations("business.competitors.errors");
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(initialSelectedPlaceIds));
@@ -57,7 +59,11 @@ export function useCompetitorSelection(
   const mutation = useMutation({
     mutationFn: () => saveCompetitors(businessId, selectedCandidates),
     onSuccess: () => {
+      toast.success(t("saveSuccessToast"));
       router.refresh();
+    },
+    onError: (error) => {
+      toast.error(tErrors.has(error.message) ? tErrors(error.message) : tErrors("genericError"));
     },
   });
 

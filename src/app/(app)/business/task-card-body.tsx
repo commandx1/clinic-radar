@@ -1,3 +1,4 @@
+import { Loader2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
@@ -85,13 +86,17 @@ export function TaskCardBody({
           <ul className="flex flex-col gap-1.5">
             {task.checklist.map((item, index) => (
               <li key={index} className="flex items-start gap-2">
-                <Checkbox
-                  checked={item.done}
-                  disabled={!onToggleChecklistItem || checklistPendingIndex === index}
-                  onCheckedChange={(checked) => {
-                    onToggleChecklistItem?.(index, checked);
-                  }}
-                />
+                {checklistPendingIndex === index ? (
+                  <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                ) : (
+                  <Checkbox
+                    checked={item.done}
+                    disabled={!onToggleChecklistItem}
+                    onCheckedChange={(checked) => {
+                      onToggleChecklistItem?.(index, checked);
+                    }}
+                  />
+                )}
                 <span
                   className={
                     item.done ? "text-sm text-muted-foreground line-through" : "text-sm"

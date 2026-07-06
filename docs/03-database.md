@@ -16,7 +16,11 @@ subscriptions (
   user_id uuid references users(id),
   plan text,                 -- 'free' | 'pro' | 'agency'
   status text,                -- 'active' | 'canceled' | 'past_due'
-  current_period_end timestamptz
+  current_period_end timestamptz,
+  lemonsqueezy_customer_id text,            -- LemonSqueezy customer.id, webhook'tan set edilir
+  lemonsqueezy_subscription_id text unique, -- LemonSqueezy subscription.id, sonraki webhook eventlerini eşleştirmek için
+  lemonsqueezy_variant_id text,             -- plan'ı türetmek için kullanılan variant ID (bkz. 04-api.md webhook)
+  lemonsqueezy_customer_portal_url text     -- LemonSqueezy'nin kendi billing-management sayfası, UI'da doğrudan link olarak kullanılır
 )
 
 -- ============ İşletme ============
@@ -33,7 +37,8 @@ businesses (
   rating float,
   review_count int,
   last_scraped_at timestamptz,
-  current_tool text            -- onboarding zorunlu sorusu "şu an rakip/itibar takibi için ne kullanıyorsunuz?" (11-risks-assumptions.md Bölüm B/E); DB'de nullable (eski satırlar), zorunluluk app katmanında
+  current_tool text,           -- onboarding zorunlu sorusu "şu an rakip/itibar takibi için ne kullanıyorsunuz?" (11-risks-assumptions.md Bölüm B/E); DB'de nullable (eski satırlar), zorunluluk app katmanında
+  monthly_report_emailed_at timestamptz  -- Monthly Report e-postası son gönderim zamanı (02-business-rules.md Bölüm G), idempotency için
 )
 
 clinic_score_history (

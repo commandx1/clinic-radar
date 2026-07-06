@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import type { CreateBusinessInput } from "@/lib/validations/business";
 
@@ -33,6 +34,7 @@ export function useBusinessForm() {
   const mutation = useMutation({
     mutationFn: createBusiness,
     onSuccess: () => {
+      toast.success(t("success"));
       router.refresh();
     },
   });
@@ -52,6 +54,7 @@ export function useBusinessForm() {
     errorMessage = tErrors.has(mutation.error.message)
       ? tErrors(mutation.error.message)
       : t("genericError");
+    toast.error(errorMessage);
   }
 
   return {

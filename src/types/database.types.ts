@@ -94,6 +94,7 @@ export type Database = {
           last_scraped_at: string | null
           lat: number | null
           lng: number | null
+          monthly_report_emailed_at: string | null
           name: string
           normalized_category: string | null
           rating: number | null
@@ -109,6 +110,7 @@ export type Database = {
           last_scraped_at?: string | null
           lat?: number | null
           lng?: number | null
+          monthly_report_emailed_at?: string | null
           name: string
           normalized_category?: string | null
           rating?: number | null
@@ -124,6 +126,7 @@ export type Database = {
           last_scraped_at?: string | null
           lat?: number | null
           lng?: number | null
+          monthly_report_emailed_at?: string | null
           name?: string
           normalized_category?: string | null
           rating?: number | null
@@ -377,6 +380,10 @@ export type Database = {
         Row: {
           current_period_end: string | null
           id: string
+          lemonsqueezy_customer_id: string | null
+          lemonsqueezy_customer_portal_url: string | null
+          lemonsqueezy_subscription_id: string | null
+          lemonsqueezy_variant_id: string | null
           plan: string
           status: string
           user_id: string
@@ -384,6 +391,10 @@ export type Database = {
         Insert: {
           current_period_end?: string | null
           id?: string
+          lemonsqueezy_customer_id?: string | null
+          lemonsqueezy_customer_portal_url?: string | null
+          lemonsqueezy_subscription_id?: string | null
+          lemonsqueezy_variant_id?: string | null
           plan?: string
           status?: string
           user_id: string
@@ -391,6 +402,10 @@ export type Database = {
         Update: {
           current_period_end?: string | null
           id?: string
+          lemonsqueezy_customer_id?: string | null
+          lemonsqueezy_customer_portal_url?: string | null
+          lemonsqueezy_subscription_id?: string | null
+          lemonsqueezy_variant_id?: string | null
           plan?: string
           status?: string
           user_id?: string

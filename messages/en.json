@@ -23,6 +23,20 @@
       "loginLink": "Log in",
       "checkEmailTitle": "Check your email",
       "checkEmailBody": "Click the link we sent you to verify your account."
+    },
+    "errors": {
+      "invalidCredentials": "Incorrect email or password.",
+      "userAlreadyRegistered": "An account with this email already exists.",
+      "emailNotConfirmed": "Please confirm your email before logging in.",
+      "weakPassword": "Password should be at least 6 characters.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "branding": {
+      "headline": "Know exactly what to fix before your competitors do.",
+      "subheadline": "ClinicRadar turns your Google reviews and your competitors' into a short, prioritized list of tasks that move the needle.",
+      "bullet1": "Automatic competitor discovery & tracking",
+      "bullet2": "AI-prioritized tasks, ranked by impact",
+      "bullet3": "Weekly clinic score & trend reports"
     }
   },
   "app": {
@@ -39,7 +53,8 @@
       "reviews": "Reviews",
       "themes": "Themes",
       "trend": "Trend",
-      "treatments": "Treatments"
+      "treatments": "Treatments",
+      "billing": "Billing"
     },
     "overview": {
       "clinicScore": "Clinic Score",
@@ -50,7 +65,7 @@
       "completedTasks": "Completed Tasks",
       "completedTasksValue": "{done}/{total}",
       "potentialRatingGain": "Potential Rating Gain",
-      "potentialRatingGainValue": "+{value} points potential",
+      "potentialRatingGainValue": "+{value} pts",
       "notEnoughData": "Not enough data yet — run analysis a few times to see your Clinic Score.",
       "executiveSummaryTitle": "Executive Summary",
       "topTasksTitle": "Top priorities",
@@ -64,7 +79,8 @@
       "currentTool": "What do you currently use for competitor/reputation tracking?",
       "submit": "Link",
       "submitting": "Saving…",
-      "genericError": "Something went wrong."
+      "genericError": "Something went wrong.",
+      "success": "Your business was linked successfully."
     },
     "errors": {
       "already_linked": "This business is already linked to an account.",
@@ -87,7 +103,8 @@
         "minRequiredHint": "Select {count} more (at least 3 required).",
         "limitedResults": "We found a limited number of strong competitors in your area.",
         "reviewCount": "{count} reviews",
-        "retry": "Try again"
+        "retry": "Try again",
+        "saveSuccessToast": "Your competitors were saved."
       },
       "errors": {
         "discover_failed": "We couldn't scan competitors right now. Please try again.",
@@ -110,6 +127,13 @@
       "lastScrapedAt": "Last analyzed: {date}",
       "neverScraped": "Analysis hasn't run yet.",
       "cooldownNotice": "Next analysis available on {date}.",
+      "completeToast": "Analysis complete.",
+      "steps": {
+        "scraping": "Scanning reviews...",
+        "themes": "Analyzing themes...",
+        "comparison": "Comparing with competitors...",
+        "tasks": "Generating tasks..."
+      },
       "errors": {
         "business_not_enriched": "Your business data isn't ready yet.",
         "insufficient_competitors": "Select at least 3 competitors before running analysis.",
@@ -137,6 +161,10 @@
       },
       "completeButton": "Complete",
       "dismissButton": "Dismiss",
+      "toasts": {
+        "completed": "Task completed.",
+        "dismissed": "Task dismissed."
+      },
       "checklist": {
         "title": "Steps"
       },
@@ -222,6 +250,21 @@
       "competitorsCombined": "Competitors (combined)",
       "positive": "{count} positive",
       "negative": "{count} negative"
+    },
+    "billing": {
+      "currentPlan": "Current plan",
+      "plan": {
+        "free": "Free",
+        "pro": "Pro",
+        "agency": "Agency"
+      },
+      "renewsOn": "Renews on {date}",
+      "upgradeToPro": "Upgrade to Pro",
+      "manageBilling": "Manage billing",
+      "checkoutError": {
+        "title": "Checkout failed",
+        "description": "We couldn't start your checkout session. Please try again in a moment."
+      }
     }
   },
   "emails": {
@@ -242,6 +285,128 @@
       "subject": "{businessName}: sudden spike in \"{theme}\"",
       "heading": "Critical signal detected",
       "body": "Mentions of \"{theme}\" for {businessName} increased {multiplier}x compared to the previous cycle. We recommend reviewing it right away."
+    },
+    "monthlyReport": {
+      "subject": "Your monthly ClinicRadar report for {businessName}",
+      "heading": "Monthly report — {businessName}",
+      "intro": "Here's your summary for the last 30 days. The full PDF report is attached.",
+      "scoreLine": "Clinic Score: {score}",
+      "rankLine": "Competitor rank: {rank} of {total}",
+      "completedTasksLine": "Tasks completed this period: {count}",
+      "criticalIssuesLine": "Open critical issues: {count}",
+      "attachmentNote": "Open the attached PDF for the full breakdown, including top themes and the executive summary."
+    }
+  },
+  "marketing": {
+    "meta": {
+      "landingDescription": "ClinicRadar reads your reviews against up to 10 competitors and turns the gap into a short list of tasks you can finish this week.",
+      "pricingTitle": "Pricing — ClinicRadar",
+      "pricingDescription": "Simple pricing for clinics: start free, upgrade to Pro for weekly re-scans and monthly reports."
+    },
+    "nav": {
+      "features": "Features",
+      "pricing": "Pricing",
+      "login": "Log in",
+      "startFree": "Start free"
+    },
+    "hero": {
+      "eyebrow": "Built for clinics, not marketers",
+      "title": "Know exactly why the clinic down the street outsells you.",
+      "subtitle": "ClinicRadar reads your reviews against up to 10 competitors and turns the gap into a short list of tasks you can finish this week.",
+      "ctaPrimary": "Start free",
+      "ctaSecondary": "See how it works",
+      "gapRead": {
+        "own": "Your clinic",
+        "competitor": "Nearby competitor",
+        "theme1": "Wait times",
+        "theme2": "Follow-up care",
+        "theme3": "Online booking",
+        "resolvedTask": "Send a follow-up message after every visit"
+      }
+    },
+    "howItWorks": {
+      "eyebrow": "How it works",
+      "title": "Three steps, one weekly habit.",
+      "step1": { "title": "Connect", "body": "Link your Google Business Profile and pick 3–10 nearby competitors." },
+      "step2": {
+        "title": "Compare",
+        "body": "We read every review and score the gap between you and them, theme by theme."
+      },
+      "step3": {
+        "title": "Complete",
+        "body": "Work through a short, prioritized task list — not a report nobody opens."
+      }
+    },
+    "features": {
+      "eyebrow": "What you get",
+      "title": "Less reading. More fixing.",
+      "taskEngine": { "title": "Task engine", "body": "Every gap becomes one concrete action, not a chart to interpret." },
+      "themeAnalysis": {
+        "title": "Theme analysis",
+        "body": "Reviews are grouped into themes like wait times or follow-up care, in your language."
+      },
+      "weeklyRescan": {
+        "title": "Weekly re-scan",
+        "body": "Pro plans re-check your competitors every week, not once a month."
+      },
+      "monthlyReport": {
+        "title": "Monthly report",
+        "body": "A one-page PDF summary you can share with your team or your boss."
+      }
+    },
+    "pricingTeaser": {
+      "eyebrow": "Pricing",
+      "title": "Start free. Upgrade when you're ready.",
+      "viewFullPricing": "See full pricing"
+    },
+    "ctaBand": {
+      "title": "Your competitors already have reviews. Find out what they're doing right.",
+      "cta": "Start free"
+    },
+    "footer": {
+      "tagline": "Competitor intelligence for clinics.",
+      "product": "Product",
+      "account": "Account",
+      "login": "Log in",
+      "signup": "Sign up",
+      "legal": "© {year} ClinicRadar"
+    },
+    "pricing": {
+      "title": "Simple pricing. Cancel anytime.",
+      "subtitle": "One plan to get started, one plan for clinics that check in every week.",
+      "perMonth": "/mo",
+      "free": {
+        "name": "Free",
+        "tagline": "Try the task engine on your own terms.",
+        "cta": "Start free",
+        "feature1": "1 business",
+        "feature2": "Up to {count} competitors",
+        "feature3": "Monthly re-scan",
+        "feature4": "Full task engine"
+      },
+      "pro": {
+        "name": "Pro",
+        "badge": "Most clinics start here",
+        "tagline": "For clinics that check in every week.",
+        "cta": "Upgrade to Pro",
+        "feature1": "1 business",
+        "feature2": "Up to {count} competitors",
+        "feature3": "Weekly re-scan",
+        "feature4": "Everything in Free",
+        "feature5": "Monthly PDF report",
+        "feature6": "Instant critical-signal alerts"
+      },
+      "faq": {
+        "title": "Questions",
+        "q1": "Can I cancel anytime?",
+        "a1": "Yes. Cancel from your billing page whenever you like — you keep Pro access until the current period ends.",
+        "q2": "Who handles billing?",
+        "a2": "LemonSqueezy, our merchant of record, handles payment, tax, and invoicing for every country we support.",
+        "q3": "Do you store the reviews you read?",
+        "a3": "We store review text to analyze it, but the app never shows raw review text back to you — only a paraphrased summary of each theme.",
+        "q4": "Can I switch plans later?",
+        "a4": "Yes, upgrade or downgrade anytime from your billing page — changes apply to your next billing cycle."
+      }
     }
   }
 }

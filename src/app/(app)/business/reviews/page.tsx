@@ -1,5 +1,7 @@
+import { MessageSquareIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
@@ -81,7 +83,7 @@ export default async function ReviewsPage({
       <ReviewsFilterBar filters={filters} />
 
       {reviews.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("empty")}</p>
+        <EmptyState icon={MessageSquareIcon} message={t("empty")} />
       ) : (
         <div className="flex flex-col gap-2">
           {reviews.map((review) => (

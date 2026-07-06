@@ -3,6 +3,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { toast } from "sonner";
 
 type TaskStatus = "done" | "dismissed";
 
@@ -21,12 +23,18 @@ async function patchTask(taskId: string, body: Record<string, unknown>): Promise
 
 export function useTaskActions(taskId: string) {
   const tErrors = useTranslations("business.tasks.errors");
+  const tToasts = useTranslations("business.tasks.toasts");
   const router = useRouter();
+  const [optimisticallyResolved, setOptimisticallyResolved] = useState(false);
 
   const mutation = useMutation({
     mutationFn: (status: TaskStatus) => patchTask(taskId, { status }),
-    onSuccess: () => {
+    onSuccess: (_data, status) => {
+      toast.success(status === "done" ? tToasts("completed") : tToasts("dismissed"));
       router.refresh();
+    },
+    onError: () => {
+      setOptimisticallyResolved(false);
     },
   });
 
@@ -40,10 +48,13 @@ export function useTaskActions(taskId: string) {
   return {
     isPending: mutation.isPending,
     errorMessage,
+    optimisticallyResolved,
     complete: () => {
+      setOptimisticallyResolved(true);
       mutation.mutate("done");
     },
     dismiss: () => {
+      setOptimisticallyResolved(true);
       mutation.mutate("dismissed");
     },
   };

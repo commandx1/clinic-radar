@@ -92,7 +92,6 @@ async function enrichBusinessFromApify(
         review_count: details.review_count,
         category: details.category,
         normalized_category: normalizeCategory(details.category),
-        last_scraped_at: new Date().toISOString(),
       })
       .eq("id", business.id)
       .select()

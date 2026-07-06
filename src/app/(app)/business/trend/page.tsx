@@ -1,5 +1,7 @@
+import { TrendingUpIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
+import { EmptyState } from "@/components/empty-state";
 import { createClient } from "@/lib/supabase/server";
 
 import { TrendChart } from "../trend-chart";
@@ -33,7 +35,7 @@ export default async function TrendPage() {
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold">{t("title")}</h1>
       {points.length < 2 ? (
-        <p className="text-sm text-muted-foreground">{t("notEnoughData")}</p>
+        <EmptyState icon={TrendingUpIcon} message={t("notEnoughData")} />
       ) : (
         <TrendChart points={points} />
       )}

@@ -2,15 +2,16 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/server";
 import { getNextAnalysisAvailableAt, isAnalysisCooldownActive } from "@/lib/task-engine/analysis-cooldown";
 import { calculatePotentialRatingGain } from "@/lib/task-engine/potential-rating-gain";
 import type { Json } from "@/types/database.types";
 
 import { AnalysisRunTrigger } from "./analysis-run-trigger";
+import { OverviewStatsGrid } from "./overview-stats-grid";
 import { resolveOpenTasks } from "./resolve-open-tasks";
 import { pickLocale } from "./resolve-tasks-shared";
-import { StatCard } from "./stat-card";
 import { TaskList } from "./task-list";
 import { TrendChart, type TrendPoint } from "./trend-chart";
 
@@ -129,32 +130,16 @@ export default async function OverviewPage() {
       )}
 
       {metrics.latestSnapshot ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <StatCard label={t("clinicScore")} value={String(metrics.latestSnapshot.score)} />
-          <StatCard
-            label={t("competitorRank")}
-            value={
-              metrics.latestSnapshot.competitor_rank !== null
-                ? t("competitorRankValue", {
-                    rank: metrics.latestSnapshot.competitor_rank,
-                    total: metrics.competitorTotal,
-                  })
-                : "-"
-            }
-          />
-          <StatCard
-            label={t("criticalIssues")}
-            value={t("criticalIssuesValue", { count: metrics.criticalIssuesCount })}
-          />
-          <StatCard
-            label={t("completedTasks")}
-            value={t("completedTasksValue", { done: metrics.doneCount, total: metrics.totalTasksCount })}
-          />
-          <StatCard
-            label={t("potentialRatingGain")}
-            value={t("potentialRatingGainValue", { value: metrics.potentialRatingGain.toFixed(1) })}
-          />
-        </div>
+        <OverviewStatsGrid
+          t={t}
+          score={metrics.latestSnapshot.score}
+          competitorRank={metrics.latestSnapshot.competitor_rank}
+          competitorTotal={metrics.competitorTotal}
+          criticalIssuesCount={metrics.criticalIssuesCount}
+          doneCount={metrics.doneCount}
+          totalTasksCount={metrics.totalTasksCount}
+          potentialRatingGain={metrics.potentialRatingGain}
+        />
       ) : (
         <p className="text-sm text-muted-foreground">{t("notEnoughData")}</p>
       )}
@@ -168,7 +153,9 @@ export default async function OverviewPage() {
         </a>
       )}
 
-      <div className="flex flex-col gap-2">
+      <Separator />
+
+      <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t("topTasksTitle")}</h2>
         {topTasks.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("topTasksEmpty")}</p>
@@ -178,10 +165,13 @@ export default async function OverviewPage() {
       </div>
 
       {metrics.trendPoints.length >= 2 && (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold">{t("trendPreviewTitle")}</h2>
-          <TrendChart points={metrics.trendPoints.slice(-8)} />
-        </div>
+        <>
+          <Separator />
+          <div className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold">{t("trendPreviewTitle")}</h2>
+            <TrendChart points={metrics.trendPoints.slice(-8)} />
+          </div>
+        </>
       )}
     </div>
   );

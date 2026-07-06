@@ -28,11 +28,17 @@ Next.js API routes (veya ayrı Node servisi) üzerinden REST. Tüm endpoint'ler 
 | GET | `/api/business/:id/treatments` | Faz 2 — `theme_summary.treatment` alanına göre kendi vs rakip (birleşik) kırılımı, tema yerine tedavi/hizmet türü bazında toplulaştırılmış. `themes` ile aynı şekilde ayrı bir REST route değil, `/business/treatments` sayfası SSR sırasında doğrudan sorgular (bkz. `08-dashboard.md`). |
 | GET | `/api/business/:id/trend` | `clinic_score_history`'den zaman serisi. |
 | GET | `/api/business/:id/competitors` | Seçilen rakiplerin özet kartları (puan, yorum sayısı, güçlü/zayıf temalar). |
-| GET | `/api/business/:id/monthly-report` | Faz 2 — aylık özeti tek sayfalık PDF olarak döner (`application/pdf`, `Content-Disposition: attachment`). Kullanıcı oturumuyla (RLS) çalışır; `business_id` kullanıcıya ait değilse 404. Detay: `08-dashboard.md`. |
+| GET | `/api/business/:id/monthly-report` | Faz 2 — aylık özeti tek sayfalık PDF olarak döner (`application/pdf`, `Content-Disposition: attachment`). Kullanıcı oturumuyla (RLS) çalışır; `business_id` kullanıcıya ait değilse 404. Detay: `08-dashboard.md`. Ayrıca aynı rapor işletme başına ~30 günde bir otomatik e-posta olarak da gönderilir — ayrı bir route değil, `weekly-analysis` cron'unun günlük tetiklemesi içinde çalışır (bkz. aşağıda). |
+
+## Billing
+
+| Method | Path | Açıklama |
+|---|---|---|
+| GET | `/api/billing/checkout` | Kullanıcı oturumu gerektirir. LemonSqueezy'de `custom_data: { user_id }` ile bir checkout oluşturur (`src/lib/billing/lemonsqueezy-client.ts`) ve dönen hosted checkout URL'ine 307 redirect eder — client-side JS/SDK yok, düz `<a href>` navigasyonu yeterli. |
 
 ## Webhook'lar
 - `POST /api/webhooks/apify` — Apify actor run tamamlandığında tetiklenir, ilgili run_id'ye bağlı analiz job'ını başlatır. **Implemente edilmiyor** (bkz. yukarıdaki `analysis/run` notu) — Faz 1.1'in cron yenilemesi bilinçli olarak senkron batch teslim edildiği için bu webhook'a hâlâ ihtiyaç doğmadı; ancak senkron desen süre bütçesine sığmazsa değerlendirilir.
-- `POST /api/webhooks/billing` — LemonSqueezy'den plan değişikliği bildirimleri (`subscription_created`, `subscription_updated`, `subscription_cancelled` vb.), `X-Signature` HMAC doğrulaması ile.
+- `POST /api/webhooks/billing` — **Implemente edildi** (`src/app/api/webhooks/billing/route.ts`). LemonSqueezy'den plan değişikliği bildirimleri (`subscription_created`, `subscription_updated`, `subscription_cancelled`, `subscription_resumed`, `subscription_expired`, `subscription_paused`, `subscription_unpaused`, `subscription_payment_failed`, `subscription_payment_success`), `X-Signature` HMAC-SHA256 doğrulaması ile (`src/lib/billing/verify-webhook-signature.ts`, ham body üzerinde timing-safe karşılaştırma). Kullanıcı oturumu olmadan çağrıldığı için `createAdminClient()` kullanır — bkz. `CLAUDE.md` admin client istisnası. `meta.custom_data.user_id` (checkout'ta set edilir) ile satır eşleştirilir, yoksa `lemonsqueezy_subscription_id` fallback olarak kullanılır (`src/lib/billing/handle-webhook-event.ts`).
 
 ## Zamanlanmış işler (cron)
 
@@ -43,6 +49,7 @@ Next.js API routes (veya ayrı Node servisi) üzerinden REST. Tüm endpoint'ler 
 - **Davranış:** uygun işletmeler `last_scraped_at` en eski önce senkron batch olarak sırayla işlenir; her işletme kendi try/catch'inde, bütçe kapısı (`TIME_BUDGET_MS`) aşılınca döngü kesilir — kalanlar yarınki tike kalır (bu doğal fren yeterli görüldüğünden ayrı bir `CRON_MAX_BUSINESSES_PER_RUN` sınırı şimdilik eklenmedi). Rakip sayısı < 3 olan işletme `failed/insufficient_competitors` olarak loglanıp atlanır. Görev üretimi manuel akışla aynı `MAX_NEW_TASKS_PER_CYCLE` sınırına tabidir.
 - **Yanıt:** yalnız sayaçlar — `{ eligible, processed, succeeded, partial, failed, skipped }`.
 - **Gözlemlenebilirlik:** her işletme koşusu `analysis_runs` tablosuna satır yazar (`trigger='cron'`, terminal status, hata detayı) — manuel tetikleme de aynı tabloya `manual` olarak loglanır (bkz. `03-database.md`).
+- **Günlük bakım (plan bağımsız):** aynı tetiklemede `runDailyMaintenance` de çalışır — 60 günlük auto-dismiss taraması, haftalık özet e-postası (`sendWeeklyDigests`) ve Monthly Report e-postası (`sendMonthlyReportEmails`, 02-business-rules.md Bölüm G). Yanıta `maintenance: { autoDismissed, digestSent, digestSkipped, monthlyReportSent, monthlyReportSkipped }` olarak eklenir.
 
 Henüz implemente edilmeyen diğer işler:
 - `monthly-analysis-refresh` — Free plan kullanıcıları için aylık.

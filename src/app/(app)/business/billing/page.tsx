@@ -20,16 +20,19 @@ export default async function BillingPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select("plan, status, current_period_end, lemonsqueezy_customer_portal_url")
-    .eq("user_id", user!.id)
-    .maybeSingle();
-
-  const t = await getTranslations("business.billing");
+  // subscription sorgusu ve çeviriler bağımsız — paralel çalıştır.
+  const [{ data: subscription }, t] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("plan, status, current_period_end, lemonsqueezy_customer_portal_url")
+      .eq("user_id", user!.id)
+      .maybeSingle(),
+    getTranslations("business.billing"),
+  ]);
   const plan = subscription?.plan ?? "free";
   const isPro = plan === "pro";
   const isActive = subscription?.status === "active";
+  const isPastDue = subscription?.status === "past_due";
 
   return (
     <div className="flex max-w-md flex-col gap-4">
@@ -38,6 +41,21 @@ export default async function BillingPage({
           <CardContent className="flex flex-col gap-1">
             <p className="text-sm font-medium text-destructive">{t("checkoutError.title")}</p>
             <p className="text-sm text-destructive/80">{t("checkoutError.description")}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {isPastDue && (
+        <Card className="border-destructive/40">
+          <CardContent className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-destructive">{t("pastDue.title")}</p>
+            <p className="text-sm text-destructive/80">{t("pastDue.description")}</p>
+            {subscription.lemonsqueezy_customer_portal_url && (
+              <CheckoutLinkButton
+                href={subscription.lemonsqueezy_customer_portal_url}
+                label={t("pastDue.action")}
+              />
+            )}
           </CardContent>
         </Card>
       )}

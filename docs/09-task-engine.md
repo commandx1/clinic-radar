@@ -55,13 +55,21 @@ else                    → priority = "low"
 ```
 Bu eşikler ilk 20-30 gerçek görev üzerinde kalibre edilmeli — başlangıç değerleri olarak kullanılsın.
 
-## Görev yeniden önceliklendirme (14 gün kuralı)
-Bir görev 14 gün `open` kalırsa:
-1. İlgili temanın en güncel `theme_summary.trend` değerine bakılır.
-2. `worsening` → impact_score +10 (üst sınır 100).
-3. `improving` → impact_score -15 (kullanıcı muhtemelen zaten bir şey yapıyor, öncelik düşer).
-4. `stable` → değişmez.
-5. Yeni `priority_raw` hesaplanır, `priority` güncellenir, `last_priority_recalc_at` yazılır.
+## Görev yeniden önceliklendirme (her analiz döngüsünde)
+impact_score artık Aşama 2 modelinden gelmediği için (yukarı bkz.), ayrı bir
+"14 gün aging bump" süreci **kaldırılmıştır**. Bunun yerine her analiz döngüsünde
+(`upsertTasks`, `src/lib/analysis/execute-analysis.ts`) mevcut `open` görevin
+impact_score'u temanın en güncel own/rakip mention kırılımı + `theme_summary.trend`
+değeriyle **sıfırdan yeniden hesaplanır**; böylece skor doğal olarak tazelenir:
+1. Trend `worsening` → `+IMPACT_SCORE_TREND_WORSENING_BONUS` (constants.ts, şu an **+15**).
+2. Trend `improving` → `IMPACT_SCORE_TREND_IMPROVING_PENALTY` (constants.ts, şu an **-10**;
+   kullanıcı muhtemelen zaten bir şey yapıyor, öncelik düşer).
+3. Trend `stable`/`null` → 0.
+4. Nihai skor `clamp(…, 0, 100)`, ardından `priority_raw` → `priority` güncellenir ve
+   `last_priority_recalc_at` yazılır.
+
+> Not: değerler tek kaynak `src/lib/constants.ts`'tir; bu doküman yalnızca örnek
+> gösterir — çakışma olursa constants.ts esastır.
 
 ## Otomatik dismiss (60 gün kuralı)
 Görev 60 gün `open` kalır ve `priority = low` ise → `status = dismissed`, kullanıcıya bildirim (`02-business-rules.md` Bölüm G).

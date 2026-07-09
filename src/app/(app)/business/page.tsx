@@ -30,43 +30,49 @@ interface ExecutiveMetrics {
 }
 
 async function loadExecutiveMetrics(supabase: SupabaseClient, businessId: string): Promise<ExecutiveMetrics> {
-  const { data: snapshots } = await supabase
-    .from("clinic_score_history")
-    .select("score, competitor_rank, snapshot_at, executive_summary")
-    .eq("business_id", businessId)
-    .order("snapshot_at", { ascending: true });
+  // Altı sorgu birbirinden bağımsız — seri await yerine paralel çalıştır
+  // (sayfa açılış latency'sini tek round-trip'e indirir).
+  const [
+    { data: snapshots },
+    { count: competitorCount },
+    { count: criticalIssuesCount },
+    { count: doneCount },
+    { count: totalTasksCount },
+    { data: highPriorityOpenTasks },
+  ] = await Promise.all([
+    supabase
+      .from("clinic_score_history")
+      .select("score, competitor_rank, snapshot_at, executive_summary")
+      .eq("business_id", businessId)
+      .order("snapshot_at", { ascending: true }),
+    supabase
+      .from("competitors")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId),
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId)
+      .eq("priority", "high")
+      .eq("status", "open"),
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId)
+      .eq("status", "done"),
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId),
+    supabase
+      .from("tasks")
+      .select("impact_score")
+      .eq("business_id", businessId)
+      .eq("priority", "high")
+      .eq("status", "open"),
+  ]);
 
   const latest = snapshots && snapshots.length > 0 ? snapshots[snapshots.length - 1] : null;
-
-  const { count: competitorCount } = await supabase
-    .from("competitors")
-    .select("id", { count: "exact", head: true })
-    .eq("business_id", businessId);
-
-  const { count: criticalIssuesCount } = await supabase
-    .from("tasks")
-    .select("id", { count: "exact", head: true })
-    .eq("business_id", businessId)
-    .eq("priority", "high")
-    .eq("status", "open");
-
-  const { count: doneCount } = await supabase
-    .from("tasks")
-    .select("id", { count: "exact", head: true })
-    .eq("business_id", businessId)
-    .eq("status", "done");
-
-  const { count: totalTasksCount } = await supabase
-    .from("tasks")
-    .select("id", { count: "exact", head: true })
-    .eq("business_id", businessId);
-
-  const { data: highPriorityOpenTasks } = await supabase
-    .from("tasks")
-    .select("impact_score")
-    .eq("business_id", businessId)
-    .eq("priority", "high")
-    .eq("status", "open");
 
   return {
     latestSnapshot: latest
@@ -91,26 +97,28 @@ export default async function OverviewPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("id, name, category, google_place_id, last_scraped_at")
-    .eq("user_id", user!.id)
-    .maybeSingle();
+  // user hazır olduktan sonra bu altı iş birbirinden bağımsız — paralel çalıştır.
+  const [{ data: business }, { data: subscription }, t, tReport, tSatisfaction, locale] =
+    await Promise.all([
+      supabase
+        .from("businesses")
+        .select("id, name, category, google_place_id, last_scraped_at")
+        .eq("user_id", user!.id)
+        .maybeSingle(),
+      supabase.from("subscriptions").select("plan").eq("user_id", user!.id).maybeSingle(),
+      getTranslations("business.overview"),
+      getTranslations("business.monthlyReport"),
+      getTranslations("business.satisfaction"),
+      getLocale(),
+    ]);
 
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select("plan")
-    .eq("user_id", user!.id)
-    .maybeSingle();
-
-  const t = await getTranslations("business.overview");
-  const tReport = await getTranslations("business.monthlyReport");
-  const tSatisfaction = await getTranslations("business.satisfaction");
-  const locale = await getLocale();
-
-  const metrics = await loadExecutiveMetrics(supabase, business!.id);
-  const satisfaction = await loadSatisfactionOverview(supabase, business!.id);
-  const topTasks = (await resolveOpenTasks(supabase, business!.id, locale)).slice(0, 3);
+  // business.id'ye bağlı üç yükleme de birbirinden bağımsız — paralel çalıştır.
+  const [metrics, satisfaction, openTasks] = await Promise.all([
+    loadExecutiveMetrics(supabase, business!.id),
+    loadSatisfactionOverview(supabase, business!.id),
+    resolveOpenTasks(supabase, business!.id, locale),
+  ]);
+  const topTasks = openTasks.slice(0, 3);
   const nextAnalysisAvailableAt = getNextAnalysisAvailableAt(business!.last_scraped_at, subscription?.plan);
   const executiveSummary = metrics.latestSnapshot?.executive_summary
     ? pickLocale(metrics.latestSnapshot.executive_summary, locale)

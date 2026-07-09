@@ -1,5 +1,6 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
 
+import { acquireAnalysisRun } from "@/lib/analysis/acquire-analysis-run";
 import { executeAnalysis } from "@/lib/analysis/execute-analysis";
 import { toScrapeMetricColumns } from "@/lib/analysis/scrape-metrics";
 import { MIN_COMPETITORS } from "@/lib/constants";
@@ -69,11 +70,14 @@ export async function runManualAnalysisForBusiness(
     return { status: 422, body: { error: "insufficient_competitors" } };
   }
 
-  const { data: analysisRun } = await supabase
-    .from("analysis_runs")
-    .insert({ business_id: business.id, trigger: "manual", status: "running" })
-    .select("id")
-    .single();
+  // bkz. acquire-analysis-run.ts — işletme başına tek eşzamanlı 'running' koşu.
+  // Çift tıklama ya da manuel + cron çakışmasında ikinci istek 409 alır ve
+  // pahalı Apify/Claude çağrıları tekrarlanmaz.
+  const acquired = await acquireAnalysisRun(supabase, business.id, "manual");
+  if (!acquired.ok) {
+    return { status: 409, body: { error: "analysis_already_running" } };
+  }
+  const runId = acquired.runId;
 
   const result = await executeAnalysis(
     supabase,
@@ -91,7 +95,7 @@ export async function runManualAnalysisForBusiness(
   );
 
   if (!result.ok) {
-    if (analysisRun) {
+    if (runId) {
       await supabase
         .from("analysis_runs")
         .update({
@@ -100,22 +104,24 @@ export async function runManualAnalysisForBusiness(
           finished_at: new Date().toISOString(),
           ...toScrapeMetricColumns(result.scrape),
         })
-        .eq("id", analysisRun.id);
+        .eq("id", runId);
     }
 
     const statusCode = result.error === "review_save_failed" ? 500 : 502;
     return { status: statusCode, body: { error: result.error } };
   }
 
-  if (analysisRun) {
+  if (runId) {
     await supabase
       .from("analysis_runs")
       .update({
-        status: "succeeded",
+        // "partial" (bazı adımlar başarısız ama sert hata yok) artık gerçek
+        // durumuyla kaydedilir; sert başarı 'succeeded'.
+        status: result.status === "partial" ? "partial" : "succeeded",
         finished_at: new Date().toISOString(),
         ...toScrapeMetricColumns(result.scrape),
       })
-      .eq("id", analysisRun.id);
+      .eq("id", runId);
   }
 
   return {

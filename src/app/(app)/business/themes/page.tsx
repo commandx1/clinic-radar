@@ -75,13 +75,15 @@ export default async function ThemesPage() {
   // burada hariç tutulur — aksi halde buildThemeRows'un `existing.competitor`
   // ataması (toplama değil) sorgu sırasına göre rastgele TEK bir rakibin
   // sayısını "Competitors (combined)" diye gösterirdi.
-  const { data: summaries } = await supabase
-    .from("theme_summary")
-    .select("theme, owner_type, positive_mentions, negative_mentions, trend")
-    .eq("business_id", business!.id)
-    .is("competitor_id", null);
-
-  const t = await getTranslations("business.themes");
+  // summaries sorgusu ve çeviriler bağımsız — paralel çalıştır.
+  const [{ data: summaries }, t] = await Promise.all([
+    supabase
+      .from("theme_summary")
+      .select("theme, owner_type, positive_mentions, negative_mentions, trend")
+      .eq("business_id", business!.id)
+      .is("competitor_id", null),
+    getTranslations("business.themes"),
+  ]);
   const rows = buildThemeRows(summaries ?? []);
 
   return (

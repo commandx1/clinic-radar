@@ -18,13 +18,15 @@ export default async function TrendPage() {
     .eq("user_id", user!.id)
     .maybeSingle();
 
-  const { data: snapshots } = await supabase
-    .from("clinic_score_history")
-    .select("score, competitor_rank, snapshot_at")
-    .eq("business_id", business!.id)
-    .order("snapshot_at", { ascending: true });
-
-  const t = await getTranslations("business.trend");
+  // snapshots sorgusu ve çeviriler bağımsız — paralel çalıştır.
+  const [{ data: snapshots }, t] = await Promise.all([
+    supabase
+      .from("clinic_score_history")
+      .select("score, competitor_rank, snapshot_at")
+      .eq("business_id", business!.id)
+      .order("snapshot_at", { ascending: true }),
+    getTranslations("business.trend"),
+  ]);
   const points = (snapshots ?? []).map((s) => ({
     snapshotAt: s.snapshot_at,
     score: s.score,

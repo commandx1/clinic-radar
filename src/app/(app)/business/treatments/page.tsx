@@ -75,13 +75,15 @@ export default async function TreatmentsPage() {
   // competitor_id IS NULL: toplulaştırılmış rakip satırları — rakip bazlı
   // satırlar (Faz 1.2, görev kartı kanıt satırı için) burada çift saymamak
   // için hariç tutulur, bkz. docs/03-database.md.
-  const { data: summaries } = await supabase
-    .from("theme_summary")
-    .select("treatment, owner_type, positive_mentions, negative_mentions, competitor_id")
-    .eq("business_id", business!.id)
-    .is("competitor_id", null);
-
-  const t = await getTranslations("business.treatments");
+  // summaries sorgusu ve çeviriler bağımsız — paralel çalıştır.
+  const [{ data: summaries }, t] = await Promise.all([
+    supabase
+      .from("theme_summary")
+      .select("treatment, owner_type, positive_mentions, negative_mentions, competitor_id")
+      .eq("business_id", business!.id)
+      .is("competitor_id", null),
+    getTranslations("business.treatments"),
+  ]);
   const rows = buildTreatmentRows(summaries ?? []);
 
   return (

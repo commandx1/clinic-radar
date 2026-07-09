@@ -33,6 +33,7 @@ export interface LemonSqueezyWebhookPayload {
       status: string;
       renews_at: string | null;
       ends_at: string | null;
+      updated_at?: string;
       urls?: { customer_portal?: string };
     };
   };
@@ -64,6 +65,7 @@ export async function handleWebhookEvent(
   }
 
   const { id, attributes } = payload.data;
+  const eventUpdatedAt = attributes.updated_at ?? null;
   const update = {
     plan: mapPlan(attributes.variant_id),
     status: mapStatus(attributes.status),
@@ -72,14 +74,20 @@ export async function handleWebhookEvent(
     lemonsqueezy_subscription_id: id,
     lemonsqueezy_variant_id: String(attributes.variant_id),
     lemonsqueezy_customer_portal_url: attributes.urls?.customer_portal ?? null,
+    lemonsqueezy_updated_at: eventUpdatedAt,
   };
 
   const userId = payload.meta.custom_data?.user_id;
 
-  if (userId) {
-    await supabase.from("subscriptions").update(update).eq("user_id", userId);
-    return;
+  let query = supabase.from("subscriptions").update(update);
+  query = userId ? query.eq("user_id", userId) : query.eq("lemonsqueezy_subscription_id", id);
+
+  // Sırasız teslim guard'ı (bkz. 20260717000001 migration): yalnızca gelen event
+  // stored damgadan yeni/eşitse uygula. Eşit → idempotent duplicate; null →
+  // henüz damga yok. Damga yoksa (eski LS sürümü) guard atlanır, koşulsuz uygulanır.
+  if (eventUpdatedAt) {
+    query = query.or(`lemonsqueezy_updated_at.is.null,lemonsqueezy_updated_at.lte."${eventUpdatedAt}"`);
   }
 
-  await supabase.from("subscriptions").update(update).eq("lemonsqueezy_subscription_id", id);
+  await query;
 }

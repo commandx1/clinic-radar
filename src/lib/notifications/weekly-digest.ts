@@ -57,6 +57,7 @@ export async function sendWeeklyDigests(
   let skipped = 0;
 
   for (const [businessId, businessRows] of byBusiness) {
+   try {
     const { data: business } = await supabase
       .from("businesses")
       .select("id, name, user_id")
@@ -112,6 +113,15 @@ export async function sendWeeklyDigests(
 
     await supabase.from("notifications").update({ emailed_at: new Date().toISOString() }).in("id", ids);
     sent += 1;
+   } catch (err) {
+     // İşletme-başına hata izolasyonu: tek bir kayıt (ör. bozuk payload)
+     // tüm batch'i düşürmesin; emailed_at yazılmadığı için sonraki döngüde retry olur.
+     console.error(
+       `Haftalık özet gönderimi başarısız (business ${businessId}), batch devam ediyor:`,
+       err,
+     );
+     skipped += 1;
+   }
   }
 
   return { sent, skipped };

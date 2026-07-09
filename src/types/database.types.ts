@@ -383,6 +383,7 @@ export type Database = {
           lemonsqueezy_customer_id: string | null
           lemonsqueezy_customer_portal_url: string | null
           lemonsqueezy_subscription_id: string | null
+          lemonsqueezy_updated_at: string | null
           lemonsqueezy_variant_id: string | null
           plan: string
           status: string
@@ -394,6 +395,7 @@ export type Database = {
           lemonsqueezy_customer_id?: string | null
           lemonsqueezy_customer_portal_url?: string | null
           lemonsqueezy_subscription_id?: string | null
+          lemonsqueezy_updated_at?: string | null
           lemonsqueezy_variant_id?: string | null
           plan?: string
           status?: string
@@ -405,6 +407,7 @@ export type Database = {
           lemonsqueezy_customer_id?: string | null
           lemonsqueezy_customer_portal_url?: string | null
           lemonsqueezy_subscription_id?: string | null
+          lemonsqueezy_updated_at?: string | null
           lemonsqueezy_variant_id?: string | null
           plan?: string
           status?: string

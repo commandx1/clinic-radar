@@ -3,6 +3,19 @@
     "title": "ClinicRadar",
     "description": "Rakip analizi + görev motoru"
   },
+  "errors": {
+    "notFound": {
+      "title": "Sayfa bulunamadı",
+      "description": "Aradığın sayfa taşınmış ya da hiç var olmamış olabilir.",
+      "action": "Panele dön"
+    },
+    "boundary": {
+      "title": "Bir şeyler ters gitti",
+      "description": "Beklenmeyen bir hata oluştu. Tekrar deneyebilir ya da birazdan yeniden gelebilirsin.",
+      "retry": "Tekrar dene",
+      "home": "Panele dön"
+    }
+  },
   "auth": {
     "login": {
       "title": "Giriş yap",
@@ -273,6 +286,11 @@
       "renewsOn": "Yenilenme tarihi: {date}",
       "upgradeToPro": "Pro'ya yükselt",
       "manageBilling": "Faturalandırmayı yönet",
+      "pastDue": {
+        "title": "Ödemen alınamadı",
+        "description": "Son ödemen başarısız oldu. Pro erişimini kaybetmemek için ödeme yöntemini güncelle. Kısa süre içinde güncellenmezse aboneliğin iptal edilebilir.",
+        "action": "Ödeme yöntemini güncelle"
+      },
       "checkoutError": {
         "title": "Ödeme başlatılamadı",
         "description": "Ödeme oturumu başlatılırken bir sorun oluştu. Lütfen birazdan tekrar deneyin."

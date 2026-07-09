@@ -69,17 +69,19 @@ export default async function ReviewsPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("id")
-    .eq("user_id", user!.id)
-    .maybeSingle();
+  // user hazır olduktan sonra bu dört iş bağımsız — paralel çalıştır.
+  const [{ data: business }, t, tSatisfaction, locale] = await Promise.all([
+    supabase.from("businesses").select("id").eq("user_id", user!.id).maybeSingle(),
+    getTranslations("business.reviews"),
+    getTranslations("business.satisfaction"),
+    getLocale(),
+  ]);
 
-  const t = await getTranslations("business.reviews");
-  const tSatisfaction = await getTranslations("business.satisfaction");
-  const locale = await getLocale();
-  const reviews = await loadReviews(supabase, business!.id, filters);
-  const satisfaction = await loadSatisfactionOverview(supabase, business!.id);
+  // İkisi de business.id'ye bağlı ama birbirinden bağımsız — paralel çalıştır.
+  const [reviews, satisfaction] = await Promise.all([
+    loadReviews(supabase, business!.id, filters),
+    loadSatisfactionOverview(supabase, business!.id),
+  ]);
 
   return (
     <div className="flex flex-col gap-4">

@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
   footer: { position: "absolute", bottom: 24, left: 32, right: 32, fontSize: 8, color: "#999999", textAlign: "center" },
 });
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+function formatDate(iso: string, locale: "tr" | "en"): string {
+  return new Date(iso).toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" });
 }
 
 function ThemeList({ rows, emptyLabel, formatCount }: {
@@ -76,7 +76,7 @@ function ThemeList({ rows, emptyLabel, formatCount }: {
   );
 }
 
-export function MonthlyReportDocument({ data, strings }: { data: MonthlyReportData; strings: MonthlyReportStrings }) {
+export function MonthlyReportDocument({ data, strings, locale = "en" }: { data: MonthlyReportData; strings: MonthlyReportStrings; locale?: "tr" | "en" }) {
   const scoreDeltaText =
     data.scoreDeltaSincePeriodStart !== null
       ? strings.scoreDelta(
@@ -90,8 +90,8 @@ export function MonthlyReportDocument({ data, strings }: { data: MonthlyReportDa
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>{data.businessName}</Text>
         <Text style={styles.subtitle}>{strings.title}</Text>
-        <Text style={styles.subtitle}>{strings.generatedOn(formatDate(data.generatedAt))}</Text>
-        <Text style={styles.subtitle}>{strings.period(formatDate(data.periodStart), formatDate(data.periodEnd))}</Text>
+        <Text style={styles.subtitle}>{strings.generatedOn(formatDate(data.generatedAt, locale))}</Text>
+        <Text style={styles.subtitle}>{strings.period(formatDate(data.periodStart, locale), formatDate(data.periodEnd, locale))}</Text>
 
         <View style={[styles.section, styles.statsRow]}>
           <View style={styles.statBox}>

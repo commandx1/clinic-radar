@@ -12,15 +12,13 @@ export default async function TaskHistoryPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("id")
-    .eq("user_id", user!.id)
-    .maybeSingle();
-
-  const locale = await getLocale();
+  // business sorgusu, locale ve çeviriler birbirinden bağımsız — tek turda paralel çalıştır.
+  const [{ data: business }, locale, t] = await Promise.all([
+    supabase.from("businesses").select("id").eq("user_id", user!.id).maybeSingle(),
+    getLocale(),
+    getTranslations("business.tasks.history"),
+  ]);
   const historyItems = await resolveTaskHistory(supabase, business!.id, locale);
-  const t = await getTranslations("business.tasks.history");
 
   return (
     <div className="flex flex-col gap-4">

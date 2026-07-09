@@ -36,7 +36,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const reportLocale = locale === "tr" ? "tr" : "en";
   const data = await loadMonthlyReportData(supabase, business.id, business.name, reportLocale);
   const strings = buildMonthlyReportStrings(reportLocale);
-  const pdfBuffer = await renderToBuffer(MonthlyReportDocument({ data, strings }));
+  const pdfBuffer = await renderToBuffer(MonthlyReportDocument({ data, strings, locale: reportLocale }));
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
     status: 200,

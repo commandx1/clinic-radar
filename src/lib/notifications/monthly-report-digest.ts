@@ -52,27 +52,32 @@ export async function sendMonthlyReportEmails(
   let skipped = 0;
 
   for (const business of dueBusinesses) {
-    const { data: ownerUser } = await supabase
-      .from("users")
-      .select("email")
-      .eq("id", business.user_id)
-      .maybeSingle();
+    // İşletme-başına hata izolasyonu: tek bir işletmede loadMonthlyReportData
+    // veya renderToBuffer (PDF) hata fırlatırsa, tüm batch'i (ve cron job'unu)
+    // düşürmek yerine o işletmeyi atla, log'la, kalanları işlemeye devam et.
+    // monthly_report_emailed_at yazılmadığı için bir sonraki döngüde retry olur.
+    try {
+      const { data: ownerUser } = await supabase
+        .from("users")
+        .select("email")
+        .eq("id", business.user_id)
+        .maybeSingle();
 
-    if (!ownerUser?.email) {
-      // Sahip bulunamıyorsa (silinmiş hesap vb.) sonsuz yeniden denemeyi
-      // önlemek için gönderilmiş say.
-      await supabase
-        .from("businesses")
-        .update({ monthly_report_emailed_at: new Date().toISOString() })
-        .eq("id", business.id);
-      skipped += 1;
-      continue;
-    }
+      if (!ownerUser?.email) {
+        // Sahip bulunamıyorsa (silinmiş hesap vb.) sonsuz yeniden denemeyi
+        // önlemek için gönderilmiş say.
+        await supabase
+          .from("businesses")
+          .update({ monthly_report_emailed_at: new Date().toISOString() })
+          .eq("id", business.id);
+        skipped += 1;
+        continue;
+      }
 
-    const data = await loadMonthlyReportData(supabase, business.id, business.name, locale);
-    const pdfBuffer = await renderToBuffer(MonthlyReportDocument({ data, strings: reportStrings }));
+      const data = await loadMonthlyReportData(supabase, business.id, business.name, locale);
+      const pdfBuffer = await renderToBuffer(MonthlyReportDocument({ data, strings: reportStrings, locale }));
 
-    const html = `<h1>${fillTemplateHtml(messages.heading, { businessName: business.name })}</h1>
+      const html = `<h1>${fillTemplateHtml(messages.heading, { businessName: business.name })}</h1>
 <p>${escapeHtml(messages.intro)}</p>
 <ul>
 <li>${fillTemplateHtml(messages.scoreLine, { score: data.score ?? "—" })}</li>
@@ -82,27 +87,34 @@ export async function sendMonthlyReportEmails(
 </ul>
 <p>${escapeHtml(messages.attachmentNote)}</p>`;
 
-    const result = await sendEmail({
-      to: ownerUser.email,
-      subject: fillTemplate(messages.subject, { businessName: business.name }),
-      html,
-      attachments: [{ filename: "clinicradar-monthly-report.pdf", content: pdfBuffer.toString("base64") }],
-    });
+      const result = await sendEmail({
+        to: ownerUser.email,
+        subject: fillTemplate(messages.subject, { businessName: business.name }),
+        html,
+        attachments: [{ filename: "clinicradar-monthly-report.pdf", content: pdfBuffer.toString("base64") }],
+      });
 
-    if (!result.ok) {
-      // RESEND_API_KEY yok (skipped) veya gönderim gerçekten başarısız oldu
-      // (ör. Resend 4xx/5xx) — her iki durumda da monthly_report_emailed_at
-      // güncellenmez ki bir sonraki çalıştırmada tekrar denensin. Başarısız
-      // gönderimi "sent" saymak, hatayı sessizce gizler.
+      if (!result.ok) {
+        // RESEND_API_KEY yok (skipped) veya gönderim gerçekten başarısız oldu
+        // (ör. Resend 4xx/5xx) — her iki durumda da monthly_report_emailed_at
+        // güncellenmez ki bir sonraki çalıştırmada tekrar denensin. Başarısız
+        // gönderimi "sent" saymak, hatayı sessizce gizler.
+        skipped += 1;
+        continue;
+      }
+
+      await supabase
+        .from("businesses")
+        .update({ monthly_report_emailed_at: new Date().toISOString() })
+        .eq("id", business.id);
+      sent += 1;
+    } catch (err) {
+      console.error(
+        `Aylık rapor gönderimi başarısız (business ${business.id}), batch devam ediyor:`,
+        err,
+      );
       skipped += 1;
-      continue;
     }
-
-    await supabase
-      .from("businesses")
-      .update({ monthly_report_emailed_at: new Date().toISOString() })
-      .eq("id", business.id);
-    sent += 1;
   }
 
   return { sent, skipped };

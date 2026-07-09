@@ -3,6 +3,19 @@
     "title": "ClinicRadar",
     "description": "Competitor analysis + task engine"
   },
+  "errors": {
+    "notFound": {
+      "title": "Page not found",
+      "description": "The page you're looking for may have moved or never existed.",
+      "action": "Back to dashboard"
+    },
+    "boundary": {
+      "title": "Something went wrong",
+      "description": "An unexpected error occurred. You can try again or come back in a moment.",
+      "retry": "Try again",
+      "home": "Back to dashboard"
+    }
+  },
   "auth": {
     "login": {
       "title": "Log in",
@@ -273,6 +286,11 @@
       "renewsOn": "Renews on {date}",
       "upgradeToPro": "Upgrade to Pro",
       "manageBilling": "Manage billing",
+      "pastDue": {
+        "title": "Your payment didn't go through",
+        "description": "Your last payment failed. Update your payment method to keep your Pro access. If it isn't updated soon, your subscription may be canceled.",
+        "action": "Update payment method"
+      },
       "checkoutError": {
         "title": "Checkout failed",
         "description": "We couldn't start your checkout session. Please try again in a moment."

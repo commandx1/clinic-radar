@@ -95,13 +95,22 @@
       "genericError": "Bir şeyler ters gitti.",
       "success": "İşletmen başarıyla bağlandı."
     },
+    "edit": {
+      "title": "İşletmeyi düzenle",
+      "editButton": "Düzenle",
+      "cancel": "Vazgeç",
+      "submit": "Kaydet",
+      "submitting": "Kaydediliyor…",
+      "success": "İşletme bilgilerin güncellendi.",
+      "genericError": "Bir şeyler ters gitti."
+    },
     "errors": {
       "already_linked": "Bu işletme zaten bağlı bir hesapta kayıtlı.",
       "business_already_exists": "Zaten bağlı bir işletmen var. Her hesap tek bir işletmeyi destekler."
     },
     "enrichmentFailed": {
       "title": "İşletme verini çekemedik",
-      "body": "Bu Google Place ID için detayları alamadık. Lütfen ID'yi kontrol edip işletmeni tekrar bağlamayı dene."
+      "body": "Bu Google Place ID için detayları alamadık. Aşağıdan Place ID'yi (ve gerekirse diğer bilgileri) düzeltip kaydet — verini yeniden çekmeyi deneriz."
     },
     "competitors": {
       "discovering": {

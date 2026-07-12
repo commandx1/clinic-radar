@@ -16,7 +16,7 @@ export default async function BusinessLayout({ children }: Readonly<{ children: 
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, lat, lng")
+    .select("id, lat, lng, name, google_place_id, category")
     .eq("user_id", user!.id)
     .maybeSingle();
 
@@ -32,7 +32,16 @@ export default async function BusinessLayout({ children }: Readonly<{ children: 
   }
 
   if (business.lat === null || business.lng === null) {
-    return <EnrichmentFailedNotice />;
+    return (
+      <EnrichmentFailedNotice
+        business={{
+          id: business.id,
+          name: business.name,
+          google_place_id: business.google_place_id,
+          category: business.category,
+        }}
+      />
+    );
   }
 
   const { count: competitorCount } = await supabase

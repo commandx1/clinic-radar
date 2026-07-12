@@ -95,13 +95,22 @@
       "genericError": "Something went wrong.",
       "success": "Your business was linked successfully."
     },
+    "edit": {
+      "title": "Edit business",
+      "editButton": "Edit",
+      "cancel": "Cancel",
+      "submit": "Save",
+      "submitting": "Saving…",
+      "success": "Your business details were updated.",
+      "genericError": "Something went wrong."
+    },
     "errors": {
       "already_linked": "This business is already linked to an account.",
       "business_already_exists": "You already have a business linked. Each account supports one business."
     },
     "enrichmentFailed": {
       "title": "We couldn't fetch your business data",
-      "body": "We couldn't retrieve details for this Google Place ID. Please check the ID and try linking your business again."
+      "body": "We couldn't retrieve details for this Google Place ID. Fix the Place ID (and other details if needed) below and save — we'll try fetching your data again."
     },
     "competitors": {
       "discovering": {

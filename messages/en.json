@@ -95,6 +95,7 @@
       "placeSearchNoResults": "No results. Try a different name.",
       "placeSearchError": "Search failed. Please try again.",
       "placeSearchChange": "Change",
+      "placeSearchReviews": "{count} reviews",
       "placeRequired": "Select your business from Google to continue.",
       "category": "Category (optional)",
       "currentTool": "What do you currently use for competitor/reputation tracking?",

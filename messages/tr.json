@@ -95,6 +95,7 @@
       "placeSearchNoResults": "Sonuç bulunamadı. Farklı bir isim dene.",
       "placeSearchError": "Arama başarısız oldu. Tekrar dene.",
       "placeSearchChange": "Değiştir",
+      "placeSearchReviews": "{count} yorum",
       "placeRequired": "Devam etmek için Google'dan işletmeni seçmelisin.",
       "category": "Kategori (opsiyonel)",
       "currentTool": "Şu an rakip/itibar takibi için ne kullanıyorsunuz?",

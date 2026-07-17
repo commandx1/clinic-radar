@@ -128,7 +128,7 @@ export function PlaceSearchCombobox({
               <StarIcon className="size-3 shrink-0 fill-amber-400 text-amber-400" />
               {selected.rating}
               {selected.review_count !== null &&
-                ` · ${t("placeReviews", { count: selected.review_count })}`}
+                ` · ${t("placeSearchReviews", { count: selected.review_count })}`}
             </span>
           )}
         </div>
@@ -140,7 +140,7 @@ export function PlaceSearchCombobox({
             onSelect(null);
           }}
         >
-          {t("placeChange")}
+          {t("placeSearchChange")}
         </Button>
       </div>
     );
@@ -227,7 +227,7 @@ export function PlaceSearchCombobox({
                     <StarIcon className="size-3 fill-amber-400 text-amber-400" />
                     {candidate.rating}
                     {candidate.review_count !== null &&
-                      ` · ${t("placeReviews", { count: candidate.review_count })}`}
+                      ` · ${t("placeSearchReviews", { count: candidate.review_count })}`}
                   </span>
                 )}
               </Button>

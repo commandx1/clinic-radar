@@ -98,6 +98,30 @@
       "placeSearchReviews": "{count} reviews",
       "placeRequired": "Select your business from Google to continue.",
       "category": "Category (optional)",
+      "categoryPlaceholder": "Select a category…",
+      "categoryNone": "— None —",
+      "categoryOptions": {
+        "chiropractor": "Chiropractor",
+        "dental_clinic": "Dental clinic",
+        "dentist": "Dentist",
+        "doctor": "Doctor / Practice",
+        "drugstore": "Drugstore",
+        "general_hospital": "General hospital",
+        "hospital": "Hospital",
+        "massage": "Massage",
+        "massage_spa": "Massage & spa",
+        "medical_center": "Medical center",
+        "medical_clinic": "Medical clinic",
+        "medical_lab": "Medical lab",
+        "pharmacy": "Pharmacy",
+        "physiotherapist": "Physiotherapist",
+        "sauna": "Sauna",
+        "skin_care_clinic": "Skin care clinic",
+        "spa": "Spa",
+        "tanning_studio": "Tanning studio",
+        "wellness_center": "Wellness center",
+        "yoga_studio": "Yoga studio"
+      },
       "currentTool": "What do you currently use for competitor/reputation tracking?",
       "submit": "Link",
       "submitting": "Saving…",
@@ -392,7 +416,10 @@
     "howItWorks": {
       "eyebrow": "How it works",
       "title": "Three steps, one weekly habit.",
-      "step1": { "title": "Connect", "body": "Link your Google Business Profile and pick 3–10 nearby competitors." },
+      "step1": {
+        "title": "Connect",
+        "body": "Link your Google Business Profile and pick 3–10 nearby competitors."
+      },
       "step2": {
         "title": "Compare",
         "body": "We read every review and score the gap between you and them, theme by theme."
@@ -405,7 +432,10 @@
     "features": {
       "eyebrow": "What you get",
       "title": "Less reading. More fixing.",
-      "taskEngine": { "title": "Task engine", "body": "Every gap becomes one concrete action, not a chart to interpret." },
+      "taskEngine": {
+        "title": "Task engine",
+        "body": "Every gap becomes one concrete action, not a chart to interpret."
+      },
       "themeAnalysis": {
         "title": "Theme analysis",
         "body": "Reviews are grouped into themes like wait times or follow-up care, in your language."

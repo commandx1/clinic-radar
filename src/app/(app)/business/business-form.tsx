@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { CategorySelect } from "./category-select";
 import { PlaceSearchCombobox } from "./place-search-combobox";
 import { useBusinessForm } from "./use-business-form";
 
@@ -51,13 +52,7 @@ export function BusinessForm() {
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="business-category">{t("category")}</Label>
-        <Input
-          id="business-category"
-          value={category}
-          onChange={(e) => {
-            setCategory(e.target.value);
-          }}
-        />
+        <CategorySelect id="business-category" value={category} onChange={setCategory} />
       </div>
 
       <div className="flex flex-col gap-1.5">

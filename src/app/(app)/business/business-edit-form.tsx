@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { CategorySelect } from "./category-select";
 import { PlaceSearchCombobox } from "./place-search-combobox";
 import { useBusinessEditForm, type EditableBusiness } from "./use-business-edit-form";
 
@@ -58,13 +59,7 @@ export function BusinessEditForm({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="edit-business-category">{tForm("category")}</Label>
-        <Input
-          id="edit-business-category"
-          value={category}
-          onChange={(e) => {
-            setCategory(e.target.value);
-          }}
-        />
+        <CategorySelect id="edit-business-category" value={category} onChange={setCategory} />
       </div>
 
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}

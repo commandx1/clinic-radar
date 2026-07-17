@@ -8,6 +8,8 @@ import { toast } from "sonner";
 
 import type { UpdateBusinessInput } from "@/lib/validations/business";
 
+import type { SelectedPlace } from "./place-search-combobox";
+
 export interface EditableBusiness {
   id: string;
   name: string;
@@ -28,17 +30,37 @@ async function updateBusiness(id: string, input: UpdateBusinessInput): Promise<v
   }
 }
 
+// Mevcut place'i combobox'ın "seçili" kartı olarak temsil et. Adres/rating
+// DB'de yok (sadece place_id saklıyoruz) — kartta yalnızca isim görünür,
+// kullanıcı "Değiştir" deyince aramayla yenisini seçer.
+function toInitialSelectedPlace(business: EditableBusiness): SelectedPlace | null {
+  if (!business.google_place_id) {
+    return null;
+  }
+  return {
+    google_place_id: business.google_place_id,
+    name: business.name,
+    address: null,
+    rating: null,
+    review_count: null,
+  };
+}
+
 // bkz. use-business-form.ts (create) — aynı colocated-hook deseni, PATCH sürümü.
 // google_place_id değiştiğinde route re-enrichment tetikler (lat/lng/rating),
 // bu yüzden başarıda router.refresh() ile SSR yeniden çalışır: enrichment artık
 // başarılıysa layout "enrichmentFailed" ekranından ilerler.
 export function useBusinessEditForm(business: EditableBusiness, onDone?: () => void) {
   const t = useTranslations("business.edit");
+  const tForm = useTranslations("business.form");
   const tErrors = useTranslations("business.errors");
   const router = useRouter();
 
   const [name, setName] = useState(business.name);
-  const [googlePlaceId, setGooglePlaceId] = useState(business.google_place_id ?? "");
+  const [selectedPlace, setSelectedPlace] = useState<SelectedPlace | null>(
+    toInitialSelectedPlace(business),
+  );
+  const [placeError, setPlaceError] = useState(false);
   const [category, setCategory] = useState(business.category ?? "");
 
   const mutation = useMutation({
@@ -50,17 +72,28 @@ export function useBusinessEditForm(business: EditableBusiness, onDone?: () => v
     },
   });
 
+  function handlePlaceSelect(place: SelectedPlace | null) {
+    setSelectedPlace(place);
+    setPlaceError(false);
+  }
+
   function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!selectedPlace) {
+      setPlaceError(true);
+      return;
+    }
     mutation.mutate({
       name,
-      google_place_id: googlePlaceId,
+      google_place_id: selectedPlace.google_place_id,
       category: category || undefined,
     });
   }
 
   let errorMessage: string | null = null;
-  if (mutation.error) {
+  if (placeError) {
+    errorMessage = tForm("placeRequired");
+  } else if (mutation.error) {
     errorMessage = tErrors.has(mutation.error.message) ? tErrors(mutation.error.message) : t("genericError");
     toast.error(errorMessage);
   }
@@ -68,8 +101,8 @@ export function useBusinessEditForm(business: EditableBusiness, onDone?: () => v
   return {
     name,
     setName,
-    googlePlaceId,
-    setGooglePlaceId,
+    selectedPlace,
+    handlePlaceSelect,
     category,
     setCategory,
     errorMessage,

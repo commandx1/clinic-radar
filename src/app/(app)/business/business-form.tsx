@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { PlaceSearchCombobox } from "./place-search-combobox";
 import { useBusinessForm } from "./use-business-form";
 
 export function BusinessForm() {
@@ -14,8 +15,8 @@ export function BusinessForm() {
   const {
     name,
     setName,
-    googlePlaceId,
-    setGooglePlaceId,
+    selectedPlace,
+    handlePlaceSelect,
     category,
     setCategory,
     currentTool,
@@ -28,6 +29,15 @@ export function BusinessForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
+        <Label htmlFor="business-place-search">{t("placeSearchLabel")}</Label>
+        <PlaceSearchCombobox
+          inputId="business-place-search"
+          selected={selectedPlace}
+          onSelect={handlePlaceSelect}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
         <Label htmlFor="business-name">{t("name")}</Label>
         <Input
           id="business-name"
@@ -35,18 +45,6 @@ export function BusinessForm() {
           value={name}
           onChange={(e) => {
             setName(e.target.value);
-          }}
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="business-place-id">{t("googlePlaceId")}</Label>
-        <Input
-          id="business-place-id"
-          required
-          value={googlePlaceId}
-          onChange={(e) => {
-            setGooglePlaceId(e.target.value);
           }}
         />
       </div>

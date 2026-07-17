@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { PlaceSearchCombobox } from "./place-search-combobox";
 import { useBusinessEditForm, type EditableBusiness } from "./use-business-edit-form";
 
 export function BusinessEditForm({
@@ -23,8 +24,8 @@ export function BusinessEditForm({
   const {
     name,
     setName,
-    googlePlaceId,
-    setGooglePlaceId,
+    selectedPlace,
+    handlePlaceSelect,
     category,
     setCategory,
     errorMessage,
@@ -47,14 +48,11 @@ export function BusinessEditForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="edit-business-place-id">{tForm("googlePlaceId")}</Label>
-        <Input
-          id="edit-business-place-id"
-          required
-          value={googlePlaceId}
-          onChange={(e) => {
-            setGooglePlaceId(e.target.value);
-          }}
+        <Label htmlFor="edit-business-place-search">{tForm("placeSearchLabel")}</Label>
+        <PlaceSearchCombobox
+          inputId="edit-business-place-search"
+          selected={selectedPlace}
+          onSelect={handlePlaceSelect}
         />
       </div>
 

@@ -24,7 +24,9 @@ export async function extractThemes(params: {
 
   const message = await client.messages.parse({
     model: CLAUDE_MODEL,
-    max_tokens: 4096,
+    // Sonnet 5'te adaptive thinking varsayılan açık ve max_tokens düşünme +
+    // yanıt TOPLAMINI sınırlar — dar bütçe JSON'u ortadan keser (parse hatası).
+    max_tokens: 16000,
     system: buildStage1SystemPrompt(params.outputLanguage),
     messages: [{ role: "user", content: buildStage1UserPrompt(params) }],
     output_config: { format: zodOutputFormat(themeExtractionOutputSchema) },

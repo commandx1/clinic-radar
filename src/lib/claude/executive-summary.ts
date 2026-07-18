@@ -18,7 +18,8 @@ export async function generateExecutiveSummary(input: ExecutiveSummaryInput): Pr
 
   const message = await client.messages.parse({
     model: CLAUDE_MODEL,
-    max_tokens: 1024,
+    // bkz. theme-extraction.ts — max_tokens düşünme + yanıt toplamı, dar tutma.
+    max_tokens: 8192,
     system: buildStage3SystemPrompt(),
     messages: [{ role: "user", content: buildStage3UserPrompt(input) }],
     output_config: { format: zodOutputFormat(executiveSummaryOutputSchema) },

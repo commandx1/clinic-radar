@@ -23,7 +23,8 @@ export async function generateGapAnalysis(params: {
 
   const message = await client.messages.parse({
     model: CLAUDE_MODEL,
-    max_tokens: 4096,
+    // bkz. theme-extraction.ts — max_tokens düşünme + yanıt toplamı, dar tutma.
+    max_tokens: 16000,
     system: buildStage2SystemPrompt(params.competitors.length > 0),
     messages: [{ role: "user", content: buildStage2UserPrompt(params) }],
     output_config: { format: zodOutputFormat(buildTaskCandidateSchema(competitorIds)) },

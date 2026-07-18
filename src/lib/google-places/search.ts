@@ -26,13 +26,64 @@ interface PlacesTextSearchResponse {
   }[];
 }
 
+// Kullanıcının IP konumuna göre bias — sunucu (Vercel) IP'sine değil, isteği
+// yapan kullanıcıya yakın sonuçlar döner. Radius metre cinsinden.
+export interface LocationBias {
+  latitude: number;
+  longitude: number;
+  radiusMeters?: number;
+}
+
+export interface SearchPlacesOptions {
+  languageCode?: string;
+  // locationBias regionCode'dan önceliklidir — ikisi birden verilirse yalnızca
+  // locationBias gönderilir (Places API'de aynı anda anlamsız çakışma olmasın diye).
+  locationBias?: LocationBias;
+  regionCode?: string;
+}
+
+interface PlacesTextSearchRequestBody {
+  textQuery: string;
+  pageSize: number;
+  languageCode?: string;
+  regionCode?: string;
+  locationBias?: {
+    circle: {
+      center: { latitude: number; longitude: number };
+      radius: number;
+    };
+  };
+}
+
+const DEFAULT_LOCATION_BIAS_RADIUS_METERS = 50_000;
+
 export async function searchPlacesByText(
   query: string,
-  languageCode?: string,
+  options?: SearchPlacesOptions,
 ): Promise<PlaceSearchCandidate[]> {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     throw new Error("GOOGLE_MAPS_API_KEY is not configured");
+  }
+
+  const requestBody: PlacesTextSearchRequestBody = {
+    textQuery: query,
+    pageSize: 6,
+    ...(options?.languageCode ? { languageCode: options.languageCode } : {}),
+  };
+
+  if (options?.locationBias) {
+    requestBody.locationBias = {
+      circle: {
+        center: {
+          latitude: options.locationBias.latitude,
+          longitude: options.locationBias.longitude,
+        },
+        radius: options.locationBias.radiusMeters ?? DEFAULT_LOCATION_BIAS_RADIUS_METERS,
+      },
+    };
+  } else if (options?.regionCode) {
+    requestBody.regionCode = options.regionCode;
   }
 
   const res = await fetch(PLACES_TEXT_SEARCH_URL, {
@@ -43,11 +94,7 @@ export async function searchPlacesByText(
       "X-Goog-FieldMask":
         "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount",
     },
-    body: JSON.stringify({
-      textQuery: query,
-      pageSize: 6,
-      ...(languageCode ? { languageCode } : {}),
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!res.ok) {

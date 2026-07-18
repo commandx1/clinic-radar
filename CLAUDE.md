@@ -18,7 +18,7 @@
       ## Stack
       - Next.js (App Router, TypeScript, strict mode)
       - Supabase (Postgres + Auth + Row Level Security)
-      - Claude API (Anthropic) — AI pipeline (tema/duygu çıkarımı, gap analizi, görev üretimi). **Geçici durum:** Anthropic hesabındaki kredi bakiyesi tükendiği için `AI_PROVIDER=gemini` ile Google Gemini'ye geçildi (bkz. `src/lib/ai-pipeline/provider.ts`, `src/lib/gemini/`). Claude implementasyonu (`src/lib/claude/`) dokunulmadan duruyor — kredi yenilenince `AI_PROVIDER=claude`'a dönmek yeterli. Yeni AI pipeline kodu yazarken Zod şema/prompt mantığını `src/lib/ai-pipeline/*-schema.ts`'te (sağlayıcıdan bağımsız) tut, sadece "modele nasıl sorulur" kısmını `src/lib/claude/` veya `src/lib/gemini/`'ye ekle.
+      - Claude API (Anthropic) — AI pipeline (tema/duygu çıkarımı, gap analizi, görev üretimi). Sağlayıcı `AI_PROVIDER` env'i ile seçilir (bkz. `src/lib/ai-pipeline/provider.ts`); aktif değer `claude` (Temmuz 2026'da kredi yenilenince Gemini'den geri dönüldü). Google Gemini implementasyonu (`src/lib/gemini/`) yedek sağlayıcı olarak duruyor — kredi sorunu yaşanırsa `AI_PROVIDER=gemini`'ye dönmek yeterli. Yeni AI pipeline kodu yazarken Zod şema/prompt mantığını `src/lib/ai-pipeline/*-schema.ts`'te (sağlayıcıdan bağımsız) tut, sadece "modele nasıl sorulur" kısmını `src/lib/claude/` veya `src/lib/gemini/`'ye ekle.
       - Apify — Google Maps scraping (sonraki fazda entegre edilecek)
       - LemonSqueezy — billing (Merchant of Record; Stripe TR'den hesap açmaya izin vermediği için tercih edildi, sonraki fazda entegre edilecek)
       - next-intl — arayüz i18n (cihaz diline göre otomatik seçim, URL öneki yok, Faz 1'den itibaren global — bkz. `docs/07-ui.md`)

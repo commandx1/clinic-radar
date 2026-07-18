@@ -11,8 +11,6 @@ import { Progress } from "@/components/ui/progress";
 import { BusinessEditForm } from "./business-edit-form";
 import { useAnalysisRunTrigger } from "./use-analysis-run-trigger";
 
-const ANALYSIS_STEP_KEYS = ["scraping", "themes", "comparison", "tasks"] as const;
-
 export function AnalysisRunTrigger({
   business,
   nextAnalysisAvailableAt,
@@ -33,8 +31,7 @@ export function AnalysisRunTrigger({
   const tEdit = useTranslations("business.edit");
   const locale = useLocale();
   const [isEditing, setIsEditing] = useState(false);
-  const { isPending, errorMessage, stepIndex, stepCount, handleRun } = useAnalysisRunTrigger(business.id);
-  const currentStepKey = ANALYSIS_STEP_KEYS[stepIndex] ?? ANALYSIS_STEP_KEYS[ANALYSIS_STEP_KEYS.length - 1];
+  const { isPending, errorMessage, stepKey, stepIndex, stepCount, handleRun } = useAnalysisRunTrigger(business.id);
 
   return (
     <div className="flex max-w-md flex-col gap-2">
@@ -93,7 +90,7 @@ export function AnalysisRunTrigger({
                 <div className="flex flex-col gap-2 py-1">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2Icon className="size-4 animate-spin" />
-                    <span>{tAnalysis(`steps.${currentStepKey}`)}</span>
+                    <span>{tAnalysis(`steps.${stepKey}`)}</span>
                   </div>
                   <Progress value={((stepIndex + 1) / stepCount) * 100} />
                 </div>

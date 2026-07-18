@@ -86,6 +86,7 @@ export type Database = {
       }
       businesses: {
         Row: {
+          analysis_stage: string | null
           category: string | null
           current_tool: string | null
           geo_cell: string | null
@@ -102,6 +103,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          analysis_stage?: string | null
           category?: string | null
           current_tool?: string | null
           geo_cell?: string | null
@@ -118,6 +120,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          analysis_stage?: string | null
           category?: string | null
           current_tool?: string | null
           geo_cell?: string | null

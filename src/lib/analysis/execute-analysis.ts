@@ -62,6 +62,24 @@ interface Stage1Result {
 
 type AnalysisSupabaseClient = SupabaseClient<Database>;
 
+type AnalysisStage = "scraping" | "themes" | "gap" | "tasks" | "summary";
+
+// bkz. docs/05-ai-pipeline.md, docs/03-database.md businesses.analysis_stage —
+// UI "Analizi Çalıştır" mutation'ı pending iken bu sütunu poll eder ve
+// çevrilebilir bir aşama listesi gösterir. Best-effort: yazım hatası
+// pipeline'ı durdurmaz, sadece ilerleme göstergesi eksik kalır.
+async function setAnalysisStage(
+  supabase: AnalysisSupabaseClient,
+  businessId: string,
+  stage: AnalysisStage | null,
+): Promise<void> {
+  const { error } = await supabase.from("businesses").update({ analysis_stage: stage }).eq("id", businessId);
+
+  if (error) {
+    console.error("analysis_stage güncellenemedi:", error);
+  }
+}
+
 function buildOwnerMap(
   business: { id: string; google_place_id: string },
   competitors: { id: string; google_place_id: string }[],
@@ -580,6 +598,7 @@ async function runStage2AndUpsertTasks(
     return { status: "skipped_stage2_failed", created: 0, updated: 0 };
   }
 
+  await setAnalysisStage(supabase, businessId, "tasks");
   const filtered = filterCandidates(
     stage2Result.tasks,
     aggregates.ownAggregated,
@@ -722,6 +741,7 @@ async function runAnalysisPipeline(
     cutoffIso,
   );
 
+  await setAnalysisStage(supabase, business.id, "themes");
   const stage1Results = await runStage1ForOwners(owners, reviewsByOwnerId, outputLanguage, windowDays);
   const ownStage1 = stage1Results.find((r) => r.owner.ownerType === "own") ?? null;
   const competitorStage1Results = stage1Results.filter((r) => r.owner.ownerType === "competitor");
@@ -750,6 +770,7 @@ async function runAnalysisPipeline(
     previousCounts: aggregates.previousCounts,
   });
 
+  await setAnalysisStage(supabase, business.id, "gap");
   const taskGeneration = await runStage2AndUpsertTasks(
     supabase,
     business.id,
@@ -814,76 +835,85 @@ export async function executeAnalysis(
   const ownerByPlaceId = buildOwnerMap({ id: business.id, google_place_id: business.google_place_id }, competitors);
   const placeIds = Array.from(ownerByPlaceId.keys());
 
-  // bkz. docs/11-risks-assumptions.md Risk 3 — scrape başarı/maliyet/latency
-  // ölçümü; yalnızca gözlem, akış davranışını değiştirmez.
-  const scrapeStartedAt = Date.now();
-  let scraped: ScrapedReview[];
+  // bkz. docs/03-database.md businesses.analysis_stage — bu fonksiyonun her
+  // dönüş yolu (başarı, kısmi başarı, erken hata) finally bloğunda stage'i
+  // NULL'a döndürür ki UI göstergesi asla takılı kalmasın.
+  await setAnalysisStage(supabase, business.id, "scraping");
   try {
-    scraped = await fetchReviewsForPlaces(placeIds, REVIEWS_FETCH_MAX_PER_PLACE, {
-      timeoutMs: options?.apifyTimeoutMs ?? DEFAULT_APIFY_TIMEOUT_MS,
-    });
-  } catch (apifyError) {
-    console.error("Yorum çekme başarısız:", apifyError);
-    return {
-      ok: false,
-      error: "apify_call_failed",
-      scrape: { success: false, fetchedReviews: null, latencyMs: Date.now() - scrapeStartedAt, costUsd: null },
-    };
-  }
-
-  const scrape: ScrapeMetrics = {
-    success: true,
-    fetchedReviews: scraped.length,
-    latencyMs: Date.now() - scrapeStartedAt,
-    costUsd: estimateScrapeCostUsd(scraped.length),
-  };
-
-  const rows = mapToReviewRows(scraped, ownerByPlaceId);
-
-  if (rows.length > 0) {
-    const { error: upsertError } = await supabase
-      .from("reviews")
-      .upsert(rows, { onConflict: "place_id,review_id" });
-
-    if (upsertError) {
-      console.error("Yorumlar kaydedilemedi:", upsertError);
-      return { ok: false, error: "review_save_failed", scrape };
+    // bkz. docs/11-risks-assumptions.md Risk 3 — scrape başarı/maliyet/latency
+    // ölçümü; yalnızca gözlem, akış davranışını değiştirmez.
+    const scrapeStartedAt = Date.now();
+    let scraped: ScrapedReview[];
+    try {
+      scraped = await fetchReviewsForPlaces(placeIds, REVIEWS_FETCH_MAX_PER_PLACE, {
+        timeoutMs: options?.apifyTimeoutMs ?? DEFAULT_APIFY_TIMEOUT_MS,
+      });
+    } catch (apifyError) {
+      console.error("Yorum çekme başarısız:", apifyError);
+      return {
+        ok: false,
+        error: "apify_call_failed",
+        scrape: { success: false, fetchedReviews: null, latencyMs: Date.now() - scrapeStartedAt, costUsd: null },
+      };
     }
+
+    const scrape: ScrapeMetrics = {
+      success: true,
+      fetchedReviews: scraped.length,
+      latencyMs: Date.now() - scrapeStartedAt,
+      costUsd: estimateScrapeCostUsd(scraped.length),
+    };
+
+    const rows = mapToReviewRows(scraped, ownerByPlaceId);
+
+    if (rows.length > 0) {
+      const { error: upsertError } = await supabase
+        .from("reviews")
+        .upsert(rows, { onConflict: "place_id,review_id" });
+
+      if (upsertError) {
+        console.error("Yorumlar kaydedilemedi:", upsertError);
+        return { ok: false, error: "review_save_failed", scrape };
+      }
+    }
+
+    const { error: touchError } = await supabase
+      .from("businesses")
+      .update({ last_scraped_at: new Date().toISOString() })
+      .eq("id", business.id);
+
+    if (touchError) {
+      console.error("last_scraped_at güncellenemedi:", touchError);
+    }
+
+    const { themeAnalysis, taskGeneration, ownThemeTrends } = await runAnalysisPipeline(
+      supabase,
+      { id: business.id, name: business.name, category: business.category },
+      competitors,
+      outputLanguage,
+      notifyContext,
+    );
+
+    await setAnalysisStage(supabase, business.id, "summary");
+    const clinicScoreCutoffIso = new Date(
+      Date.now() - AI_ANALYSIS_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    await computeAndStoreClinicScoreSnapshot(supabase, business, competitors, clinicScoreCutoffIso, ownThemeTrends);
+
+    const status = taskGeneration.status !== "ok" || themeAnalysis.ownersFailed.length > 0 ? "partial" : "succeeded";
+
+    return {
+      ok: true,
+      status,
+      fetched: scraped.length,
+      stored: rows.length,
+      ownReviews: rows.filter((r) => r.owner_type === "own").length,
+      competitorReviews: rows.filter((r) => r.owner_type === "competitor").length,
+      themeAnalysis,
+      taskGeneration,
+      scrape,
+    };
+  } finally {
+    await setAnalysisStage(supabase, business.id, null);
   }
-
-  const { error: touchError } = await supabase
-    .from("businesses")
-    .update({ last_scraped_at: new Date().toISOString() })
-    .eq("id", business.id);
-
-  if (touchError) {
-    console.error("last_scraped_at güncellenemedi:", touchError);
-  }
-
-  const { themeAnalysis, taskGeneration, ownThemeTrends } = await runAnalysisPipeline(
-    supabase,
-    { id: business.id, name: business.name, category: business.category },
-    competitors,
-    outputLanguage,
-    notifyContext,
-  );
-
-  const clinicScoreCutoffIso = new Date(
-    Date.now() - AI_ANALYSIS_WINDOW_DAYS * 24 * 60 * 60 * 1000,
-  ).toISOString();
-  await computeAndStoreClinicScoreSnapshot(supabase, business, competitors, clinicScoreCutoffIso, ownThemeTrends);
-
-  const status = taskGeneration.status !== "ok" || themeAnalysis.ownersFailed.length > 0 ? "partial" : "succeeded";
-
-  return {
-    ok: true,
-    status,
-    fetched: scraped.length,
-    stored: rows.length,
-    ownReviews: rows.filter((r) => r.owner_type === "own").length,
-    competitorReviews: rows.filter((r) => r.owner_type === "competitor").length,
-    themeAnalysis,
-    taskGeneration,
-    scrape,
-  };
 }

@@ -38,7 +38,8 @@ businesses (
   review_count int,
   last_scraped_at timestamptz,
   current_tool text,           -- onboarding zorunlu sorusu "şu an rakip/itibar takibi için ne kullanıyorsunuz?" (11-risks-assumptions.md Bölüm B/E); DB'de nullable (eski satırlar), zorunluluk app katmanında
-  monthly_report_emailed_at timestamptz  -- Monthly Report e-postası son gönderim zamanı (02-business-rules.md Bölüm G), idempotency için
+  monthly_report_emailed_at timestamptz,  -- Monthly Report e-postası son gönderim zamanı (02-business-rules.md Bölüm G), idempotency için
+  analysis_stage text          -- 'scraping' | 'themes' | 'gap' | 'tasks' | 'summary' | null; "Analizi Çalıştır" pipeline'ının o an hangi aşamada olduğu (05-ai-pipeline.md), UI mutation pending iken bunu poll eder. Analiz çalışmıyorken veya bitince/hata alınca null. CHECK constraint ile değerler sınırlanır.
 )
 
 clinic_score_history (

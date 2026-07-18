@@ -186,8 +186,9 @@
       "steps": {
         "scraping": "Yorumlar taranıyor...",
         "themes": "Temalar analiz ediliyor...",
-        "comparison": "Rakip karşılaştırması yapılıyor...",
-        "tasks": "Görevler oluşturuluyor..."
+        "gap": "Rakip karşılaştırması yapılıyor...",
+        "tasks": "Görevler oluşturuluyor...",
+        "summary": "Özet hazırlanıyor..."
       },
       "errors": {
         "business_not_enriched": "İşletme verin henüz hazır değil.",

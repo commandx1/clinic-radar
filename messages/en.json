@@ -186,8 +186,9 @@
       "steps": {
         "scraping": "Scanning reviews...",
         "themes": "Analyzing themes...",
-        "comparison": "Comparing with competitors...",
-        "tasks": "Generating tasks..."
+        "gap": "Comparing with competitors...",
+        "tasks": "Generating tasks...",
+        "summary": "Preparing summary..."
       },
       "errors": {
         "business_not_enriched": "Your business data isn't ready yet.",

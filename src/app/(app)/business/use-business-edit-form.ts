@@ -78,8 +78,12 @@ export function useBusinessEditForm(business: EditableBusiness, onDone?: () => v
     setSelectedPlace(place);
     setPlaceError(false);
     // Edit akışında bilinçli olarak koşulsuz: yeni place seçmek işletme
-    // kimliğini değiştirmektir, kategori de yeni place'in türüne güncellenir
-    // (kullanıcı dropdown'dan sonradan yine değiştirebilir).
+    // kimliğini değiştirmektir — isim ve kategori yeni place'ten dolar
+    // (kullanıcı ikisini de sonradan elle değiştirebilir). Aksi halde eski
+    // işletmenin adı yeni place_id ile kaydediliyordu.
+    if (place) {
+      setName(place.name);
+    }
     if (place?.category && isKnownCategory(place.category)) {
       setCategory(place.category);
     }

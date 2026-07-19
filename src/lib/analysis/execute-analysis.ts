@@ -498,11 +498,14 @@ function attachImpactScores(
   });
 }
 
-function rankAndCapCandidates(candidates: ScoredTaskCandidate[]): ScoredTaskCandidate[] {
+// Kota (MAX_NEW_TASKS_PER_CYCLE) burada DEĞİL, upsertTasks'ta ve sadece yeni
+// oluşturmalara uygulanır — bkz. docs/02-business-rules.md Bölüm D: mevcut açık
+// görevlerin güncellenmesi kotadan düşmez, yoksa çözülmemiş temalar her döngüde
+// kotayı tüketip yeni görevlerin yüzeye çıkmasını engelliyordu.
+function rankCandidates(candidates: ScoredTaskCandidate[]): ScoredTaskCandidate[] {
   return candidates
     .slice()
-    .sort((a, b) => b.impact_score / b.effort_score - a.impact_score / a.effort_score)
-    .slice(0, MAX_NEW_TASKS_PER_CYCLE);
+    .sort((a, b) => b.impact_score / b.effort_score - a.impact_score / a.effort_score);
 }
 
 async function upsertTasks(
@@ -524,6 +527,13 @@ async function upsertTasks(
       .eq("source_type", candidate.source_type)
       .eq("status", "open")
       .maybeSingle();
+
+    // Kota yalnızca yeni oluşturmaları sınırlar; güncellemeler her zaman
+    // işlenir (skor/öncelik taze kalsın). Liste skor sıralı geldiği için
+    // "ilk 5 yeni" = en yüksek fırsat skorlu 5 yeni aday.
+    if (!existing && created >= MAX_NEW_TASKS_PER_CYCLE) {
+      continue;
+    }
 
     if (existing) {
       await supabase
@@ -614,7 +624,7 @@ async function runStage2AndUpsertTasks(
     aggregates.competitorAggregated,
     aggregates.ownThemeTrends,
   );
-  const ranked = rankAndCapCandidates(scored);
+  const ranked = rankCandidates(scored);
   const { created, updated } = await upsertTasks(supabase, businessId, ranked);
 
   return { status: "ok", created, updated };

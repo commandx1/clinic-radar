@@ -14,6 +14,7 @@ export interface PlaceSearchCandidate {
   address: string | null;
   rating: number | null;
   review_count: number | null;
+  category: string | null;
 }
 
 interface PlacesTextSearchResponse {
@@ -23,6 +24,7 @@ interface PlacesTextSearchResponse {
     formattedAddress?: string;
     rating?: number;
     userRatingCount?: number;
+    primaryType?: string;
   }[];
 }
 
@@ -92,7 +94,7 @@ export async function searchPlacesByText(
       "Content-Type": "application/json",
       "X-Goog-Api-Key": apiKey,
       "X-Goog-FieldMask":
-        "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount",
+        "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType",
     },
     body: JSON.stringify(requestBody),
   });
@@ -112,5 +114,6 @@ export async function searchPlacesByText(
       address: place.formattedAddress ?? null,
       rating: place.rating ?? null,
       review_count: place.userRatingCount ?? null,
+      category: place.primaryType ?? null,
     }));
 }

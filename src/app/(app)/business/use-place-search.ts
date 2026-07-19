@@ -12,6 +12,7 @@ export interface SelectedPlace {
   address: string | null;
   rating: number | null;
   review_count: number | null;
+  category: string | null;
 }
 
 export const MIN_QUERY_LENGTH = 3;

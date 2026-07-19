@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import type { CreateBusinessInput } from "@/lib/validations/business";
 
+import { isKnownCategory } from "./category-select";
 import type { SelectedPlace } from "./place-search-combobox";
 
 async function createBusiness(input: CreateBusinessInput): Promise<void> {
@@ -51,6 +52,10 @@ export function useBusinessForm() {
     setPlaceError(false);
     if (place && name.trim().length === 0) {
       setName(place.name);
+    }
+    // İsimle aynı kural: kullanıcı elle seçtiyse üzerine yazma.
+    if (place?.category && category === "" && isKnownCategory(place.category)) {
+      setCategory(place.category);
     }
   }
 

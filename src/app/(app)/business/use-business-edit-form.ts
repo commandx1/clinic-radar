@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import type { UpdateBusinessInput } from "@/lib/validations/business";
 
+import { isKnownCategory } from "./category-select";
 import type { SelectedPlace } from "./place-search-combobox";
 
 export interface EditableBusiness {
@@ -43,6 +44,7 @@ function toInitialSelectedPlace(business: EditableBusiness): SelectedPlace | nul
     address: null,
     rating: null,
     review_count: null,
+    category: null,
   };
 }
 
@@ -75,6 +77,12 @@ export function useBusinessEditForm(business: EditableBusiness, onDone?: () => v
   function handlePlaceSelect(place: SelectedPlace | null) {
     setSelectedPlace(place);
     setPlaceError(false);
+    // Edit akışında bilinçli olarak koşulsuz: yeni place seçmek işletme
+    // kimliğini değiştirmektir, kategori de yeni place'in türüne güncellenir
+    // (kullanıcı dropdown'dan sonradan yine değiştirebilir).
+    if (place?.category && isKnownCategory(place.category)) {
+      setCategory(place.category);
+    }
   }
 
   function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {

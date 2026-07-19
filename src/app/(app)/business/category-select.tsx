@@ -41,7 +41,7 @@ export type BusinessCategory = (typeof BUSINESS_CATEGORIES)[number];
 
 const NONE_VALUE = "__none__";
 
-function isKnownCategory(value: string): value is BusinessCategory {
+export function isKnownCategory(value: string): value is BusinessCategory {
   return (BUSINESS_CATEGORIES as readonly string[]).includes(value);
 }
 

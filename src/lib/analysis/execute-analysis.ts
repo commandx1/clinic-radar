@@ -96,15 +96,18 @@ function mapToReviewRows(
   scraped: ScrapedReview[],
   ownerByPlaceId: Map<string, OwnerRef>,
 ): TablesInsert<"reviews">[] {
-  const rows: TablesInsert<"reviews">[] = [];
+  // Apify aynı yorumu tek çalıştırmada birden fazla kez döndürebiliyor; tek
+  // upsert komutunda mükerrer (place_id, review_id) Postgres 21000 ("cannot
+  // affect row a second time") hatası verir — batch içinde dedup şart.
+  const rows = new Map<string, TablesInsert<"reviews">>();
   for (const review of scraped) {
     const owner = ownerByPlaceId.get(review.place_id);
     if (!owner) {
       continue;
     }
-    rows.push({ ...review, ...owner });
+    rows.set(`${review.place_id}:${review.review_id}`, { ...review, ...owner });
   }
-  return rows;
+  return Array.from(rows.values());
 }
 
 // Şema uyuşmazlığında (null) bir kez daha dener; SDK/ağ hatasında da aynı

@@ -22,13 +22,13 @@ interface NotificationRow {
 // olan (yani anlık gönderilmemiş: 'competitor_review_delta' ve
 // 'task_auto_dismissed') bildirimleri işletme başına toplayıp tek e-postada
 // gönderir, ardından hepsini `emailed_at` ile işaretler (idempotent — bir
-// sonraki çağrıda aynı satırlar tekrar gönderilmez). Locale kaynağı yok
-// (bkz. docs/11-risks-assumptions.md Risk 1 önlemleri) — bu yüzden
-// `defaultLocale` (en) kullanılır; TODO: businesses tablosuna locale sütunu
-// eklenirse per-user dil desteklenebilir.
+// sonraki çağrıda aynı satırlar tekrar gönderilmez). Locale, işletme
+// sahibinin `users.preferred_locale` sütunundan okunur (UI'daki dil
+// değiştirici bu sütunu günceller — bkz. api/locale/route.ts);
+// tanınmayan/eksik değerde `fallbackLocale` (en) kullanılır.
 export async function sendWeeklyDigests(
   supabase: NotifySupabaseClient,
-  locale: "tr" | "en" = "en",
+  fallbackLocale: "tr" | "en" = "en",
 ): Promise<{ sent: number; skipped: number }> {
   const { data: pending, error } = await supabase
     .from("notifications")
@@ -52,7 +52,6 @@ export async function sendWeeklyDigests(
     byBusiness.set(row.business_id, list);
   }
 
-  const messages = templatesByLocale[locale].emails.weeklyDigest;
   let sent = 0;
   let skipped = 0;
 
@@ -75,9 +74,14 @@ export async function sendWeeklyDigests(
 
     const { data: ownerUser } = await supabase
       .from("users")
-      .select("email")
+      .select("email, preferred_locale")
       .eq("id", business.user_id)
       .maybeSingle();
+
+    const rawLocale = ownerUser?.preferred_locale;
+    const locale: "tr" | "en" =
+      rawLocale === "tr" || rawLocale === "en" ? rawLocale : fallbackLocale;
+    const messages = templatesByLocale[locale].emails.weeklyDigest;
 
     const lines = businessRows.map((row) => {
       const theme = typeof row.payload.theme === "string" ? row.payload.theme : "";

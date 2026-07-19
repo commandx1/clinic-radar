@@ -69,6 +69,15 @@ Faz 1.2'nin "tamamlandı" işaretlenmiş kod değişiklikleri diskte duruyordu a
   - **Karışık dilli yorum kırılımı** — göründüğünden daha büyük: `reviews.original_language` zaten dolduruluyor ve `translated_text` kolonu zaten var, ama CLAUDE.md'nin sabit kuralı ("Ham yorum metni `reviews.text` asla UI'da birebir gösterilmez — sadece Claude'un paraphrase edilmiş özeti gösterilir, telif/güvenlik nedeniyle") ham çeviri göstermeyi de kapsıyor olabilir (bir çeviri de "birebir" metnin bir türevi) — bu yüzden muhtemelen literal çeviri değil, yorum-bazlı bir AI parafrazı gerekiyor; bu da henüz yazılmamış "yorum bazlı analiz" (`review_analysis` tablosu, Aşama 1 şema genişletmesi, ayrı bir yerde zaten "ertelenen" olarak işaretli, bkz. `05-ai-pipeline.md`) altyapısını önkoşul olarak gerektiriyor.
   - **Ajans/white-label paneli** — çoklu işletme yönetimi mevcut `businesses.user_id` 1:1 modelini değiştiriyor (bkz. `03-database.md`), RLS politikaları ve billing modelini (LemonSqueezy plan yapısı) etkileyen geri dönüşü zor bir mimari karar.
 
+## Launch Hazırlığı (2026-07)
+- [x] Test altyapısı — Vitest kuruldu (config + `npm` script'leri, husky pre-push hook'u ile push öncesi otomatik koşum).
+- [x] Task-engine birim testleri — impact score kırılımı, `potential-rating-gain`, dismissed-reopen mantığı dahil çekirdek skorlama fonksiyonları test altına alındı.
+- [x] `task-candidates` ayrıştırması — aday üretim/skorlama mantığı `execute-analysis.ts` içinden `src/lib/analysis/task-candidates.ts`'e taşındı, kendi test dosyasıyla (`task-candidates.test.ts`) birlikte.
+- [x] Billing birim testleri — `handle-webhook-event` (event eşleme, `custom_data.user_id`/`lemonsqueezy_subscription_id` fallback) ve `verify-webhook-signature` (geçerli/geçersiz/eksik imza) kapsandı.
+- [x] Weekly digest locale düzeltmesi — e-posta dili artık `users.preferred_locale`'den okunuyor (`POST /api/locale` ile kullanıcı tercihi saklanır); Faz 1.2 yeniden doğrulamasında not edilen bilinen locale kısıtı kapandı (`11-risks-assumptions.md` Risk 1).
+- [x] Launch dokümanları — `billing-verification-runbook.md` (LemonSqueezy uçtan uca doğrulama: checkout → webhook imza → iptal/expire → canlıya geçiş) ve `launch-checklist.md` (Supabase prod, env değişkenleri, Vercel cron, üçüncü parti servisler, smoke test, izleme/rollback).
+- Doğrulama: `tsc --noEmit` + eslint temiz, 70/70 test geçiyor (9 test dosyası).
+
 ## Faz 3
 - AI arama görünürlüğü modülü (ChatGPT/Gemini/Perplexity'de klinik nasıl öneriliyor)
 - Tema taksonomisi ölçeklenirse embedding/clustering katmanı (`05-ai-pipeline.md`'deki gerekçeye bkz.)

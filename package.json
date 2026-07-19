@@ -10,6 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "backfill:checklists": "tsx scripts/backfill-task-checklists.ts"
   },
@@ -52,7 +55,9 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
     "typescript": "^5",
-    "typescript-eslint": "^8.62.1"
+    "typescript-eslint": "^8.62.1",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^3.2.7"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs}": "eslint --fix"

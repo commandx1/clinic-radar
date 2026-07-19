@@ -63,7 +63,13 @@ export function buildStage2SystemPrompt(hasCompetitors: boolean): string {
     "tema analizleri verilecek. İki tür fırsatı ayrı ayrı değerlendir: (1) " +
     "rakiplerin güçlü olduğu ama kliniğin zayıf/eksik olduğu alanlar, (2) " +
     "kliniğin kendi yorumlarında ciddi ve tekrar eden bir sorun — rakipler de " +
-    "aynı sorunu yaşasa bile bunu atlama. Her görev için uygulama zorluğunu " +
+    "aynı sorunu yaşasa bile bunu atlama. Bulduğun TÜM anlamlı fırsatları aday " +
+    "olarak döndür — önem ya da emin olma derecesine göre kendi içinde eleme " +
+    "YAPMA; eşik filtreleme, önceliklendirme ve döngü başına görev limiti " +
+    "uygulama kodunda ayrıca uygulanıyor, senin görevin kapsam (coverage). Her " +
+    "anlamlı tema için en fazla bir aday üret; veride gerçekten az fırsat varsa " +
+    "az aday da kabul, ama 2-3 adayla yetinmek için kendini kısıtlama. Her görev " +
+    "için uygulama zorluğunu " +
     "(effort_score, 1-5) ve kaynağını (source_type) belirt — etki puanını " +
     "(impact_score) SEN üretmiyorsun, bu kod tarafında ayrıca hesaplanıyor. " +
     'title" ve "description" alanlarını hem "tr" hem "en" anahtarıyla, ' +

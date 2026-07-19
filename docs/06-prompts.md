@@ -60,6 +60,8 @@ Her tekrar eden tema için:
 
 **Not (Faz 1.2):** Sistem promptuna iki kural eklendi (`gap-analysis-schema.ts` `buildStage2SystemPrompt`) — (1) `title` doğal/somut bir eylem cümlesi olmalı, soyut isim tamlaması değil (iyi: "Hastalara tedavi sürecini daha ayrıntılı anlat", kaçınılacak: "Şeffaf Bilgilendirme Süreçleri Oluştur"); (2) öneriler sağlık sektörü reklam/pazarlama mevzuatına aykırı olamaz (before/after fotoğraf, teşvikli/ücretli yorum, hasta referansı pazarlaması yasak — sadece operasyonel/iletişimsel öneriler).
 
+**Not (coverage kuralı):** Sistem promptuna, yukarıdaki Ortak kurallar'daki "filtreleme kod tarafında" ilkesinin Aşama 2 karşılığı eklendi: model bulduğu **tüm** anlamlı fırsatları aday olarak döndürür, önem/emin-olma elemesini kendi içinde yapmaz (tema başına en fazla bir aday). Eşik (`TASK_MENTION_THRESHOLD`), dedup ve döngü başına 5 görev limiti zaten uygulama kodunda uygulandığı için modelin cömert davranması UI'a gürültü sızdırmaz — aksine az aday üretmesi, kod tarafındaki önceliklendirmenin seçim havuzunu daraltıyordu (2026-07 gözlemi: 55 tema → 2 aday).
+
 **Kullanıcı promptu (yapı):**
 ```
 Klinik temaları: {own_theme_summary}

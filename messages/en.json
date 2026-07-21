@@ -465,7 +465,20 @@
       "account": "Account",
       "login": "Log in",
       "signup": "Sign up",
+      "legalSection": "Legal",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "refund": "Refund Policy",
       "legal": "© {year} ClinicRadar"
+    },
+    "legal": {
+      "eyebrow": "Legal",
+      "tocLabel": "On this page",
+      "atAGlance": "At a glance",
+      "otherPolicies": "Other policies",
+      "privacyTitle": "Privacy Policy",
+      "termsTitle": "Terms of Service",
+      "refundTitle": "Refund Policy"
     },
     "pricing": {
       "title": "Simple pricing. Cancel anytime.",

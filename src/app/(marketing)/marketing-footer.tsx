@@ -13,7 +13,7 @@ export async function MarketingFooter() {
           <p className="max-w-xs text-sm text-muted-foreground">{t("tagline")}</p>
         </div>
 
-        <div className="flex gap-16 text-sm">
+        <div className="flex flex-wrap gap-x-16 gap-y-8 text-sm">
           <div className="flex flex-col gap-2">
             <span className="font-medium text-foreground">{t("product")}</span>
             <Link href="/#features" className="text-muted-foreground hover:text-foreground">
@@ -30,6 +30,18 @@ export async function MarketingFooter() {
             </Link>
             <Link href="/signup" className="text-muted-foreground hover:text-foreground">
               {t("signup")}
+            </Link>
+          </div>
+          <div className="flex flex-col gap-2">
+            <span className="font-medium text-foreground">{t("legalSection")}</span>
+            <Link href="/privacy" className="text-muted-foreground hover:text-foreground">
+              {t("privacy")}
+            </Link>
+            <Link href="/terms" className="text-muted-foreground hover:text-foreground">
+              {t("terms")}
+            </Link>
+            <Link href="/refund-policy" className="text-muted-foreground hover:text-foreground">
+              {t("refund")}
             </Link>
           </div>
         </div>

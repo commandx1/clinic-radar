@@ -1,0 +1,268 @@
+import { LEGAL_CONTACT_EMAIL, type LocalizedLegalDoc } from "./types";
+
+export const termsContent: LocalizedLegalDoc = {
+  en: {
+    slug: "terms",
+    title: "Terms of Service",
+    metaTitle: "Terms of Service — ClinicRadar",
+    metaDescription:
+      "The terms that govern your use of ClinicRadar — accounts, plans and billing, acceptable use, AI-generated insights, and liability.",
+    lastUpdated: "Last updated: February 27, 2026",
+    intro: [
+      "These Terms of Service (\"Terms\") govern your access to and use of ClinicRadar — the website, application and related services (together, the \"Service\") operated by ClinicRadar (\"we\", \"us\").",
+      "By creating an account or using the Service you agree to these Terms and to our Privacy Policy. If you use the Service on behalf of a clinic or company, you confirm that you are authorized to bind that organization, and \"you\" refers to it.",
+    ],
+    atAGlance: [
+      "ClinicRadar analyzes public Google reviews and turns them into competitive insights and tasks for your clinic.",
+      "Insights are AI-generated and informational — they are not medical, legal or professional advice.",
+      "You may only connect businesses you own, manage, or are authorized to represent.",
+      "Paid plans renew automatically; you can cancel anytime and keep access until the end of the paid period.",
+      "Billing is handled by Lemon Squeezy, our merchant of record.",
+    ],
+    sections: [
+      {
+        id: "service",
+        heading: "The Service",
+        paragraphs: [
+          "ClinicRadar is a competitor-intelligence tool for clinics. It collects publicly available Google Maps review data for your business and the competitors you select, analyzes it with AI models, and produces summaries, scores, trends and a prioritized task list.",
+          "The Service depends on third-party data sources (such as the Google Places API and the Apify platform). We do not control those sources and cannot guarantee that any particular business, review or data point will be available, complete or current.",
+        ],
+      },
+      {
+        id: "accounts",
+        heading: "Accounts",
+        bullets: [
+          "You must provide accurate information and keep your login credentials secure. You are responsible for all activity under your account.",
+          "You must be at least 18 years old and legally able to enter into contracts.",
+          "You may only connect a business that you own, manage, or are expressly authorized to represent. Selecting competitors for analysis is limited to publicly available data about those businesses.",
+          "Notify us immediately if you suspect unauthorized use of your account.",
+        ],
+      },
+      {
+        id: "plans-billing",
+        heading: "Plans, billing and renewals",
+        bullets: [
+          "The Free plan is provided at no charge with the limits shown on the pricing page (e.g. number of competitors and analysis frequency). We may adjust Free-plan limits over time.",
+          "The Pro plan is a paid subscription billed in advance on a recurring basis. It renews automatically at the end of each billing period until you cancel.",
+          "All payments are processed by Lemon Squeezy, our merchant of record. Your purchase is also subject to Lemon Squeezy's terms, and applicable taxes are calculated and collected by them.",
+          "You can cancel anytime from your billing page. Cancellation stops future renewals; you keep Pro access until the end of the period you already paid for. See our Refund Policy for details on refunds.",
+          "If we change prices, the new price applies from your next billing period at the earliest, and we will notify you in advance.",
+          "If a renewal payment fails and is not resolved, we may downgrade your account to the Free plan.",
+        ],
+      },
+      {
+        id: "acceptable-use",
+        heading: "Acceptable use",
+        paragraphs: ["You agree not to:"],
+        bullets: [
+          "use the Service for any unlawful purpose, or to analyze businesses you have no right to represent in a way that violates applicable law;",
+          "attempt to probe, breach or circumvent security or usage limits, or interfere with the operation of the Service;",
+          "scrape, bulk-export or resell the Service's data or outputs as a competing product or dataset;",
+          "reverse engineer, copy or create derivative works of the Service except where the law expressly permits;",
+          "share one account across multiple organizations, or misrepresent your identity or affiliation.",
+        ],
+        afterBullets: [
+          "We may suspend or terminate accounts that violate these rules, with notice where reasonably possible.",
+        ],
+      },
+      {
+        id: "ai-disclaimer",
+        heading: "AI-generated insights — no professional advice",
+        paragraphs: [
+          "Summaries, themes, scores, trends and tasks in ClinicRadar are generated by AI models from public review data. AI output can be incomplete, out of date or simply wrong, and review data itself reflects subjective opinions of reviewers.",
+          "The Service provides business intelligence for informational purposes only. It is not medical, legal, financial or other professional advice, and it must not be used as a basis for clinical decisions or patient care. You are responsible for verifying any insight before acting on it.",
+        ],
+      },
+      {
+        id: "third-party",
+        heading: "Third-party services and data",
+        paragraphs: [
+          "The Service integrates third-party services, including Google (Places API, Gemini), Apify, Anthropic, Supabase, Vercel, Resend and Lemon Squeezy. Their availability and terms are outside our control. Google Maps data remains subject to Google's own terms, and reviews remain the statements of their authors — ClinicRadar does not endorse or verify them.",
+        ],
+      },
+      {
+        id: "ip",
+        heading: "Intellectual property",
+        paragraphs: [
+          "We own the Service — its software, design, branding and content, excluding your data and third-party data. These Terms give you a limited, non-exclusive, non-transferable right to use the Service for your own business while your account is active.",
+          "You retain all rights to the information you provide. You grant us the limited license needed to process it in order to operate the Service, as described in the Privacy Policy. Insights and reports generated for your business may be used by you freely for your own business purposes.",
+        ],
+      },
+      {
+        id: "termination",
+        heading: "Termination",
+        paragraphs: [
+          "You may stop using the Service and delete your account at any time. We may suspend or terminate your access if you materially breach these Terms, if required by law, or if we discontinue the Service — in the last case we will give you reasonable advance notice. Sections that by their nature should survive (such as liability limits and IP) survive termination.",
+        ],
+      },
+      {
+        id: "warranty",
+        heading: "Disclaimer of warranties",
+        paragraphs: [
+          "The Service is provided \"as is\" and \"as available\". To the maximum extent permitted by law, we disclaim all warranties, express or implied, including fitness for a particular purpose, accuracy of data and uninterrupted availability. We do not warrant that the insights will improve your ratings, review volume or business outcomes.",
+        ],
+      },
+      {
+        id: "liability",
+        heading: "Limitation of liability",
+        paragraphs: [
+          "To the maximum extent permitted by law, we are not liable for indirect, incidental, special or consequential damages, lost profits, or loss of data or goodwill arising from your use of the Service.",
+          "Our total aggregate liability for all claims relating to the Service is limited to the amount you paid us in the 12 months before the event giving rise to the claim (or, if you use only the Free plan, to 50 USD).",
+          "Nothing in these Terms excludes liability that cannot be excluded under applicable law, including mandatory consumer rights in your country of residence.",
+        ],
+      },
+      {
+        id: "changes",
+        heading: "Changes to the Service and these Terms",
+        paragraphs: [
+          "We continuously improve the Service and may add, change or remove features. We may also update these Terms; for material changes we will notify you by email or in the app before they take effect. Continuing to use the Service after changes take effect means you accept the updated Terms.",
+        ],
+      },
+      {
+        id: "law",
+        heading: "Governing law",
+        paragraphs: [
+          "These Terms are governed by the laws of the Republic of Türkiye, without prejudice to any mandatory consumer-protection rules of the country where you reside. Disputes that cannot be resolved amicably are subject to the competent courts under that law.",
+        ],
+      },
+      {
+        id: "contact",
+        heading: "Contact",
+        paragraphs: [
+          `Questions about these Terms: ${LEGAL_CONTACT_EMAIL}.`,
+        ],
+      },
+    ],
+  },
+  tr: {
+    slug: "terms",
+    title: "Kullanım Şartları",
+    metaTitle: "Kullanım Şartları — ClinicRadar",
+    metaDescription:
+      "ClinicRadar kullanımınızı düzenleyen şartlar — hesaplar, planlar ve faturalama, kabul edilebilir kullanım, yapay zekâ çıktıları ve sorumluluk.",
+    lastUpdated: "Son güncelleme: 27 Şubat 2026",
+    intro: [
+      "Bu Kullanım Şartları (\"Şartlar\"), ClinicRadar (\"biz\") tarafından işletilen web sitesi, uygulama ve ilgili hizmetlere (birlikte \"Hizmet\") erişiminizi ve kullanımınızı düzenler.",
+      "Hesap oluşturarak veya Hizmeti kullanarak bu Şartları ve Gizlilik Politikamızı kabul etmiş olursunuz. Hizmeti bir klinik veya şirket adına kullanıyorsanız, o kuruluşu bağlama yetkiniz olduğunu teyit edersiniz ve \"siz\" ifadesi o kuruluşu kapsar.",
+    ],
+    atAGlance: [
+      "ClinicRadar, herkese açık Google yorumlarını analiz ederek kliniğiniz için rekabet içgörüleri ve görevler üretir.",
+      "İçgörüler yapay zekâ tarafından üretilir ve bilgilendirme amaçlıdır — tıbbi, hukuki veya profesyonel tavsiye değildir.",
+      "Yalnızca sahibi olduğunuz, yönettiğiniz veya temsil etmeye yetkili olduğunuz işletmeleri bağlayabilirsiniz.",
+      "Ücretli planlar otomatik yenilenir; istediğiniz zaman iptal edebilir ve ödediğiniz dönemin sonuna kadar erişiminizi korursunuz.",
+      "Faturalama, Merchant of Record'umuz Lemon Squeezy tarafından yürütülür.",
+    ],
+    sections: [
+      {
+        id: "service",
+        heading: "Hizmet",
+        paragraphs: [
+          "ClinicRadar, klinikler için bir rakip istihbaratı aracıdır. İşletmeniz ve seçtiğiniz rakipler için herkese açık Google Haritalar yorum verilerini toplar, yapay zekâ modelleriyle analiz eder; özetler, skorlar, trendler ve önceliklendirilmiş bir görev listesi üretir.",
+          "Hizmet, üçüncü taraf veri kaynaklarına (Google Places API ve Apify platformu gibi) bağlıdır. Bu kaynakları biz kontrol etmeyiz; belirli bir işletmenin, yorumun veya veri noktasının erişilebilir, eksiksiz veya güncel olacağını garanti edemeyiz.",
+        ],
+      },
+      {
+        id: "accounts",
+        heading: "Hesaplar",
+        bullets: [
+          "Doğru bilgi vermeli ve giriş bilgilerinizi güvende tutmalısınız. Hesabınız altındaki tüm etkinlikten siz sorumlusunuz.",
+          "En az 18 yaşında ve sözleşme yapmaya hukuken ehil olmalısınız.",
+          "Yalnızca sahibi olduğunuz, yönettiğiniz veya açıkça temsil yetkiniz bulunan bir işletmeyi bağlayabilirsiniz. Analiz için rakip seçimi, o işletmeler hakkındaki herkese açık verilerle sınırlıdır.",
+          "Hesabınızın yetkisiz kullanıldığından şüphelenirseniz derhâl bize bildirin.",
+        ],
+      },
+      {
+        id: "plans-billing",
+        heading: "Planlar, faturalama ve yenilemeler",
+        bullets: [
+          "Free plan, fiyatlandırma sayfasında gösterilen limitlerle (ör. rakip sayısı ve analiz sıklığı) ücretsiz sunulur. Free plan limitlerini zaman içinde güncelleyebiliriz.",
+          "Pro plan, dönem başında peşin tahsil edilen, yinelenen bir ücretli aboneliktir. Siz iptal edene kadar her fatura dönemi sonunda otomatik yenilenir.",
+          "Tüm ödemeler Merchant of Record'umuz Lemon Squeezy tarafından işlenir. Satın alımınız aynı zamanda Lemon Squeezy'nin şartlarına tabidir; geçerli vergiler onlar tarafından hesaplanır ve tahsil edilir.",
+          "Faturalama sayfanızdan istediğiniz zaman iptal edebilirsiniz. İptal, gelecekteki yenilemeleri durdurur; ödemesini yaptığınız dönemin sonuna kadar Pro erişiminiz devam eder. İadelere ilişkin ayrıntılar için İade Politikamıza bakın.",
+          "Fiyatları değiştirirsek, yeni fiyat en erken bir sonraki fatura döneminizden itibaren geçerli olur ve sizi önceden bilgilendiririz.",
+          "Bir yenileme ödemesi başarısız olur ve çözülmezse hesabınızı Free plana düşürebiliriz.",
+        ],
+      },
+      {
+        id: "acceptable-use",
+        heading: "Kabul edilebilir kullanım",
+        paragraphs: ["Şunları yapmamayı kabul edersiniz:"],
+        bullets: [
+          "Hizmeti hukuka aykırı bir amaçla kullanmak veya temsil hakkınız olmayan işletmeleri, geçerli hukuku ihlal edecek şekilde analiz etmek;",
+          "güvenlik veya kullanım limitlerini aşmaya, delmeye çalışmak ya da Hizmetin işleyişine müdahale etmek;",
+          "Hizmetin verilerini veya çıktılarının tamamını kazımak, toplu dışa aktarmak ya da rakip bir ürün veya veri seti olarak yeniden satmak;",
+          "kanunun açıkça izin verdiği hâller dışında Hizmeti tersine mühendisliğe tabi tutmak, kopyalamak veya türev çalışmalar oluşturmak;",
+          "tek bir hesabı birden fazla kuruluş için paylaşmak ya da kimliğinizi veya bağlantınızı yanlış tanıtmak.",
+        ],
+        afterBullets: [
+          "Bu kuralları ihlal eden hesapları, makul olduğu ölçüde önceden bildirerek askıya alabilir veya kapatabiliriz.",
+        ],
+      },
+      {
+        id: "ai-disclaimer",
+        heading: "Yapay zekâ çıktıları — profesyonel tavsiye değildir",
+        paragraphs: [
+          "ClinicRadar'daki özetler, temalar, skorlar, trendler ve görevler, herkese açık yorum verilerinden yapay zekâ modelleriyle üretilir. Yapay zekâ çıktısı eksik, güncelliğini yitirmiş veya hatalı olabilir; yorum verisi de yorum sahiplerinin öznel görüşlerini yansıtır.",
+          "Hizmet, yalnızca bilgilendirme amaçlı ticari istihbarat sağlar. Tıbbi, hukuki, mali veya başka bir profesyonel tavsiye değildir ve klinik kararlar ya da hasta bakımı için dayanak olarak kullanılamaz. Bir içgörüye göre hareket etmeden önce onu doğrulamak sizin sorumluluğunuzdadır.",
+        ],
+      },
+      {
+        id: "third-party",
+        heading: "Üçüncü taraf hizmetler ve veriler",
+        paragraphs: [
+          "Hizmet; Google (Places API, Gemini), Apify, Anthropic, Supabase, Vercel, Resend ve Lemon Squeezy dahil üçüncü taraf hizmetleri entegre eder. Bunların erişilebilirliği ve şartları bizim kontrolümüz dışındadır. Google Haritalar verileri Google'ın kendi şartlarına tabidir; yorumlar, yazarlarının beyanları olarak kalır — ClinicRadar bunları onaylamaz veya doğrulamaz.",
+        ],
+      },
+      {
+        id: "ip",
+        heading: "Fikri mülkiyet",
+        paragraphs: [
+          "Hizmet — yazılımı, tasarımı, markası ve içeriği (sizin verileriniz ve üçüncü taraf verileri hariç) — bize aittir. Bu Şartlar size, hesabınız aktif olduğu sürece Hizmeti kendi işletmeniz için kullanmanıza yönelik sınırlı, münhasır olmayan ve devredilemez bir hak verir.",
+          "Sağladığınız bilgiler üzerindeki tüm haklar sizde kalır. Hizmeti işletebilmemiz için gereken sınırlı işleme iznini bize vermiş olursunuz (Gizlilik Politikasında açıklandığı şekilde). İşletmeniz için üretilen içgörüleri ve raporları kendi ticari amaçlarınız için serbestçe kullanabilirsiniz.",
+        ],
+      },
+      {
+        id: "termination",
+        heading: "Fesih",
+        paragraphs: [
+          "Hizmeti kullanmayı bırakabilir ve hesabınızı istediğiniz zaman silebilirsiniz. Bu Şartları esaslı biçimde ihlal etmeniz hâlinde, kanunen gerekli olduğunda veya Hizmeti sonlandırmamız durumunda erişiminizi askıya alabilir ya da sonlandırabiliriz — son durumda size makul bir süre öncesinden bildirim yaparız. Nitelikleri gereği ayakta kalması gereken bölümler (sorumluluk sınırları ve fikri mülkiyet gibi) fesihten sonra da geçerli kalır.",
+        ],
+      },
+      {
+        id: "warranty",
+        heading: "Garanti reddi",
+        paragraphs: [
+          "Hizmet \"olduğu gibi\" ve \"mevcut olduğu şekliyle\" sunulur. Kanunun izin verdiği azami ölçüde; belirli bir amaca uygunluk, veri doğruluğu ve kesintisiz erişilebilirlik dahil açık veya zımni tüm garantileri reddederiz. İçgörülerin puanlarınızı, yorum hacminizi veya iş sonuçlarınızı iyileştireceğini garanti etmeyiz.",
+        ],
+      },
+      {
+        id: "liability",
+        heading: "Sorumluluğun sınırlandırılması",
+        paragraphs: [
+          "Kanunun izin verdiği azami ölçüde; Hizmeti kullanımınızdan doğan dolaylı, arızi, özel veya sonuçsal zararlardan, kâr kaybından ya da veri veya itibar kaybından sorumlu değiliz.",
+          "Hizmete ilişkin tüm talepler için toplam sorumluluğumuz, talebe yol açan olaydan önceki 12 ay içinde bize ödediğiniz tutarla (yalnızca Free planı kullanıyorsanız 50 USD ile) sınırlıdır.",
+          "Bu Şartlardaki hiçbir hüküm, ikamet ettiğiniz ülkedeki emredici tüketici hakları dahil olmak üzere, geçerli hukuk uyarınca hariç tutulamayacak sorumlulukları dışlamaz.",
+        ],
+      },
+      {
+        id: "changes",
+        heading: "Hizmette ve bu Şartlarda değişiklik",
+        paragraphs: [
+          "Hizmeti sürekli geliştiriyoruz; özellikler ekleyebilir, değiştirebilir veya kaldırabiliriz. Bu Şartları da güncelleyebiliriz; önemli değişikliklerde, yürürlüğe girmeden önce e-posta veya uygulama içinden sizi bilgilendiririz. Değişiklikler yürürlüğe girdikten sonra Hizmeti kullanmaya devam etmeniz, güncellenmiş Şartları kabul ettiğiniz anlamına gelir.",
+        ],
+      },
+      {
+        id: "law",
+        heading: "Uygulanacak hukuk",
+        paragraphs: [
+          "Bu Şartlar, ikamet ettiğiniz ülkenin emredici tüketici koruma kuralları saklı kalmak kaydıyla Türkiye Cumhuriyeti hukukuna tabidir. Dostane yoldan çözülemeyen uyuşmazlıklarda bu hukuk uyarınca yetkili mahkemeler görevlidir.",
+        ],
+      },
+      {
+        id: "contact",
+        heading: "İletişim",
+        paragraphs: [`Bu Şartlarla ilgili sorular için: ${LEGAL_CONTACT_EMAIL}.`],
+      },
+    ],
+  },
+};

@@ -465,7 +465,20 @@
       "account": "Hesap",
       "login": "Giriş yap",
       "signup": "Kayıt ol",
+      "legalSection": "Yasal",
+      "privacy": "Gizlilik Politikası",
+      "terms": "Kullanım Şartları",
+      "refund": "İade Politikası",
       "legal": "© {year} ClinicRadar"
+    },
+    "legal": {
+      "eyebrow": "Yasal",
+      "tocLabel": "Bu sayfada",
+      "atAGlance": "Bir bakışta",
+      "otherPolicies": "Diğer politikalar",
+      "privacyTitle": "Gizlilik Politikası",
+      "termsTitle": "Kullanım Şartları",
+      "refundTitle": "İade Politikası"
     },
     "pricing": {
       "title": "Basit fiyatlandırma. İstediğin zaman iptal et.",

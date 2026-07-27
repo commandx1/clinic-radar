@@ -9,7 +9,13 @@ import type { EditableBusiness } from "./use-business-edit-form";
 // statik bir mesaj görüp sıkışıyordu (düzeltme yolu yoktu). Artık aynı kartta
 // düzenlenebilir bir form var: Place ID'yi düzeltip kaydedince PATCH route'u
 // yeniden Apify enrichment tetikler ve başarılıysa kullanıcı akışa devam eder.
-export async function EnrichmentFailedNotice({ business }: { business: EditableBusiness }) {
+export async function EnrichmentFailedNotice({
+  business,
+  isPro,
+}: {
+  business: EditableBusiness;
+  isPro: boolean;
+}) {
   const t = await getTranslations("business.enrichmentFailed");
 
   return (
@@ -19,7 +25,7 @@ export async function EnrichmentFailedNotice({ business }: { business: EditableB
           <p className="font-medium">{t("title")}</p>
           <p className="text-sm text-muted-foreground">{t("body")}</p>
         </div>
-        <BusinessEditForm business={business} />
+        <BusinessEditForm business={business} isPro={isPro} />
       </CardContent>
     </Card>
   );

@@ -14,7 +14,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import { searchPlacesNearby, type PlaceCandidate } from "../src/lib/apify/google-places";
-import { fetchReviewsForPlaces, type ScrapedReview } from "../src/lib/apify/google-reviews";
+import { fetchReviewsForPlaces } from "../src/lib/apify/google-reviews";
+import type { ScrapedSourceReview } from "../src/lib/reviews/types";
 
 // Apify actor'ün run-sync-get-dataset-items çağrısı yorum taramasında uzun
 // sürebilir — client.ts'teki 100_000ms varsayılanı yetmez, 15 dk kullanıyoruz.
@@ -218,7 +219,7 @@ function percentile(values: number[], p: number): number {
 // yüksektir — bu durumda alt sınır değeri raporlanır.
 function computeClinicVelocity(
   place: PlaceCandidate,
-  reviews: ScrapedReview[],
+  reviews: ScrapedSourceReview[],
   windowStart: Date,
   windowDays: number,
   maxReviews: number,
@@ -434,13 +435,13 @@ async function run(): Promise<void> {
     timeoutMs: REVIEWS_TIMEOUT_MS,
   });
 
-  const reviewsByPlace = new Map<string, ScrapedReview[]>();
+  const reviewsByPlace = new Map<string, ScrapedSourceReview[]>();
   for (const review of allReviews) {
-    const existing = reviewsByPlace.get(review.place_id);
+    const existing = reviewsByPlace.get(review.source_ref);
     if (existing) {
       existing.push(review);
     } else {
-      reviewsByPlace.set(review.place_id, [review]);
+      reviewsByPlace.set(review.source_ref, [review]);
     }
   }
 

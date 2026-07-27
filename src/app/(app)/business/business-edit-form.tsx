@@ -13,10 +13,12 @@ import { useBusinessEditForm, type EditableBusiness } from "./use-business-edit-
 
 export function BusinessEditForm({
   business,
+  isPro = false,
   onCancel,
   onDone,
 }: {
   business: EditableBusiness;
+  isPro?: boolean;
   onCancel?: () => void;
   onDone?: () => void;
 }) {
@@ -29,10 +31,12 @@ export function BusinessEditForm({
     handlePlaceSelect,
     category,
     setCategory,
+    trustpilotDomain,
+    setTrustpilotDomain,
     errorMessage,
     isPending,
     handleSubmit,
-  } = useBusinessEditForm(business, onDone);
+  } = useBusinessEditForm(business, isPro, onDone);
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -60,6 +64,22 @@ export function BusinessEditForm({
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="edit-business-category">{tForm("category")}</Label>
         <CategorySelect id="edit-business-category" value={category} onChange={setCategory} />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="edit-business-trustpilot-domain">{tForm("trustpilotDomain")}</Label>
+        <Input
+          id="edit-business-trustpilot-domain"
+          placeholder={tForm("trustpilotDomainPlaceholder")}
+          value={trustpilotDomain}
+          disabled={!isPro}
+          onChange={(e) => {
+            setTrustpilotDomain(e.target.value);
+          }}
+        />
+        <p className="text-xs text-muted-foreground">
+          {isPro ? tForm("trustpilotDomainHint") : tForm("trustpilotDomainProOnly")}
+        </p>
       </div>
 
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}

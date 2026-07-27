@@ -57,7 +57,9 @@ export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promis
     proUserIds.length > 0
       ? await supabase
           .from("businesses")
-          .select("id, google_place_id, lat, name, category, rating, user_id")
+          .select(
+            "id, google_place_id, lat, name, category, rating, user_id, website, trustpilot_domain, trustpilot_checked_at",
+          )
           .in("user_id", proUserIds)
           .not("google_place_id", "is", null)
           .not("lat", "is", null)
@@ -107,7 +109,7 @@ export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promis
     try {
       const { data: competitors } = await supabase
         .from("competitors")
-        .select("id, google_place_id, name, rating")
+        .select("id, google_place_id, name, rating, website, trustpilot_domain, trustpilot_checked_at")
         .eq("business_id", business.id);
 
       if (!competitors || competitors.length < MIN_COMPETITORS) {
@@ -144,6 +146,9 @@ export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promis
           name: business.name,
           category: business.category,
           rating: business.rating,
+          website: business.website,
+          trustpilot_domain: business.trustpilot_domain,
+          trustpilot_checked_at: business.trustpilot_checked_at,
         },
         competitors,
         defaultLocale,

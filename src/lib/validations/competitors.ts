@@ -7,6 +7,11 @@ export const discoverCandidateSchema = z.object({
   name: z.string().trim().min(1),
   rating: z.number().min(0).max(5).nullable(),
   review_count: z.number().int().min(0).nullable(),
+  // Opsiyonel/nullable: bu migration'dan ÖNCE `region_category_cache`'e
+  // yazılmış aday satırları `website` içermez ve TTL'i dolana kadar hâlâ
+  // geçerlidir — şema bunları reddederse mevcut cache üzerinden rakip
+  // seçimi kırılır.
+  website: z.string().nullable().optional(),
 });
 
 export const discoverResponseSchema = z.object({

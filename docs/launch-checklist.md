@@ -16,7 +16,7 @@
 |---|---|
 | Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` |
 | AI | `AI_PROVIDER` (`gemini` \| `anthropic`), sağlayıcıya göre `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` |
-| Scraping | `APIFY_TOKEN`, opsiyonel `APIFY_PRICE_PER_REVIEW_USD`, `CRON_APIFY_TIMEOUT_MS` |
+| Scraping | `APIFY_TOKEN`, opsiyonel `APIFY_PRICE_PER_REVIEW_USD`, `APIFY_PRICE_PER_TRUSTPILOT_REVIEW_USD`, `CRON_APIFY_TIMEOUT_MS` |
 | Google | `GOOGLE_MAPS_API_KEY` (Places API kısıtlı key — sadece gerekli API'ler ve HTTP referrer/IP kısıtı) |
 | Billing | `LEMONSQUEEZY_API_KEY`, `LEMONSQUEEZY_STORE_ID`, `LEMONSQUEEZY_PRO_VARIANT_ID`, `LEMONSQUEEZY_WEBHOOK_SECRET` (**live** değerler — test mode değil) |
 | E-posta | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` |
@@ -34,7 +34,8 @@
 ## 4. Üçüncü Parti Servis Doğrulaması
 
 - [ ] **Resend:** gönderici domain'i doğrulandı (SPF + DKIM), `RESEND_FROM_EMAIL` bu domain'de. Kendine test digest gönderimi yapıldı; spam'e düşmüyor.
-- [ ] **Apify:** ücretli plan/limit kontrolü — haftalık döngüdeki tahmini yorum hacmi için kredi yeterli (`estimateScrapeCostUsd` çıktısını referans al).
+- [ ] **Apify:** ücretli plan/limit kontrolü — haftalık döngüdeki tahmini yorum hacmi için kredi yeterli (`estimateScrapeCostUsd` çıktısını referans al). İki aktör kullanılıyor: `compass/google-maps-reviews-scraper` ve `sian.agency/trustpilot-reviews-scraper` — ikisinin de hesapta erişilebilir olduğunu doğrula.
+- [ ] **Trustpilot (yalnızca Pro):** legal metinler kaynak listesini içeriyor (`privacy-content.ts` / `terms-content.ts` — Temmuz 2026'da güncellendi). Domain çözümlemesi `businesses.website` / `competitors.website` alanlarına bağlı; enrichment bu alanları dolduruyor olmalı, aksi halde Trustpilot sessizce hiç çalışmaz (bkz. `02-business-rules.md` Bölüm I).
 - [ ] **Google Places:** billing aktif, kota ve günlük limit alarmı kuruldu.
 - [ ] **LemonSqueezy:** `billing-verification-runbook.md` Bölüm 6 (canlıya geçiş) tamamlandı — gerçek kartla satın alma + iptal + refund döngüsü doğrulandı.
 

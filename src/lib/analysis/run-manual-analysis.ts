@@ -26,7 +26,9 @@ export async function runManualAnalysisForBusiness(
 ): Promise<ManualAnalysisResult> {
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, google_place_id, lat, name, category, rating, last_scraped_at")
+    .select(
+      "id, google_place_id, lat, name, category, rating, last_scraped_at, website, trustpilot_domain, trustpilot_checked_at",
+    )
     .eq("id", businessId)
     .maybeSingle();
 
@@ -63,7 +65,7 @@ export async function runManualAnalysisForBusiness(
 
   const { data: competitors } = await supabase
     .from("competitors")
-    .select("id, google_place_id, name, rating")
+    .select("id, google_place_id, name, rating, website, trustpilot_domain, trustpilot_checked_at")
     .eq("business_id", business.id);
 
   if (!competitors || competitors.length < MIN_COMPETITORS) {
@@ -88,6 +90,9 @@ export async function runManualAnalysisForBusiness(
       name: business.name,
       category: business.category,
       rating: business.rating,
+      website: business.website,
+      trustpilot_domain: business.trustpilot_domain,
+      trustpilot_checked_at: business.trustpilot_checked_at,
     },
     competitors,
     outputLanguage,

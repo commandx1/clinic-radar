@@ -1,4 +1,5 @@
 import { runActorSync } from "@/lib/apify/client";
+import type { ScrapedSourceReview } from "@/lib/reviews/types";
 
 // Apify'a özgü alan adları burada izole edilir — actor'ün ham şeması
 // değişirse sadece bu dosya güncellenir (bkz. docs/04-api.md, Apify Google
@@ -20,29 +21,11 @@ interface ApifyReviewItem {
   publishedAtDate: string | null;
 }
 
-// `reviews` DB satırıyla birebir eşleşir (snake_case) — id/scraped_at/
-// business_id/owner_type çağıran tarafından (place_id -> owner eşlemesiyle)
-// çözülür, bu dosya sadece Apify'ın ham şeklini normalize eder.
-export interface ScrapedReview {
-  review_id: string;
-  place_id: string;
-  author_name: string | null;
-  rating: number | null;
-  text: string | null;
-  original_language: string | null;
-  translated_text: null;
-  owner_reply: string | null;
-  images_count: number | null;
-  likes: number | null;
-  is_local_guide: boolean | null;
-  review_url: string | null;
-  published_at: string | null;
-}
-
-function toScrapedReview(item: ApifyReviewItem): ScrapedReview {
+function toScrapedReview(item: ApifyReviewItem): ScrapedSourceReview {
   return {
     review_id: item.reviewId,
-    place_id: item.placeId,
+    source: "google",
+    source_ref: item.placeId,
     author_name: item.name,
     rating: item.stars,
     text: item.text,
@@ -61,7 +44,7 @@ export async function fetchReviewsForPlaces(
   placeIds: string[],
   maxReviewsPerPlace: number,
   { timeoutMs }: { timeoutMs?: number } = {},
-): Promise<ScrapedReview[]> {
+): Promise<ScrapedSourceReview[]> {
   const items = await runActorSync<ApifyReviewItem>(
     GOOGLE_REVIEWS_ACTOR_ID,
     {

@@ -16,7 +16,7 @@ export default async function BusinessLayout({ children }: Readonly<{ children: 
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, lat, lng, name, google_place_id, category")
+    .select("id, lat, lng, name, google_place_id, category, trustpilot_domain")
     .eq("user_id", user!.id)
     .maybeSingle();
 
@@ -31,6 +31,13 @@ export default async function BusinessLayout({ children }: Readonly<{ children: 
     );
   }
 
+  const { data: subscription } = await supabase
+    .from("subscriptions")
+    .select("plan")
+    .eq("user_id", user!.id)
+    .maybeSingle();
+  const isPro = subscription?.plan === "pro" || subscription?.plan === "agency";
+
   if (business.lat === null || business.lng === null) {
     return (
       <EnrichmentFailedNotice
@@ -39,7 +46,9 @@ export default async function BusinessLayout({ children }: Readonly<{ children: 
           name: business.name,
           google_place_id: business.google_place_id,
           category: business.category,
+          trustpilot_domain: business.trustpilot_domain,
         }}
+        isPro={isPro}
       />
     );
   }
@@ -50,13 +59,7 @@ export default async function BusinessLayout({ children }: Readonly<{ children: 
     .eq("business_id", business.id);
 
   if ((competitorCount ?? 0) < MIN_COMPETITORS) {
-    const { data: subscription } = await supabase
-      .from("subscriptions")
-      .select("plan")
-      .eq("user_id", user!.id)
-      .maybeSingle();
-    const planMaxCompetitors =
-      subscription?.plan === "pro" ? PRO_PLAN_MAX_COMPETITORS : FREE_PLAN_MAX_COMPETITORS;
+    const planMaxCompetitors = isPro ? PRO_PLAN_MAX_COMPETITORS : FREE_PLAN_MAX_COMPETITORS;
 
     return <CompetitorOnboarding businessId={business.id} planMaxCompetitors={planMaxCompetitors} />;
   }

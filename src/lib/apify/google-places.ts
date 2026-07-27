@@ -12,6 +12,7 @@ interface ApifyPlaceItem {
   reviewsCount: number | null;
   categoryName: string | null;
   location: { lat: number; lng: number } | null;
+  website: string | null;
 }
 
 export interface PlaceCandidate {
@@ -19,6 +20,7 @@ export interface PlaceCandidate {
   name: string;
   rating: number | null;
   review_count: number | null;
+  website: string | null;
 }
 
 export interface PlaceDetails extends PlaceCandidate {
@@ -33,6 +35,7 @@ function toCandidate(item: ApifyPlaceItem): PlaceCandidate {
     name: item.title,
     rating: item.totalScore,
     review_count: item.reviewsCount,
+    website: item.website,
   };
 }
 

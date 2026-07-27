@@ -2,12 +2,11 @@ import { MessageSquareIcon } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { EmptyState } from "@/components/empty-state";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 
 import { SatisfactionCard } from "../satisfaction-card";
 import { loadSatisfactionOverview } from "../satisfaction-overview";
+import { ReviewCard } from "./review-card";
 import {
   ReviewsFilterBar,
   type RatingFilter,
@@ -20,6 +19,7 @@ type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 interface ReviewRow {
   id: string;
+  source: string;
   rating: number | null;
   published_at: string | null;
   owner_reply: string | null;
@@ -33,7 +33,7 @@ async function loadReviews(
 ): Promise<ReviewRow[]> {
   let query = supabase
     .from("reviews")
-    .select("id, rating, published_at, owner_reply, review_url")
+    .select("id, source, rating, published_at, owner_reply, review_url")
     .eq("business_id", businessId)
     .eq("owner_type", "own");
 
@@ -94,31 +94,7 @@ export default async function ReviewsPage({
       ) : (
         <div className="flex flex-col gap-2">
           {reviews.map((review) => (
-            <Card key={review.id}>
-              <CardContent className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{review.rating ?? "-"} ★</span>
-                  {review.published_at && (
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(review.published_at).toLocaleDateString(locale)}
-                    </span>
-                  )}
-                  <Badge variant={review.owner_reply ? "default" : "secondary"}>
-                    {review.owner_reply ? t("repliedBadge") : t("notRepliedBadge")}
-                  </Badge>
-                </div>
-                {review.review_url && (
-                  <a
-                    href={review.review_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-primary underline-offset-4 hover:underline"
-                  >
-                    {t("viewOnGoogle")}
-                  </a>
-                )}
-              </CardContent>
-            </Card>
+            <ReviewCard key={review.id} t={t} locale={locale} review={review} />
           ))}
         </div>
       )}

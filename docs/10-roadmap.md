@@ -78,6 +78,40 @@ Faz 1.2'nin "tamamlandı" işaretlenmiş kod değişiklikleri diskte duruyordu a
 - [x] Launch dokümanları — `billing-verification-runbook.md` (LemonSqueezy uçtan uca doğrulama: checkout → webhook imza → iptal/expire → canlıya geçiş) ve `launch-checklist.md` (Supabase prod, env değişkenleri, Vercel cron, üçüncü parti servisler, smoke test, izleme/rollback).
 - Doğrulama: `tsc --noEmit` + eslint temiz, 70/70 test geçiyor (9 test dosyası).
 
+## Faz 2.1 — Çoklu yorum kaynağı (2026-07)
+
+Google dışı yorum kaynaklarının araştırılması sonucu: **yalnızca Trustpilot** kabul edildi. Doktortakvimi ve
+Şikayetvar elendi (hazır/güvenilir Apify aktörü yok, Şikayetvar'da yıldız puanı hiç yok — sentiment'i
+sistematik olarak bozardı). Facebook bilinçli olarak ertelendi.
+
+- [x] **Faz A — şema soyutlaması.** `reviews.place_id` → `source_ref`, `reviews.source` (+ check constraint),
+  dedup index'i `(source, source_ref, review_id)`, adapter/registry katmanı (`src/lib/reviews/`).
+  Kullanıcıya görünen değişiklik yok; Google akışı bit-birebir aynı kaldı.
+- [x] **Faz B — Trustpilot entegrasyonu.** `sian.agency/trustpilot-reviews-scraper` aktörü, `website` alanından
+  otomatik domain çözümlemesi (www'lu/www'suz iki varyant denenir, sonuç `trustpilot_domain` +
+  `trustpilot_checked_at` ile cache'lenir), Pro/Agency planına özel. Yorumlar Google ile **tek analiz
+  havuzunda** birleşir — kaynak bazlı ağırlıklandırma yok.
+- [x] **Faz B-3 — elle domain düzeltme.** Pro kullanıcı kendi işletmesinin Trustpilot domain'ini elle
+  girebilir/düzeltebilir (`PATCH /api/business/:id` → `trustpilot_domain_override`); alanı boşaltmak
+  "Trustpilot profilim yok" demektir, yeniden arama tetiklemez. Rakipler için elle düzeltme **yok**
+  (yanlış domain, yabancı bir şirketin yorumlarını analize sokardı). Non-Pro kullanıcı alanı görür ama
+  kilitlidir (Pro rozeti) — kilit UI-only değil, route da `403 pro_required` döner.
+- [x] **Legal + UI kaynak senkronu.** Gizlilik ve Kullanım Şartları metinleri (tr/en) artık veri kapsamını
+  "Google Maps + Trustpilot" olarak tanımlıyor (yürürlük tarihi 27 Temmuz 2026'ya çekildi). Reviews sayfası
+  her yorumda kaynak rozeti gösteriyor ve dış link etiketi kaynağa göre üretiliyor (`viewOnSource`) —
+  önceki sabit "Google'da görüntüle" etiketi Trustpilot yorumlarında yanlış olurdu.
+
+Detay: `02-business-rules.md` Bölüm I, `03-database.md`, `04-api.md`.
+
+### Faz 2.1 — Bilinen kısıtlar
+- [ ] **Trustpilot yalnızca `website` dolu olan kayıtlarda çalışır.** `website` kolonları Trustpilot
+  migration'ıyla eklendi; enrichment (`enrich-from-apify.ts`) yeni kayıtlarda dolduruyor, ama migration
+  öncesinde oluşmuş işletme/rakip satırlarında null kalır ve kendiliğinden dolmaz (enrichment yalnızca
+  `google_place_id` değişince yeniden koşar). Gerçek kullanıcı olmadığı için backfill yazılmadı.
+- [ ] **Kapsam gerçekliği.** Trustpilot hacmi ağırlıklı olarak medikal turizm kliniklerinde; yerel
+  (mahalle ölçeğinde) klinikler için çoğu zaman profil bulunmaz ve akış sessizce yalnızca Google ile
+  devam eder. Bu beklenen davranış, hata değil.
+
 ## Faz 3
 - AI arama görünürlüğü modülü (ChatGPT/Gemini/Perplexity'de klinik nasıl öneriliyor)
 - Tema taksonomisi ölçeklenirse embedding/clustering katmanı (`05-ai-pipeline.md`'deki gerekçeye bkz.)

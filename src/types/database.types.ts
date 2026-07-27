@@ -100,7 +100,10 @@ export type Database = {
           normalized_category: string | null
           rating: number | null
           review_count: number | null
+          trustpilot_checked_at: string | null
+          trustpilot_domain: string | null
           user_id: string
+          website: string | null
         }
         Insert: {
           analysis_stage?: string | null
@@ -117,7 +120,10 @@ export type Database = {
           normalized_category?: string | null
           rating?: number | null
           review_count?: number | null
+          trustpilot_checked_at?: string | null
+          trustpilot_domain?: string | null
           user_id: string
+          website?: string | null
         }
         Update: {
           analysis_stage?: string | null
@@ -134,7 +140,10 @@ export type Database = {
           normalized_category?: string | null
           rating?: number | null
           review_count?: number | null
+          trustpilot_checked_at?: string | null
+          trustpilot_domain?: string | null
           user_id?: string
+          website?: string | null
         }
         Relationships: [
           {
@@ -190,6 +199,9 @@ export type Database = {
           rating: number | null
           review_count: number | null
           selected_at: string
+          trustpilot_checked_at: string | null
+          trustpilot_domain: string | null
+          website: string | null
         }
         Insert: {
           business_id: string
@@ -199,6 +211,9 @@ export type Database = {
           rating?: number | null
           review_count?: number | null
           selected_at?: string
+          trustpilot_checked_at?: string | null
+          trustpilot_domain?: string | null
+          website?: string | null
         }
         Update: {
           business_id?: string
@@ -208,6 +223,9 @@ export type Database = {
           rating?: number | null
           review_count?: number | null
           selected_at?: string
+          trustpilot_checked_at?: string | null
+          trustpilot_domain?: string | null
+          website?: string | null
         }
         Relationships: [
           {
@@ -330,12 +348,13 @@ export type Database = {
           original_language: string | null
           owner_reply: string | null
           owner_type: string
-          place_id: string
           published_at: string | null
           rating: number | null
           review_id: string
           review_url: string | null
           scraped_at: string
+          source: string
+          source_ref: string
           text: string | null
           translated_text: string | null
         }
@@ -349,12 +368,13 @@ export type Database = {
           original_language?: string | null
           owner_reply?: string | null
           owner_type: string
-          place_id: string
           published_at?: string | null
           rating?: number | null
           review_id: string
           review_url?: string | null
           scraped_at?: string
+          source: string
+          source_ref: string
           text?: string | null
           translated_text?: string | null
         }
@@ -368,12 +388,13 @@ export type Database = {
           original_language?: string | null
           owner_reply?: string | null
           owner_type?: string
-          place_id?: string
           published_at?: string | null
           rating?: number | null
           review_id?: string
           review_url?: string | null
           scraped_at?: string
+          source?: string
+          source_ref?: string
           text?: string | null
           translated_text?: string | null
         }

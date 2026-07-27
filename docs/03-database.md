@@ -40,6 +40,9 @@ businesses (
   current_tool text,           -- onboarding zorunlu sorusu "şu an rakip/itibar takibi için ne kullanıyorsunuz?" (11-risks-assumptions.md Bölüm B/E); DB'de nullable (eski satırlar), zorunluluk app katmanında
   monthly_report_emailed_at timestamptz,  -- Monthly Report e-postası son gönderim zamanı (02-business-rules.md Bölüm G), idempotency için
   analysis_stage text          -- 'scraping' | 'themes' | 'gap' | 'tasks' | 'summary' | null; "Analizi Çalıştır" pipeline'ının o an hangi aşamada olduğu (05-ai-pipeline.md), UI mutation pending iken bunu poll eder. Analiz çalışmıyorken veya bitince/hata alınca null. CHECK constraint ile değerler sınırlanır.
+  website text,                 -- Google Places'ten gelen ham site URL'si (Apify compass/crawler-google-places `website` alanı); Trustpilot domain'ini türetmek için kullanılır
+  trustpilot_domain text,       -- Trustpilot'taki şirket kimliği (ör. 'natural.clinic'), `website`'ten türetilir; çözümlenemediyse null
+  trustpilot_checked_at timestamptz  -- Trustpilot araması en son ne zaman denendi; null = hiç denenmedi. AYRI bir kolon: `trustpilot_domain IS NULL` tek başına "hiç bakmadık" ile "baktık, profili yok"u ayırt edemez — ayırt edilmezse profili olmayan her rakip için her analizde tekrar Apify parası ödenir (bkz. 02-business-rules.md Bölüm I)
 )
 
 clinic_score_history (
@@ -69,15 +72,19 @@ competitors (
   name text,
   rating float,
   review_count int,
-  selected_at timestamptz
+  selected_at timestamptz,
+  website text,                 -- Google Places'ten gelen ham site URL'si (bkz. businesses.website)
+  trustpilot_domain text,       -- bkz. businesses.trustpilot_domain
+  trustpilot_checked_at timestamptz  -- bkz. businesses.trustpilot_checked_at
 )
 
 -- ============ Yorumlar ============
 
 reviews (
   id uuid primary key,
-  review_id text,               -- Google'ın kendi review ID'si (dedup için)
-  place_id text,
+  review_id text,               -- kaynağın kendi review ID'si (dedup için)
+  source text,                  -- 'google' | 'facebook' | 'trustpilot' — bkz. 02-business-rules.md "Yorum kaynakları", default YOK, her insert açıkça belirtmeli
+  source_ref text,              -- google ise google_place_id (businesses/competitors.google_place_id), diğer kaynaklarda o kaynağın sahip tablosundaki (ör. Trustpilot için competitors) referans kolonuyla aynı değer
   owner_type text,               -- 'own' | 'competitor'
   business_id uuid,              -- own ise businesses.id, competitor ise competitors.id
   author_name text,
@@ -176,6 +183,7 @@ Her tabloda RLS açık ve `authenticated` rolüne satır bazlı policy'lerle eş
 
 ## İndeks önerileri
 - `reviews(business_id, owner_type, published_at)` — trend sorguları için.
+- `reviews(source, source_ref, review_id)` unique — kaynak-agnostik dedup (eski `place_id, review_id` dedup indeksinin yerine geçti).
 - `region_category_cache(normalized_category, geo_cell)` unique — cache lookup için.
 - `tasks(business_id, status)` — dashboard task listesi için.
 - `analysis_runs(business_id)` ve `analysis_runs(started_at desc)` — cron dedup ("bu hafta koşuldu mu?") ve son koşu sorguları için.

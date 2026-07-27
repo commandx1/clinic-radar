@@ -23,8 +23,8 @@ export const CACHE_TTL_DENSE_DAYS = 7;
 export const CACHE_TTL_SPARSE_DAYS = 14;
 export const CACHE_DENSE_ACTIVE_USER_THRESHOLD = 5;
 
-// Yorum çekme üst sınırı (place başına) — bkz. docs/02-business-rules.md Bölüm C
-export const REVIEWS_FETCH_MAX_PER_PLACE = 200;
+// Yorum çekme üst sınırı (source_ref başına) — bkz. docs/02-business-rules.md Bölüm C
+export const REVIEWS_FETCH_MAX_PER_SOURCE_REF = 200;
 
 export const GEOHASH_PRECISION = 6;
 
@@ -88,3 +88,9 @@ export const IMPACT_SCORE_MENTION_VOLUME_SCALE = TASK_MENTION_THRESHOLD * 4;
 // başarı oranı bu eşiğin altına düşerse (ve en az bir işletme işlendiyse)
 // alarm loglanır; kullanıcı akışını etkilemez, sadece gözlem/uyarıdır.
 export const SCRAPE_SUCCESS_RATE_ALERT_THRESHOLD = 0.5;
+
+// sian.agency/trustpilot-reviews-scraper — sayfa başına maliyet var (bkz.
+// src/lib/apify/trustpilot-reviews.ts), bu yüzden Google'daki tek seferlik
+// büyük çekim yerine sayfa sayısı sınırlanır. 2 sayfa ≈ 25 yorum; tema
+// çıkarımı (TASK_MENTION_THRESHOLD) için yeterli sinyal sağlar.
+export const TRUSTPILOT_FETCH_MAX_PAGES = 2;

@@ -7,13 +7,13 @@ export const termsContent: LocalizedLegalDoc = {
     metaTitle: "Terms of Service — ClinicRadar",
     metaDescription:
       "The terms that govern your use of ClinicRadar — accounts, plans and billing, acceptable use, AI-generated insights, and liability.",
-    lastUpdated: "Last updated: February 27, 2026",
+    lastUpdated: "Last updated: July 27, 2026",
     intro: [
       "These Terms of Service (\"Terms\") govern your access to and use of ClinicRadar — the website, application and related services (together, the \"Service\") operated by ClinicRadar (\"we\", \"us\").",
       "By creating an account or using the Service you agree to these Terms and to our Privacy Policy. If you use the Service on behalf of a clinic or company, you confirm that you are authorized to bind that organization, and \"you\" refers to it.",
     ],
     atAGlance: [
-      "ClinicRadar analyzes public Google reviews and turns them into competitive insights and tasks for your clinic.",
+      "ClinicRadar analyzes public reviews from Google and Trustpilot and turns them into competitive insights and tasks for your clinic.",
       "Insights are AI-generated and informational — they are not medical, legal or professional advice.",
       "You may only connect businesses you own, manage, or are authorized to represent.",
       "Paid plans renew automatically; you can cancel anytime and keep access until the end of the paid period.",
@@ -24,8 +24,8 @@ export const termsContent: LocalizedLegalDoc = {
         id: "service",
         heading: "The Service",
         paragraphs: [
-          "ClinicRadar is a competitor-intelligence tool for clinics. It collects publicly available Google Maps review data for your business and the competitors you select, analyzes it with AI models, and produces summaries, scores, trends and a prioritized task list.",
-          "The Service depends on third-party data sources (such as the Google Places API and the Apify platform). We do not control those sources and cannot guarantee that any particular business, review or data point will be available, complete or current.",
+          "ClinicRadar is a competitor-intelligence tool for clinics. It collects publicly available review data — from Google Maps and, where a public profile exists, Trustpilot — for your business and the competitors you select, analyzes it with AI models, and produces summaries, scores, trends and a prioritized task list.",
+          "The Service depends on third-party data sources (such as the Google Places API, Trustpilot and the Apify platform). We do not control those sources and cannot guarantee that any particular business, review or data point will be available, complete or current.",
         ],
       },
       {
@@ -77,7 +77,7 @@ export const termsContent: LocalizedLegalDoc = {
         id: "third-party",
         heading: "Third-party services and data",
         paragraphs: [
-          "The Service integrates third-party services, including Google (Places API, Gemini), Apify, Anthropic, Supabase, Vercel, Resend and Lemon Squeezy. Their availability and terms are outside our control. Google Maps data remains subject to Google's own terms, and reviews remain the statements of their authors — ClinicRadar does not endorse or verify them.",
+          "The Service integrates third-party services, including Google (Places API, Gemini), Trustpilot, Apify, Anthropic, Supabase, Vercel, Resend and Lemon Squeezy. Their availability and terms are outside our control. Google Maps data remains subject to Google's own terms and Trustpilot data to Trustpilot's, and reviews remain the statements of their authors — ClinicRadar does not endorse or verify them.",
         ],
       },
       {
@@ -140,13 +140,13 @@ export const termsContent: LocalizedLegalDoc = {
     metaTitle: "Kullanım Şartları — ClinicRadar",
     metaDescription:
       "ClinicRadar kullanımınızı düzenleyen şartlar — hesaplar, planlar ve faturalama, kabul edilebilir kullanım, yapay zekâ çıktıları ve sorumluluk.",
-    lastUpdated: "Son güncelleme: 27 Şubat 2026",
+    lastUpdated: "Son güncelleme: 27 Temmuz 2026",
     intro: [
       "Bu Kullanım Şartları (\"Şartlar\"), ClinicRadar (\"biz\") tarafından işletilen web sitesi, uygulama ve ilgili hizmetlere (birlikte \"Hizmet\") erişiminizi ve kullanımınızı düzenler.",
       "Hesap oluşturarak veya Hizmeti kullanarak bu Şartları ve Gizlilik Politikamızı kabul etmiş olursunuz. Hizmeti bir klinik veya şirket adına kullanıyorsanız, o kuruluşu bağlama yetkiniz olduğunu teyit edersiniz ve \"siz\" ifadesi o kuruluşu kapsar.",
     ],
     atAGlance: [
-      "ClinicRadar, herkese açık Google yorumlarını analiz ederek kliniğiniz için rekabet içgörüleri ve görevler üretir.",
+      "ClinicRadar, herkese açık Google ve Trustpilot yorumlarını analiz ederek kliniğiniz için rekabet içgörüleri ve görevler üretir.",
       "İçgörüler yapay zekâ tarafından üretilir ve bilgilendirme amaçlıdır — tıbbi, hukuki veya profesyonel tavsiye değildir.",
       "Yalnızca sahibi olduğunuz, yönettiğiniz veya temsil etmeye yetkili olduğunuz işletmeleri bağlayabilirsiniz.",
       "Ücretli planlar otomatik yenilenir; istediğiniz zaman iptal edebilir ve ödediğiniz dönemin sonuna kadar erişiminizi korursunuz.",
@@ -157,8 +157,8 @@ export const termsContent: LocalizedLegalDoc = {
         id: "service",
         heading: "Hizmet",
         paragraphs: [
-          "ClinicRadar, klinikler için bir rakip istihbaratı aracıdır. İşletmeniz ve seçtiğiniz rakipler için herkese açık Google Haritalar yorum verilerini toplar, yapay zekâ modelleriyle analiz eder; özetler, skorlar, trendler ve önceliklendirilmiş bir görev listesi üretir.",
-          "Hizmet, üçüncü taraf veri kaynaklarına (Google Places API ve Apify platformu gibi) bağlıdır. Bu kaynakları biz kontrol etmeyiz; belirli bir işletmenin, yorumun veya veri noktasının erişilebilir, eksiksiz veya güncel olacağını garanti edemeyiz.",
+          "ClinicRadar, klinikler için bir rakip istihbaratı aracıdır. İşletmeniz ve seçtiğiniz rakipler için herkese açık yorum verilerini — Google Haritalar'dan ve herkese açık bir profil varsa Trustpilot'tan — toplar, yapay zekâ modelleriyle analiz eder; özetler, skorlar, trendler ve önceliklendirilmiş bir görev listesi üretir.",
+          "Hizmet, üçüncü taraf veri kaynaklarına (Google Places API, Trustpilot ve Apify platformu gibi) bağlıdır. Bu kaynakları biz kontrol etmeyiz; belirli bir işletmenin, yorumun veya veri noktasının erişilebilir, eksiksiz veya güncel olacağını garanti edemeyiz.",
         ],
       },
       {
@@ -210,7 +210,7 @@ export const termsContent: LocalizedLegalDoc = {
         id: "third-party",
         heading: "Üçüncü taraf hizmetler ve veriler",
         paragraphs: [
-          "Hizmet; Google (Places API, Gemini), Apify, Anthropic, Supabase, Vercel, Resend ve Lemon Squeezy dahil üçüncü taraf hizmetleri entegre eder. Bunların erişilebilirliği ve şartları bizim kontrolümüz dışındadır. Google Haritalar verileri Google'ın kendi şartlarına tabidir; yorumlar, yazarlarının beyanları olarak kalır — ClinicRadar bunları onaylamaz veya doğrulamaz.",
+          "Hizmet; Google (Places API, Gemini), Trustpilot, Apify, Anthropic, Supabase, Vercel, Resend ve Lemon Squeezy dahil üçüncü taraf hizmetleri entegre eder. Bunların erişilebilirliği ve şartları bizim kontrolümüz dışındadır. Google Haritalar verileri Google'ın, Trustpilot verileri Trustpilot'un kendi şartlarına tabidir; yorumlar, yazarlarının beyanları olarak kalır — ClinicRadar bunları onaylamaz veya doğrulamaz.",
         ],
       },
       {

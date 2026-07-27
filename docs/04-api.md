@@ -7,9 +7,25 @@ Next.js API routes (veya ayrı Node servisi) üzerinden REST. Tüm endpoint'ler 
 | Method | Path | Açıklama |
 |---|---|---|
 | POST | `/api/business` | Google Place ID ile kullanıcının kendi işletmesini bağlar. Apify'dan temel veri çeker, `businesses` tablosuna yazar. |
+| PATCH | `/api/business/:id` | İşletme adı/kategorisi ve `google_place_id` güncellemesi (place değişirse Apify re-enrichment tetiklenir). Ayrıca opsiyonel `trustpilot_domain_override` alanını kabul eder — detay aşağıda. |
 | GET | `/api/business/:id/competitors/discover` | `region_category_cache`'i kontrol eder, gerekirse Apify Google Maps Scraper'ı tetikler (bkz. `05-ai-pipeline.md`), 10 aday döner (`02-business-rules.md` Bölüm B kurallarına göre). |
 | POST | `/api/business/:id/competitors` | Kullanıcının checkbox ile seçtiği rakip listesini kaydeder (`competitors` tablosuna yazar). Min 3, max 10 validasyonu (Bölüm A). |
 | POST | `/api/business/:id/analysis/run` | Seçilen rakipler + kendi işletme için yorum çekme + analiz pipeline'ını tetikler. **Faz 1'de senkron çalışır** (tek batch Apify çağrısı, route yanıtı işlem bitince döner) — job/queue altyapısı yok, mevcut tüm Apify çağrılarıyla aynı desen. Faz 1.1'in haftalık cron yenilemesi de bilinçli olarak aynı senkron batch desenle teslim edildi (bkz. aşağıda `weekly-analysis`) — async job + webhook altyapısı ancak senkron desen süre bütçesine sığmaz hale gelirse gündeme gelir. |
+
+### `PATCH /api/business/:id` — `trustpilot_domain_override`
+
+Kullanıcının otomatik bulunan Trustpilot eşleşmesini elle düzeltmesi için (bkz. `02-business-rules.md`,
+"Trustpilot'a özgü kurallar"). Alan **opsiyoneldir**; gövdede hiç yoksa Trustpilot kolonlarına dokunulmaz.
+
+- **Girdi normalizasyonu:** hem ham domain (`natural.clinic`), hem site URL'i (`https://www.veraclinic.net/tr`),
+  hem de Trustpilot profil URL'i (`https://www.trustpilot.com/review/natural.clinic`) kabul edilir; hepsi
+  domain'e indirgenir (`normalizeTrustpilotDomainInput`). `www` **korunur** — Trustpilot'ta kimlik www'a duyarlı.
+- **Boş string = "Trustpilot profilim yok".** `trustpilot_domain` null'a çekilir ama `trustpilot_checked_at`
+  yine de doldurulur; yani sistem bir daha otomatik arama yapmaz. (Bu yüzden UI, değer gerçekten
+  değişmediyse alanı hiç göndermez — yoksa alana dokunmayan bir düzenleme otomatik aramayı kapatırdı.)
+- **Her iki durumda da `trustpilot_checked_at = now()`** yazılır: kullanıcı beyanı, otomatik aramadan üstündür.
+- **Hatalar:** Pro/Agency olmayan kullanıcı `403 { error: "pro_required" }`; parse edilemeyen girdi
+  `400 { error: "invalid_trustpilot_domain" }`.
 
 ## Görevler
 

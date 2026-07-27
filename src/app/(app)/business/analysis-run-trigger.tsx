@@ -6,13 +6,14 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 
+import { AnalysisRunProgress } from "./analysis-run-progress";
 import { BusinessEditForm } from "./business-edit-form";
 import { useAnalysisRunTrigger } from "./use-analysis-run-trigger";
 
 export function AnalysisRunTrigger({
   business,
+  isPro,
   nextAnalysisAvailableAt,
   cooldownActive,
 }: {
@@ -22,7 +23,9 @@ export function AnalysisRunTrigger({
     category: string | null;
     google_place_id: string | null;
     last_scraped_at: string | null;
+    trustpilot_domain: string | null;
   };
+  isPro: boolean;
   nextAnalysisAvailableAt: string | null;
   cooldownActive: boolean;
 }) {
@@ -45,7 +48,9 @@ export function AnalysisRunTrigger({
                 name: business.name,
                 google_place_id: business.google_place_id,
                 category: business.category,
+                trustpilot_domain: business.trustpilot_domain,
               }}
+              isPro={isPro}
               onCancel={() => {
                 setIsEditing(false);
               }}
@@ -86,15 +91,7 @@ export function AnalysisRunTrigger({
 
               {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
-              {isPending && (
-                <div className="flex flex-col gap-2 py-1">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2Icon className="size-4 animate-spin" />
-                    <span>{tAnalysis(`steps.${stepKey}`)}</span>
-                  </div>
-                  <Progress value={((stepIndex + 1) / stepCount) * 100} />
-                </div>
-              )}
+              {isPending && <AnalysisRunProgress stepKey={stepKey} stepIndex={stepIndex} stepCount={stepCount} />}
 
               <Button
                 disabled={isPending || cooldownActive}

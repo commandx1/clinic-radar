@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { enrichBusinessFromApify } from "@/lib/business/enrich-from-apify";
+import { normalizeTrustpilotDomainInput } from "@/lib/reviews/sources/trustpilot-domain";
 import { createClient } from "@/lib/supabase/server";
 import { updateBusinessSchema } from "@/lib/validations/business";
 
@@ -41,8 +42,39 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const { name, google_place_id, category, current_tool } = parsed.data;
+  const { name, google_place_id, category, current_tool, trustpilot_domain_override } = parsed.data;
   const placeChanged = google_place_id !== undefined && google_place_id !== existing.google_place_id;
+
+  // Trustpilot domain'inin elle düzeltilmesi Pro'ya özel (bkz. docs/02-business-rules.md
+  // hibrit eşleme kararı). Doğrudan API isteğiyle bile Free/Pro-olmayan kullanıcı
+  // bu alanı set edemez — client tarafındaki gizleme yeterli değil.
+  let trustpilotDomainUpdate: { trustpilot_domain: string | null; trustpilot_checked_at: string } | null = null;
+  if (trustpilot_domain_override !== undefined) {
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("plan")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const isPro = subscription?.plan === "pro" || subscription?.plan === "agency";
+
+    if (!isPro) {
+      return NextResponse.json({ error: "pro_required" }, { status: 403 });
+    }
+
+    const trimmed = trustpilot_domain_override.trim();
+    let normalizedDomain: string | null = null;
+    if (trimmed !== "") {
+      normalizedDomain = normalizeTrustpilotDomainInput(trimmed);
+      if (normalizedDomain === null) {
+        return NextResponse.json({ error: "invalid_trustpilot_domain" }, { status: 400 });
+      }
+    }
+
+    // checked_at'i doldurmak, elle girilen (veya bilinçli olarak temizlenen)
+    // değeri sonraki analiz döngülerindeki otomatik aramanın ezmesini engeller
+    // (bkz. resolve-trustpilot-refs.ts).
+    trustpilotDomainUpdate = { trustpilot_domain: normalizedDomain, trustpilot_checked_at: new Date().toISOString() };
+  }
 
   const { data: updated, error } = await supabase
     .from("businesses")
@@ -51,6 +83,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ...(google_place_id !== undefined && { google_place_id }),
       ...(category !== undefined && { category }),
       ...(current_tool !== undefined && { current_tool }),
+      ...trustpilotDomainUpdate,
     })
     .eq("id", id)
     .eq("user_id", user.id)

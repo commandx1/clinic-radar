@@ -102,7 +102,7 @@ export default async function OverviewPage() {
     await Promise.all([
       supabase
         .from("businesses")
-        .select("id, name, category, google_place_id, last_scraped_at")
+        .select("id, name, category, google_place_id, last_scraped_at, trustpilot_domain")
         .eq("user_id", user!.id)
         .maybeSingle(),
       supabase.from("subscriptions").select("plan").eq("user_id", user!.id).maybeSingle(),
@@ -119,6 +119,7 @@ export default async function OverviewPage() {
     resolveOpenTasks(supabase, business!.id, locale),
   ]);
   const topTasks = openTasks.slice(0, 3);
+  const isPro = subscription?.plan === "pro" || subscription?.plan === "agency";
   const nextAnalysisAvailableAt = getNextAnalysisAvailableAt(business!.last_scraped_at, subscription?.plan);
   const executiveSummary = metrics.latestSnapshot?.executive_summary
     ? pickLocale(metrics.latestSnapshot.executive_summary, locale)
@@ -128,6 +129,7 @@ export default async function OverviewPage() {
     <div className="flex flex-col gap-6">
       <AnalysisRunTrigger
         business={business!}
+        isPro={isPro}
         nextAnalysisAvailableAt={nextAnalysisAvailableAt ? nextAnalysisAvailableAt.toISOString() : null}
         cooldownActive={isAnalysisCooldownActive(nextAnalysisAvailableAt)}
       />

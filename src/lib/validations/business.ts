@@ -21,6 +21,11 @@ export const updateBusinessSchema = z
     google_place_id: z.string().trim().min(1).optional(),
     category: z.string().trim().min(1).optional(),
     current_tool: z.string().trim().min(1).optional(),
+    // Trustpilot domain'inin elle düzeltilmesi — bkz. trustpilot-domain.ts
+    // `normalizeTrustpilotDomainInput`. Kasıtlı olarak `.trim().min(1)` YOK:
+    // boş string GEÇERLİ bir değer, "eşleşmeyi temizle" anlamına gelir (bkz.
+    // route.ts). Sadece Pro planlı kullanıcılar gönderebilir (route'ta 403).
+    trustpilot_domain_override: z.string().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     error: "at_least_one_field_required",

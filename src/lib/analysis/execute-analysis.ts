@@ -11,6 +11,7 @@ import {
   type ThemeItem,
   type ThemeTrendInput,
 } from "@/lib/ai-pipeline/provider";
+import { resolveTrustpilotRefs } from "@/lib/analysis/resolve-trustpilot-refs";
 import { estimateScrapeCostUsd, type ScrapeMetrics } from "@/lib/analysis/scrape-metrics";
 import {
   attachImpactScores,
@@ -18,18 +19,19 @@ import {
   rankCandidates,
   type ScoredTaskCandidate,
 } from "@/lib/analysis/task-candidates";
-import { fetchReviewsForPlaces, type ScrapedReview } from "@/lib/apify/google-reviews";
 import {
   AI_ANALYSIS_MIN_OWN_REVIEWS_FOR_WINDOW,
   AI_ANALYSIS_WINDOW_DAYS,
   AI_ANALYSIS_WINDOW_DAYS_STEPS,
   MAX_NEW_TASKS_PER_CYCLE,
-  REVIEWS_FETCH_MAX_PER_PLACE,
+  REVIEWS_FETCH_MAX_PER_SOURCE_REF,
   THEME_TREND_DELTA_THRESHOLD,
   THEME_TREND_MIN_MENTIONS,
 } from "@/lib/constants";
 import { recordNotification } from "@/lib/notifications/record-notification";
 import { detectAndNotifyThemeSpikes } from "@/lib/notifications/theme-spike";
+import { fetchReviewsFromAllSources } from "@/lib/reviews/fetch-all";
+import type { ReviewSource, ScrapedSourceReview } from "@/lib/reviews/types";
 import { calculateClinicScore, calculateCompetitorRank } from "@/lib/task-engine/clinic-score";
 import { derivePriority } from "@/lib/task-engine/priority";
 import { normalizeTheme, selectThemesToReopen } from "@/lib/task-engine/reopen";
@@ -77,34 +79,83 @@ async function setAnalysisStage(
   }
 }
 
-function buildOwnerMap(
-  business: { id: string; google_place_id: string },
-  competitors: { id: string; google_place_id: string }[],
+// Kaynak-agnostik owner haritası — bkz. docs/02-business-rules.md Bölüm I.
+// Google hâlâ birincil/zorunlu kaynaktır ve anahtarı doğrudan
+// businesses/competitors.google_place_id'den gelir. Anahtar
+// `${source}:${source_ref}` biçimindedir çünkü iki farklı platform aynı ham
+// referans/id şemasını paylaşabilir — bu biçim KORUNUR: Trustpilot desteği
+// eklendiğinde o kaynağın referansı businesses/competitors tablosundaki
+// kendi kolonundan (`trustpilot_domain` — ayrı bir kaynak tablosu YOK, bkz.
+// docs/02-business-rules.md Bölüm I) okunup aynı `${source}:${source_ref}`
+// formatıyla buraya eklendi; `mapToReviewRows` ve `groupRefsBySource` bu
+// formata bağlı çalışır. `trustpilot_domain` çağıran tarafından (executeAnalysis
+// içinde resolveTrustpilotRefs ile) önceden çözülmüş halde parametre olarak
+// gelir — bu fonksiyon senkron/saf kalır, supabase erişimi yapmaz. export
+// edilir: execute-analysis.test.ts Google ve Trustpilot anahtarlama
+// davranışını test eder.
+export function buildOwnerMap(
+  business: { id: string; google_place_id: string; trustpilot_domain?: string | null },
+  competitors: { id: string; google_place_id: string; trustpilot_domain?: string | null }[],
 ): Map<string, OwnerRef> {
-  const ownerByPlaceId = new Map<string, OwnerRef>();
-  ownerByPlaceId.set(business.google_place_id, { owner_type: "own", business_id: business.id });
-  for (const competitor of competitors) {
-    ownerByPlaceId.set(competitor.google_place_id, { owner_type: "competitor", business_id: competitor.id });
+  const ownerBySourceRef = new Map<string, OwnerRef>();
+  ownerBySourceRef.set(`google:${business.google_place_id}`, { owner_type: "own", business_id: business.id });
+  if (business.trustpilot_domain) {
+    ownerBySourceRef.set(`trustpilot:${business.trustpilot_domain}`, {
+      owner_type: "own",
+      business_id: business.id,
+    });
   }
-  return ownerByPlaceId;
+  for (const competitor of competitors) {
+    ownerBySourceRef.set(`google:${competitor.google_place_id}`, {
+      owner_type: "competitor",
+      business_id: competitor.id,
+    });
+    if (competitor.trustpilot_domain) {
+      ownerBySourceRef.set(`trustpilot:${competitor.trustpilot_domain}`, {
+        owner_type: "competitor",
+        business_id: competitor.id,
+      });
+    }
+  }
+
+  return ownerBySourceRef;
 }
 
 function mapToReviewRows(
-  scraped: ScrapedReview[],
-  ownerByPlaceId: Map<string, OwnerRef>,
+  scraped: ScrapedSourceReview[],
+  ownerBySourceRef: Map<string, OwnerRef>,
 ): TablesInsert<"reviews">[] {
   // Apify aynı yorumu tek çalıştırmada birden fazla kez döndürebiliyor; tek
-  // upsert komutunda mükerrer (place_id, review_id) Postgres 21000 ("cannot
-  // affect row a second time") hatası verir — batch içinde dedup şart.
+  // upsert komutunda mükerrer (source, source_ref, review_id) Postgres 21000
+  // ("cannot affect row a second time") hatası verir — batch içinde dedup şart.
   const rows = new Map<string, TablesInsert<"reviews">>();
   for (const review of scraped) {
-    const owner = ownerByPlaceId.get(review.place_id);
+    const owner = ownerBySourceRef.get(`${review.source}:${review.source_ref}`);
     if (!owner) {
       continue;
     }
-    rows.set(`${review.place_id}:${review.review_id}`, { ...review, ...owner });
+    rows.set(`${review.source}:${review.source_ref}:${review.review_id}`, { ...review, ...owner });
   }
   return Array.from(rows.values());
+}
+
+// Owner haritasındaki anahtarları (`${source}:${source_ref}`) kaynağa göre
+// gruplar — fetchReviewsFromAllSources'un beklediği Map<ReviewSource,
+// string[]> girdisini üretir.
+function groupRefsBySource(ownerBySourceRef: Map<string, OwnerRef>): Map<ReviewSource, string[]> {
+  const refsBySource = new Map<ReviewSource, string[]>();
+  for (const key of ownerBySourceRef.keys()) {
+    const separatorIndex = key.indexOf(":");
+    const source = key.slice(0, separatorIndex) as ReviewSource;
+    const ref = key.slice(separatorIndex + 1);
+    const existing = refsBySource.get(source);
+    if (existing) {
+      existing.push(ref);
+    } else {
+      refsBySource.set(source, [ref]);
+    }
+  }
+  return refsBySource;
 }
 
 // Şema uyuşmazlığında (null) bir kez daha dener; SDK/ağ hatasında da aynı
@@ -739,14 +790,41 @@ export async function executeAnalysis(
     name: string;
     category: string | null;
     rating: number | null;
+    website: string | null;
+    trustpilot_domain: string | null;
+    trustpilot_checked_at: string | null;
   },
-  competitors: { id: string; google_place_id: string; name: string; rating: number | null }[],
+  competitors: {
+    id: string;
+    google_place_id: string;
+    name: string;
+    rating: number | null;
+    website: string | null;
+    trustpilot_domain: string | null;
+    trustpilot_checked_at: string | null;
+  }[],
   outputLanguage: string,
   notifyContext: { isPro: boolean; ownerEmail: string | null },
   options?: { apifyTimeoutMs?: number },
 ): Promise<ExecuteAnalysisResult> {
-  const ownerByPlaceId = buildOwnerMap({ id: business.id, google_place_id: business.google_place_id }, competitors);
-  const placeIds = Array.from(ownerByPlaceId.keys());
+  const apifyTimeoutMs = options?.apifyTimeoutMs ?? DEFAULT_APIFY_TIMEOUT_MS;
+
+  // Trustpilot sadece Pro planda çalışır (bkz. docs/02-business-rules.md
+  // "Trustpilot'a özgü kurallar"). Pro olmayan kullanıcılarda
+  // resolveTrustpilotRefs hiç çağrılmaz — gereksiz probe/Apify çağrısı olmaz.
+  const trustpilotRefs = notifyContext.isPro
+    ? await resolveTrustpilotRefs(supabase, business, competitors, { timeoutMs: apifyTimeoutMs })
+    : { ownDomain: null, byCompetitorId: new Map<string, string>() };
+
+  const ownerBySourceRef = buildOwnerMap(
+    { id: business.id, google_place_id: business.google_place_id, trustpilot_domain: trustpilotRefs.ownDomain },
+    competitors.map((competitor) => ({
+      id: competitor.id,
+      google_place_id: competitor.google_place_id,
+      trustpilot_domain: trustpilotRefs.byCompetitorId.get(competitor.id) ?? null,
+    })),
+  );
+  const refsBySource = groupRefsBySource(ownerBySourceRef);
 
   // bkz. docs/03-database.md businesses.analysis_stage — bu fonksiyonun her
   // dönüş yolu (başarı, kısmi başarı, erken hata) finally bloğunda stage'i
@@ -756,10 +834,10 @@ export async function executeAnalysis(
     // bkz. docs/11-risks-assumptions.md Risk 3 — scrape başarı/maliyet/latency
     // ölçümü; yalnızca gözlem, akış davranışını değiştirmez.
     const scrapeStartedAt = Date.now();
-    let scraped: ScrapedReview[];
+    let scraped: ScrapedSourceReview[];
     try {
-      scraped = await fetchReviewsForPlaces(placeIds, REVIEWS_FETCH_MAX_PER_PLACE, {
-        timeoutMs: options?.apifyTimeoutMs ?? DEFAULT_APIFY_TIMEOUT_MS,
+      scraped = await fetchReviewsFromAllSources(refsBySource, REVIEWS_FETCH_MAX_PER_SOURCE_REF, {
+        timeoutMs: apifyTimeoutMs,
       });
     } catch (apifyError) {
       console.error("Yorum çekme başarısız:", apifyError);
@@ -770,19 +848,24 @@ export async function executeAnalysis(
       };
     }
 
+    const countsBySource = new Map<ReviewSource, number>();
+    for (const review of scraped) {
+      countsBySource.set(review.source, (countsBySource.get(review.source) ?? 0) + 1);
+    }
+
     const scrape: ScrapeMetrics = {
       success: true,
       fetchedReviews: scraped.length,
       latencyMs: Date.now() - scrapeStartedAt,
-      costUsd: estimateScrapeCostUsd(scraped.length),
+      costUsd: estimateScrapeCostUsd(countsBySource),
     };
 
-    const rows = mapToReviewRows(scraped, ownerByPlaceId);
+    const rows = mapToReviewRows(scraped, ownerBySourceRef);
 
     if (rows.length > 0) {
       const { error: upsertError } = await supabase
         .from("reviews")
-        .upsert(rows, { onConflict: "place_id,review_id" });
+        .upsert(rows, { onConflict: "source,source_ref,review_id" });
 
       if (upsertError) {
         console.error("Yorumlar kaydedilemedi:", upsertError);

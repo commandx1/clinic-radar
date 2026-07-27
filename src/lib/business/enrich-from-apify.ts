@@ -31,6 +31,7 @@ export async function enrichBusinessFromApify<
       geo_cell: encodeGeohash(details.lat, details.lng),
       rating: details.rating,
       review_count: details.review_count,
+      website: details.website,
       category: details.category,
       normalized_category: normalizeCategory(details.category),
     };

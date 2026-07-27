@@ -123,6 +123,10 @@
         "yoga_studio": "Yoga studio"
       },
       "currentTool": "What do you currently use for competitor/reputation tracking?",
+      "trustpilotDomain": "Trustpilot domain",
+      "trustpilotDomainPlaceholder": "e.g. natural.clinic",
+      "trustpilotDomainHint": "Leave empty if there's no Trustpilot profile; auto-search won't run again.",
+      "trustpilotDomainProOnly": "Manually correcting the Trustpilot domain is a Pro feature.",
       "submit": "Link",
       "submitting": "Saving…",
       "genericError": "Something went wrong.",
@@ -139,7 +143,9 @@
     },
     "errors": {
       "already_linked": "This business is already linked to an account.",
-      "business_already_exists": "You already have a business linked. Each account supports one business."
+      "business_already_exists": "You already have a business linked. Each account supports one business.",
+      "invalid_trustpilot_domain": "The Trustpilot domain or profile URL is invalid.",
+      "pro_required": "This feature is Pro-only."
     },
     "enrichmentFailed": {
       "title": "We couldn't fetch your business data",
@@ -248,7 +254,13 @@
       "empty": "No reviews yet.",
       "repliedBadge": "Replied",
       "notRepliedBadge": "Not replied",
-      "viewOnGoogle": "View on Google",
+      "viewOnSource": "View on {source}",
+      "viewSource": "View review",
+      "sources": {
+        "google": "Google",
+        "trustpilot": "Trustpilot",
+        "facebook": "Facebook"
+      },
       "filters": {
         "ratingLabel": "Rating",
         "all": "All",

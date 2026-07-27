@@ -16,6 +16,7 @@ export interface EditableBusiness {
   name: string;
   google_place_id: string | null;
   category: string | null;
+  trustpilot_domain: string | null;
 }
 
 async function updateBusiness(id: string, input: UpdateBusinessInput): Promise<void> {
@@ -52,7 +53,7 @@ function toInitialSelectedPlace(business: EditableBusiness): SelectedPlace | nul
 // google_place_id değiştiğinde route re-enrichment tetikler (lat/lng/rating),
 // bu yüzden başarıda router.refresh() ile SSR yeniden çalışır: enrichment artık
 // başarılıysa layout "enrichmentFailed" ekranından ilerler.
-export function useBusinessEditForm(business: EditableBusiness, onDone?: () => void) {
+export function useBusinessEditForm(business: EditableBusiness, isPro: boolean, onDone?: () => void) {
   const t = useTranslations("business.edit");
   const tForm = useTranslations("business.form");
   const tErrors = useTranslations("business.errors");
@@ -64,6 +65,7 @@ export function useBusinessEditForm(business: EditableBusiness, onDone?: () => v
   );
   const [placeError, setPlaceError] = useState(false);
   const [category, setCategory] = useState(business.category ?? "");
+  const [trustpilotDomain, setTrustpilotDomain] = useState(business.trustpilot_domain ?? "");
 
   const mutation = useMutation({
     mutationFn: (input: UpdateBusinessInput) => updateBusiness(business.id, input),
@@ -99,6 +101,17 @@ export function useBusinessEditForm(business: EditableBusiness, onDone?: () => v
       name,
       google_place_id: selectedPlace.google_place_id,
       category: category || undefined,
+      // Sadece Pro kullanıcı ve SADECE değer gerçekten değiştiyse gönderilir.
+      // Değişmediğinde göndermek zararsız değil: route boş string'i "Trustpilot
+      // profilim yok" olarak yorumlayıp `trustpilot_checked_at`'i doldurur. O
+      // zaman Trustpilot alanına hiç dokunmadan sadece adını değiştiren bir
+      // kullanıcı, henüz hiç aranmamış (checked_at = null) işletmesi için
+      // otomatik aramayı kalıcı olarak kapatmış olurdu (bkz.
+      // resolve-trustpilot-refs.ts cache kuralı).
+      ...(isPro &&
+        trustpilotDomain !== (business.trustpilot_domain ?? "") && {
+          trustpilot_domain_override: trustpilotDomain,
+        }),
     });
   }
 
@@ -117,6 +130,8 @@ export function useBusinessEditForm(business: EditableBusiness, onDone?: () => v
     handlePlaceSelect,
     category,
     setCategory,
+    trustpilotDomain,
+    setTrustpilotDomain,
     errorMessage,
     isPending: mutation.isPending,
     handleSubmit,

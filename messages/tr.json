@@ -123,6 +123,10 @@
         "yoga_studio": "Yoga stüdyosu"
       },
       "currentTool": "Şu an rakip/itibar takibi için ne kullanıyorsunuz?",
+      "trustpilotDomain": "Trustpilot domain'i",
+      "trustpilotDomainPlaceholder": "örn. natural.clinic",
+      "trustpilotDomainHint": "Boş bırakırsan Trustpilot profili olmadığı varsayılır; sistem otomatik arama yapmaz.",
+      "trustpilotDomainProOnly": "Trustpilot domain'ini elle düzeltmek Pro planına özeldir.",
       "submit": "Bağla",
       "submitting": "Kaydediliyor…",
       "genericError": "Bir şeyler ters gitti.",
@@ -139,7 +143,9 @@
     },
     "errors": {
       "already_linked": "Bu işletme zaten bağlı bir hesapta kayıtlı.",
-      "business_already_exists": "Zaten bağlı bir işletmen var. Her hesap tek bir işletmeyi destekler."
+      "business_already_exists": "Zaten bağlı bir işletmen var. Her hesap tek bir işletmeyi destekler.",
+      "invalid_trustpilot_domain": "Trustpilot domain'i ya da profil URL'i geçersiz.",
+      "pro_required": "Bu özellik Pro planına özeldir."
     },
     "enrichmentFailed": {
       "title": "İşletme verini çekemedik",
@@ -248,7 +254,13 @@
       "empty": "Henüz yorum yok.",
       "repliedBadge": "Yanıtlandı",
       "notRepliedBadge": "Yanıtlanmadı",
-      "viewOnGoogle": "Google'da görüntüle",
+      "viewOnSource": "{source} sayfasında görüntüle",
+      "viewSource": "Yorumu görüntüle",
+      "sources": {
+        "google": "Google",
+        "trustpilot": "Trustpilot",
+        "facebook": "Facebook"
+      },
       "filters": {
         "ratingLabel": "Puan",
         "all": "Tümü",

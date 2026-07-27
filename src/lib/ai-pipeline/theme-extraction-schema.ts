@@ -36,13 +36,19 @@ export interface ReviewInput {
   published_at: string | null;
 }
 
+// ÖNEMLİ: "theme" alanının çıktı dilinde üretilmesi zorunlu tutuluyor çünkü
+// aggregate-competitor-themes.ts, temaları normalizeTheme() (sadece
+// trim+lowercase, fuzzy eşleştirme YOK) ile birleştiriyor. Model tema
+// etiketini girdi yorumun diline göre üretirse (ör. "hygiene" vs "hijyen"),
+// aynı tema iki ayrı anahtar olarak sayılır ve rakip mention_count'ları
+// yanlışlıkla bölünür. Bu cümleyi sadeleştirmeden önce bunu bil.
 export function buildStage1SystemPrompt(outputLanguage: string): string {
   return (
-    "Sen bir müşteri deneyimi analistisin. Sana bir işletmenin Google Maps " +
-    "yorumları verilecek. Görevin, yorumlardaki tekrar eden temaları, bu " +
-    "temalara dair duygu tonunu ve aciliyetini çıkarmak. Yorumlardan asla " +
-    "birebir alıntı yapma, her zaman kendi cümlelerinle özetle. Her tema " +
-    "belirli bir tedavi/hizmet türüyle (ör. implant, ortodonti, botoks, dolgu — " +
+    "Sen bir müşteri deneyimi analistisin. Sana bir işletmenin yorumları " +
+    "verilecek. Görevin, yorumlardaki tekrar eden temaları, bu temalara dair " +
+    "duygu tonunu ve aciliyetini çıkarmak. Yorumlardan asla birebir alıntı " +
+    "yapma, her zaman kendi cümlelerinle özetle. Her tema belirli bir " +
+    "tedavi/hizmet türüyle (ör. implant, ortodonti, botoks, dolgu — " +
     "işletmenin kategorisine göre değişir, kapalı bir liste yok) ilgiliyse bunu " +
     "\"treatment\" alanında belirt; tema genel bir konuyla ilgiliyse (ör. bekleme " +
     "süresi, resepsiyon nezaketi, fiyat şeffaflığı) \"treatment\" alanını null " +
@@ -54,8 +60,9 @@ export function buildStage1SystemPrompt(outputLanguage: string): string {
     "yüksek fiyat, resepsiyon nezaketsizliği vb.) için \"normal\" kullan — " +
     "\"critical\"ı sadece gerçekten ciddi durumlar için kullan, aksi halde " +
     "gürültü yaratırsın. " +
-    `"summary" alanlarını "${outputLanguage}" dilinde yaz. Sadece belirtilen ` +
-    "JSON şemasında yanıt ver."
+    `"theme" ve "summary" alanlarını, girdi yorumların dili ne olursa olsun ` +
+    `(yorumlar çok dilli olabilir) her zaman "${outputLanguage}" dilinde yaz. ` +
+    "Sadece belirtilen JSON şemasında yanıt ver."
   );
 }
 

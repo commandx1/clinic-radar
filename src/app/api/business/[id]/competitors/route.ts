@@ -60,6 +60,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         name: c.name,
         rating: c.rating,
         review_count: c.review_count,
+        website: c.website ?? null,
       })),
     )
     .select();

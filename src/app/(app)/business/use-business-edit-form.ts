@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import type { UpdateBusinessInput } from "@/lib/validations/business";
 
+import { BUSINESS_SAVE_STEP_KEYS, triggerBusinessEnrichment, type BusinessSaveStepKey } from "./business-save-steps";
 import { isKnownCategory } from "./category-select";
 import type { SelectedPlace } from "./place-search-combobox";
 
@@ -66,9 +67,21 @@ export function useBusinessEditForm(business: EditableBusiness, isPro: boolean, 
   const [placeError, setPlaceError] = useState(false);
   const [category, setCategory] = useState(business.category ?? "");
   const [trustpilotDomain, setTrustpilotDomain] = useState(business.trustpilot_domain ?? "");
+  const [step, setStep] = useState<BusinessSaveStepKey>(BUSINESS_SAVE_STEP_KEYS[0]);
 
+  // use-business-form.ts (create) ile aynı desen: PATCH hızlı döner, place
+  // değiştiyse zenginleştirme ayrı bir istekte (best-effort) tetiklenir —
+  // bkz. business-save-steps.ts. Place değişmediyse "enriching" adımına hiç
+  // geçilmez, çünkü zenginleştirilecek yeni bir konum/rating yok.
   const mutation = useMutation({
-    mutationFn: (input: UpdateBusinessInput) => updateBusiness(business.id, input),
+    mutationFn: async (input: UpdateBusinessInput) => {
+      setStep("saving");
+      await updateBusiness(business.id, input);
+      if (input.google_place_id !== undefined && input.google_place_id !== business.google_place_id) {
+        setStep("enriching");
+        await triggerBusinessEnrichment(business.id);
+      }
+    },
     onSuccess: () => {
       toast.success(t("success"));
       onDone?.();
@@ -97,6 +110,7 @@ export function useBusinessEditForm(business: EditableBusiness, isPro: boolean, 
       setPlaceError(true);
       return;
     }
+    setStep(BUSINESS_SAVE_STEP_KEYS[0]);
     mutation.mutate({
       name,
       google_place_id: selectedPlace.google_place_id,
@@ -134,6 +148,9 @@ export function useBusinessEditForm(business: EditableBusiness, isPro: boolean, 
     setTrustpilotDomain,
     errorMessage,
     isPending: mutation.isPending,
+    stepKey: step,
+    stepIndex: BUSINESS_SAVE_STEP_KEYS.indexOf(step),
+    stepCount: BUSINESS_SAVE_STEP_KEYS.length,
     handleSubmit,
   };
 }

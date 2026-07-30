@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { enrichBusinessFromApify } from "@/lib/business/enrich-from-apify";
 import { normalizeTrustpilotDomainInput } from "@/lib/reviews/sources/trustpilot-domain";
 import { createClient } from "@/lib/supabase/server";
 import { updateBusinessSchema } from "@/lib/validations/business";
 
 // İşletme düzenleme. Kullanıcının yanlış Google Place bağladığı ya da adı/
 // mevcut aracı değiştirmek istediği durumlar için — bkz. docs/04-api.md.
-// google_place_id değişirse lat/lng/rating yeniden Apify'dan zenginleştirilir.
+// google_place_id değişirse lat/lng/rating yeniden zenginleştirilmesi gerekir,
+// ama bu artık burada beklenmiyor (Apify çağrısı 100 saniyeye kadar sürebiliyor)
+// — client, place değiştiğini fark edip PATCH başarılı döndükten sonra ayrı
+// olarak POST /api/business/:id/enrich'i tetikler (bkz. business-save-steps.ts).
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -43,7 +45,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const { name, google_place_id, category, current_tool, trustpilot_domain_override } = parsed.data;
-  const placeChanged = google_place_id !== undefined && google_place_id !== existing.google_place_id;
 
   // Trustpilot domain'inin elle düzeltilmesi Pro'ya özel (bkz. docs/02-business-rules.md
   // hibrit eşleme kararı). Doğrudan API isteğiyle bile Free/Pro-olmayan kullanıcı
@@ -99,8 +100,5 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "update_failed" }, { status: 500 });
   }
 
-  // Place değiştiyse konum/rating alanları eski işletmeye ait; yeniden çek.
-  const business = placeChanged ? await enrichBusinessFromApify(supabase, updated) : updated;
-
-  return NextResponse.json({ business });
+  return NextResponse.json({ business: updated });
 }

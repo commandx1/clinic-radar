@@ -129,6 +129,10 @@
       "trustpilotDomainProOnly": "Trustpilot domain'ini elle düzeltmek Pro planına özeldir.",
       "submit": "Bağla",
       "submitting": "Kaydediliyor…",
+      "steps": {
+        "saving": "İşletme kaydediliyor…",
+        "enriching": "Google Maps'ten işletme bilgileri alınıyor…"
+      },
       "genericError": "Bir şeyler ters gitti.",
       "success": "İşletmen başarıyla bağlandı."
     },

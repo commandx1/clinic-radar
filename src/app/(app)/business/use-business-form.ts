@@ -8,10 +8,11 @@ import { toast } from "sonner";
 
 import type { CreateBusinessInput } from "@/lib/validations/business";
 
+import { BUSINESS_SAVE_STEP_KEYS, triggerBusinessEnrichment, type BusinessSaveStepKey } from "./business-save-steps";
 import { isKnownCategory } from "./category-select";
 import type { SelectedPlace } from "./place-search-combobox";
 
-async function createBusiness(input: CreateBusinessInput): Promise<void> {
+async function createBusiness(input: CreateBusinessInput): Promise<{ id: string }> {
   const res = await fetch("/api/business", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -22,6 +23,9 @@ async function createBusiness(input: CreateBusinessInput): Promise<void> {
     const body = (await res.json().catch(() => null)) as { error?: string } | null;
     throw new Error(body?.error ?? "insert_failed");
   }
+
+  const body = (await res.json()) as { business: { id: string } };
+  return { id: body.business.id };
 }
 
 export function useBusinessForm() {
@@ -36,9 +40,19 @@ export function useBusinessForm() {
   const [placeError, setPlaceError] = useState(false);
   const [category, setCategory] = useState("");
   const [currentTool, setCurrentTool] = useState("");
+  const [step, setStep] = useState<BusinessSaveStepKey>(BUSINESS_SAVE_STEP_KEYS[0]);
 
+  // İki gerçek network sınırı: önce işletme kaydedilir (hızlı), ardından
+  // Apify zenginleştirmesi ayrı bir istekte tetiklenir (best-effort — bkz.
+  // business-save-steps.ts). Zenginleştirme başarısız olsa da mutation
+  // başarılı sayılır, çünkü işletme zaten kayıtlıdır.
   const mutation = useMutation({
-    mutationFn: createBusiness,
+    mutationFn: async (input: CreateBusinessInput) => {
+      setStep("saving");
+      const { id } = await createBusiness(input);
+      setStep("enriching");
+      await triggerBusinessEnrichment(id);
+    },
     onSuccess: () => {
       toast.success(t("success"));
       router.refresh();
@@ -65,6 +79,7 @@ export function useBusinessForm() {
       setPlaceError(true);
       return;
     }
+    setStep(BUSINESS_SAVE_STEP_KEYS[0]);
     mutation.mutate({
       name,
       google_place_id: selectedPlace.google_place_id,
@@ -94,6 +109,9 @@ export function useBusinessForm() {
     setCurrentTool,
     errorMessage,
     isPending: mutation.isPending,
+    stepKey: step,
+    stepIndex: BUSINESS_SAVE_STEP_KEYS.indexOf(step),
+    stepCount: BUSINESS_SAVE_STEP_KEYS.length,
     handleSubmit,
   };
 }

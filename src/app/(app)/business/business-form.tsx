@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 
 import { CategorySelect } from "./category-select";
 import { PlaceSearchCombobox } from "./place-search-combobox";
+import { StepProgress } from "./step-progress";
 import { useBusinessForm } from "./use-business-form";
 
 export function BusinessForm() {
@@ -24,6 +25,9 @@ export function BusinessForm() {
     setCurrentTool,
     errorMessage,
     isPending,
+    stepKey,
+    stepIndex,
+    stepCount,
     handleSubmit,
   } = useBusinessForm();
 
@@ -68,6 +72,8 @@ export function BusinessForm() {
       </div>
 
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+
+      {isPending && <StepProgress label={t(`steps.${stepKey}`)} stepIndex={stepIndex} stepCount={stepCount} />}
 
       <Button type="submit" disabled={isPending}>
         {isPending && <Loader2Icon className="animate-spin" />}

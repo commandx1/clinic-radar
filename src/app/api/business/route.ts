@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { enrichBusinessFromApify } from "@/lib/business/enrich-from-apify";
 import { createClient } from "@/lib/supabase/server";
 import { createBusinessSchema } from "@/lib/validations/business";
 
@@ -57,7 +56,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "insert_failed" }, { status: 500 });
   }
 
-  const enrichedBusiness = await enrichBusinessFromApify(supabase, data);
-
-  return NextResponse.json({ business: enrichedBusiness }, { status: 201 });
+  // Apify zenginleştirmesi (lat/lng/rating) artık burada beklenmiyor — bu
+  // isteğin yanıtı 30-90 saniye sürebilen bir Apify çağrısına bloklanmasın
+  // diye ayrı bir isteğe (POST /api/business/:id/enrich) taşındı, client bu
+  // isteği insert başarılı döndükten hemen sonra tetikler.
+  return NextResponse.json({ business: data }, { status: 201 });
 }

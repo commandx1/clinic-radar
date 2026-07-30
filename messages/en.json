@@ -129,6 +129,10 @@
       "trustpilotDomainProOnly": "Manually correcting the Trustpilot domain is a Pro feature.",
       "submit": "Link",
       "submitting": "Saving…",
+      "steps": {
+        "saving": "Saving business…",
+        "enriching": "Fetching business details from Google Maps…"
+      },
       "genericError": "Something went wrong.",
       "success": "Your business was linked successfully."
     },

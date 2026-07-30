@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 
 import { CategorySelect } from "./category-select";
 import { PlaceSearchCombobox } from "./place-search-combobox";
+import { StepProgress } from "./step-progress";
 import { useBusinessEditForm, type EditableBusiness } from "./use-business-edit-form";
 
 export function BusinessEditForm({
@@ -35,6 +36,9 @@ export function BusinessEditForm({
     setTrustpilotDomain,
     errorMessage,
     isPending,
+    stepKey,
+    stepIndex,
+    stepCount,
     handleSubmit,
   } = useBusinessEditForm(business, isPro, onDone);
 
@@ -83,6 +87,8 @@ export function BusinessEditForm({
       </div>
 
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
+
+      {isPending && <StepProgress label={tForm(`steps.${stepKey}`)} stepIndex={stepIndex} stepCount={stepCount} />}
 
       <div className="flex items-center gap-2">
         <Button type="submit" disabled={isPending}>

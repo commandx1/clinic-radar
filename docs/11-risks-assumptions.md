@@ -55,7 +55,7 @@ Not: mevcut 14-gün re-priority ve 2x negatif patlama reopen kuralları (`09-tas
 
 "Biz de task veriyoruz" savunması kaybettirir. Gerçekçi savunma katmanları:
 
-1. **Segment boşluğu (ilk 12 ayın asıl savunması):** Birdeye/Podium 300$+/ay ile çok şubeli işletmelere satış ekibiyle satar; tek şubeli klinik onlar için CAC'i çıkmayan müşteridir. Biz self-serve + 49-79$ ile onların *satmak istemediği* segmentteyiz. Özellik kopyalamak kolaydır; fiyat/segment/satış modeli kopyalamak zordur.
+1. **Segment boşluğu (ilk 12 ayın asıl savunması):** Birdeye/Podium 300$+/ay ile çok şubeli işletmelere satış ekibiyle satar; tek şubeli klinik onlar için CAC'i çıkmayan müşteridir. Biz self-serve + 29$ (bkz. Bölüm C kararı) ile onların *satmak istemediği* segmentteyiz. Özellik kopyalamak kolaydır; fiyat/segment/satış modeli kopyalamak zordur.
 2. **Bakış yönü:** onlar "kendi itibarını yönet" (inbound) araçları; biz "rakibi izle" (istihbarat). Konumlandırmada bu ayrım hep önde tutulur (`01-product-vision.md` ile tutarlı).
 3. **Vertical derinlik:** tedavi/doktor kırılımı (implant, veneer, aligner… — Faz 2) sadece özellik değil, **rekabet savunması** olarak çerçevelenir. Yatay oyuncular bu derinliğe inmez.
 4. **Dataset moat (uzun vade):** klinik-yorum korpusu zamanla moat olur ama 12 aylık ufukta savunma sayılmaz; plana etki etmez.
@@ -64,10 +64,14 @@ Not: mevcut 14-gün re-priority ve 2x negatif patlama reopen kuralları (`09-tas
 
 ## C. Fiyat hipotezi
 
-- **Bant: 49-79$/ay.** 19$'a inilmez — iki nedenle: (1) ürün gelir artırıcıdır, maliyet aracı değil; (2) LemonSqueezy MoR kesintisi (%5 + 50¢) düşük fiyatta marjı eritir.
+- **KARAR (2026-08-23): Pro = 29$/ay.** Bu bir hipotez değil, verilmiş bir karardır — kod (`src/lib/marketing/pricing-plans.ts` `PRO_PLAN_PRICE_USD = 29`) esastır, bu doküman onu takip eder. Önceki 49-79$ bandı **hipotezdi ve terk edildi**; aşağıdaki gerekçeyle çakışan eski bir metin görürsen bu maddeyi doğru kabul et.
+  - **Marj gerekçesi (ölçüldü, tahmin değil):** 2026-08-23 pilotunda her analiz döngüsü 720 yorum çekti (kullanıcı + 3 rakip). Apify'ın tipik yorum-başı fiyatıyla bu ~0,4-0,7$/döngü; Pro'nun haftalık kadansında ~2-3$/ay. AI tarafı Claude ile ~0,20$/döngü (~0,9$/ay), Gemini ile belirgin daha ucuz. LemonSqueezy MoR kesintisinden (%5 + 50¢) sonra 29$ → net ~27$ ⇒ **brüt marj ~%85.** Dolayısıyla eski "19$ altına inilmez, MoR marjı eritir" gerekçesi 29$ için geçerli değil. **Uyarı:** 10 rakipli, yüksek yorum hacimli bir klinikte scrape maliyeti 3-4 katına çıkabilir — bu yüzden `APIFY_PRICE_PER_REVIEW_USD` prod'da MUTLAKA set edilmeli (bkz. `launch-checklist.md`), aksi halde `analysis_runs.scrape_cost_usd` null kalır ve kullanıcı başı maliyet kör noktada olur.
+  - **Konumlandırma gerekçesi:** araştırmanın (bkz. `docs/research/value-sprint-2026-08-23.md`) en net bulgusu, kliniklerin fiyattan değil **faturalama güvensizliği** ve **aksiyona dönüşmeyen dashboard**'dan kaçtığıdır. Birdeye/Weave 250-400$/lokasyon isterken 29$ ile 49$ arasındaki fark, bir implant hastasının değeri (2.000$+) yanında gürültüdür. 29$'ın gerçek faydası "ucuzluk" değil, sıfır sosyal kanıtla lansmanda **düşünmeden denenebilirlik**tir.
+  - **Korunacak üç şey (kararın parçası):** (1) **Tavan kaybedilmez** — 79$ ileride çoklu-lokasyon/ajans katmanı olarak saklanır; giriş fiyatını düşürmek upsell tavanını düşürmek anlamına gelmez. (2) **Erken kullanıcılar grandfather'lanır** — fiyat artarsa ilk müşteriler 29$'da kalır; bu, #1 churn nedenine (fiyat sürprizi/güvensizlik) doğrudan panzehirdir. (3) **Şartlar korunur** — sözleşme yok, varsayılan aydan aya, fiyat sayfada açık (satış görüşmesi arkasına saklanmaz).
+  - **İzlenecek karşı-sinyal:** 29$ ürünü "ciddi klinik yazılımı" yerine "ucuz eklenti" gibi konumlandırabilir. Bunu fiyat değil, ilk oturumda gösterilen şey belirler (ör. "rakip medyanı 5.0 / sen 3.38" açılışı). Churn görüşmelerinde "ucuz olduğu için güvenmedim" frekansı izlenir; çıkarsa fiyat değil **kanıt sunumu** güçlendirilir.
 - **Çapalar:** ajans raporu 500-1500$/ay; Birdeye 300$+/ay; "kendim bakarım" = 0$ ama pratikte hiç bakılmıyor.
 - **Satış cümlesi (pricing sayfasının özü):** bir implant hastasının değeri 2.000$+ → **"yılda tek bir ek hasta, bir yıllık aboneliği 3-5 kat öder."** "Birdeye'dan ucuz" diye değil, hasta değeri üzerinden satılır.
-- **Doğrulama:** fiyat sayfası + ön-satış görüşmeleri; iki tier ile başla, yıllık indirim test et. Fiyat MVP'den önce "doğru" bilinemez, sadece çapalanır.
+- **Doğrulama:** fiyat sayfası + ön-satış görüşmeleri; yıllık indirim test edilir (varsayılan aylık kalır). Fiyatın kendisi karara bağlandı (yukarı), açık kalan soru fiyat değil **kaç tier** olacağıdır — ikinci tier (79$, çoklu-lokasyon/ajans) ilk gerçek talep gelince eklenir, önceden kurulmaz.
 
 ## D. En zayıf varsayım ve test planı
 

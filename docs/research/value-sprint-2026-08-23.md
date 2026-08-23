@@ -9,7 +9,7 @@
 - **Segment boşluğu doğrulandı.** Birdeye/Podium/Weave/Solutionreach $250–800+/lokasyon, yıllık sözleşme + demo-gated fiyat; tek şubeli klinik onların hedefi değil. Ucuz araçlar ($9–39) sadece "yorum topla". Arada — rakip-kıyaslı yorum zekası + görev — **hiçbir klinik-özel oyuncu yok**.
 - **Churn'ün #1 nedeni faturalama güvensizliği** (otomatik yenileme, gizli zam, 60–90 gün iptal bildirimi). #2: okunmayan dashboard / aksiyona dönüşmeyen analitik. #3: lokasyon bazlı fiyatın küçük grupları cezalandırması.
 - **Ödemeyi tetikleyen somut özellikler:** AI yorum-yanıt taslağı (zaman kazancı), GBP/profil checklist'i, rakip puan/yorum uyarıları, ROI/gelir dili ("4.0 yıldız altı → hastaların %57'si elemeden geçirmiyor"; +1 yıldız ≈ %5–9 gelir), aynı oturumda "aha".
-- **Fiyat:** $49–79 hipotezi savunulabilir; araştırma **giriş $49, $79 upsell**, aydan aya varsayılan, şeffaf fiyat sayfası öneriyor. Canlı kod şu an **$29** (`pricing-plans.ts`) — doküman ($49–79) ile çelişiyor; LemonSqueezy variant fiyatıyla birlikte ele alınmalı (karar: kurucu).
+- **Fiyat:** araştırma giriş $49 / $79 upsell öneriyordu. **Kurucu kararı (2026-08-23): $29'da kalındı** — ölçülen marj (~%85, bkz. `11-risks-assumptions.md` Bölüm C) buna izin veriyor ve lansmanda sıfır sosyal kanıtla "düşünmeden denenebilirlik" fiyat farkından değerli bulundu. $79 ileride çoklu-lokasyon/ajans katmanı olarak saklanıyor; erken kullanıcılar grandfather'lanacak.
 
 ### Kod denetimi
 - typecheck/lint/test temiz (104 test). Pipeline disiplinli (retry-then-pending, best-effort enrichment).
@@ -37,7 +37,7 @@ Değişmeyen ilkeler: ham yorum metni UI'da gösterilmez; eşikler kodda, prompt
 | 3H | Pro erişim helper'ı (`hasProAccess`: plan + status + period_end) — önceden var olan açık | ✅ `c65f692` |
 | 3I | Docs drift (05/launch-checklist provider), scrape alarm wiring | ✅ `914efbd` |
 
-Kod dışı kararlar (kurucuya): fiyat ($29 → $49?) + LemonSqueezy variant; Vercel plan (300 sn tavanı); concierge testi.
+Kod dışı kararlar: ~~fiyat~~ **karara bağlandı: $29 (bkz. yukarıdaki Fiyat maddesi)**; açık kalanlar → Anthropic kredisi / `AI_PROVIDER` seçimi, Vercel plan (300 sn tavanı), concierge testi.
 
 ## 4. Gerçek veriyle uçtan uca doğrulama (2026-08-23)
 

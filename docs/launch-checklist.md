@@ -16,13 +16,14 @@
 |---|---|
 | Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` |
 | AI | `AI_PROVIDER` (`claude` \| `gemini`), sağlayıcıya göre `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` |
-| Scraping | `APIFY_TOKEN`, opsiyonel `APIFY_PRICE_PER_REVIEW_USD`, `APIFY_PRICE_PER_TRUSTPILOT_REVIEW_USD`, `CRON_APIFY_TIMEOUT_MS` |
+| Scraping | `APIFY_TOKEN`, **`APIFY_PRICE_PER_REVIEW_USD` (zorunlu)**, `APIFY_PRICE_PER_TRUSTPILOT_REVIEW_USD` (Trustpilot/Pro kullanılacaksa zorunlu), opsiyonel `CRON_APIFY_TIMEOUT_MS` |
 | Google | `GOOGLE_MAPS_API_KEY` (Places API kısıtlı key — sadece gerekli API'ler ve HTTP referrer/IP kısıtı) |
 | Billing | `LEMONSQUEEZY_API_KEY`, `LEMONSQUEEZY_STORE_ID`, `LEMONSQUEEZY_PRO_VARIANT_ID`, `LEMONSQUEEZY_WEBHOOK_SECRET` (**live** değerler — test mode değil) |
 | E-posta | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` |
 | Cron | `CRON_SECRET` (güçlü rastgele değer), opsiyonel `CRON_SELF_BASE_URL` (yoksa `VERCEL_PROJECT_PRODUCTION_URL` kullanılır) |
 
 - [ ] Hepsi Production scope'unda set edildi; service role key ve secret'lar `NEXT_PUBLIC_` prefix'i **taşımıyor**.
+- [ ] `APIFY_PRICE_PER_REVIEW_USD` gerçek actor fiyatıyla dolu ve ilk prod analizinden sonra `analysis_runs.scrape_cost_usd` **null değil** (spot-check). Boş kalırsa kullanıcı başı scrape maliyeti hiç ölçülmez; 29$/ay fiyatta marj izlemesi buna bağlıdır (bkz. `11-risks-assumptions.md` Bölüm C ve Risk 3).
 - [ ] Provider seçimine göre doğru AI key'i mevcut — `assertProviderConfigured` cron'da fail-fast eder.
 
 ## 3. Vercel Deploy

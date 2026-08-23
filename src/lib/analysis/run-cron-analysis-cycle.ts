@@ -67,6 +67,16 @@ export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promis
   // daha önce en az bir kez analiz edilmiş (last_scraped_at NOT NULL — ilk
   // analiz bilinçli olarak manuel bırakıldı, cron ilk analizi tetiklemez) VE
   // Pro cooldown süresi dolmuş işletmeler, en eskiden yeniye sıralı.
+  //
+  // BİLİNÇLİ ASİMETRİ: manuel akışın aksine (bkz. run-manual-analysis.ts
+  // isCooldownBlocking / isRetryAllowedAfterFailure) burada son analysis_runs
+  // satırının failed/stale olup olmadığına bakılmaz — last_scraped_at dolup
+  // cooldown'ı geçen HER Pro işletme, önceki koşusu başarısız olsa bile aynı
+  // günlük tikte işleme alınır. Bunu değiştirmek (başarısız işletmeleri hemen
+  // yeniden denemek) sürekli başarısız olan bir işletmede her cron tikinde
+  // tekrar ücretli Apify çekimi riski doğurur; cron zaten kendi günlük
+  // ritmiyle çalıştığı için başarısız işletme bir sonraki uygun günde normal
+  // şekilde tekrar denenir.
   const cooldownCutoffIso = new Date(
     Date.now() - PRO_PLAN_ANALYSIS_COOLDOWN_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();

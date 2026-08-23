@@ -6,7 +6,7 @@ import { executeAnalysis } from "@/lib/analysis/execute-analysis";
 import { toScrapeMetricColumns } from "@/lib/analysis/scrape-metrics";
 import { hasProAccess, resolvePlanAccess } from "@/lib/billing/plan-access";
 import { MIN_COMPETITORS } from "@/lib/constants";
-import { getNextAnalysisAvailableAt } from "@/lib/task-engine/analysis-cooldown";
+import { getNextAnalysisAvailableAt, isRetryAllowedAfterFailure } from "@/lib/task-engine/analysis-cooldown";
 import type { Database } from "@/types/database.types";
 
 type ManualSupabaseClient = SupabaseClient<Database>;
@@ -14,6 +14,23 @@ type ManualSupabaseClient = SupabaseClient<Database>;
 interface ManualAnalysisResult {
   status: number;
   body: Record<string, unknown>;
+}
+
+// bkz. docs/02-business-rules.md Bölüm A — cooldown yalnızca GERÇEKTEN
+// tamamlanmış (succeeded/partial) bir analizden sonra uygulanır. Son koşu
+// failed ya da terk edilmiş (stale) 'running' ise last_scraped_at dolu olsa
+// bile kullanıcı hemen tekrar deneyebilir (bkz. isRetryAllowedAfterFailure).
+// Fonksiyonu ~100 satır sınırı (CLAUDE.md) içinde tutmak için ayrıldı.
+async function isCooldownBlocking(supabase: ManualSupabaseClient, businessId: string): Promise<boolean> {
+  const { data: latestRun } = await supabase
+    .from("analysis_runs")
+    .select("status, started_at")
+    .eq("business_id", businessId)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return !isRetryAllowedAfterFailure(latestRun);
 }
 
 // bkz. docs/04-api.md — kullanıcı tetikli manuel analiz akışı. Route sadece
@@ -58,10 +75,12 @@ export async function runManualAnalysisForBusiness(
     );
 
     if (nextAvailableAt && nextAvailableAt.getTime() > Date.now()) {
-      return {
-        status: 422,
-        body: { error: "analysis_cooldown_active", nextAvailableAt: nextAvailableAt.toISOString() },
-      };
+      if (await isCooldownBlocking(supabase, business.id)) {
+        return {
+          status: 422,
+          body: { error: "analysis_cooldown_active", nextAvailableAt: nextAvailableAt.toISOString() },
+        };
+      }
     }
   }
 

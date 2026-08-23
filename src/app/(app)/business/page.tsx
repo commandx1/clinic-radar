@@ -6,7 +6,11 @@ import { Separator } from "@/components/ui/separator";
 import { extractRecentRatingTrendPoint, type RecentRatingsSnapshot } from "@/lib/analysis/recent-ratings";
 import { hasProAccess, resolvePlanAccess } from "@/lib/billing/plan-access";
 import { createClient } from "@/lib/supabase/server";
-import { getNextAnalysisAvailableAt, isAnalysisCooldownActive } from "@/lib/task-engine/analysis-cooldown";
+import {
+  getNextAnalysisAvailableAt,
+  isAnalysisCooldownActive,
+  isRetryAllowedAfterFailure,
+} from "@/lib/task-engine/analysis-cooldown";
 import { calculatePotentialRatingGain } from "@/lib/task-engine/potential-rating-gain";
 import type { Json } from "@/types/database.types";
 
@@ -96,6 +100,33 @@ async function loadExecutiveMetrics(supabase: SupabaseClient, businessId: string
   };
 }
 
+// bkz. src/lib/task-engine/analysis-cooldown.ts — "Analizi çalıştır" butonunun
+// açık mı kilitli mi olacağını tek yerde çözer. Cooldown YALNIZCA gerçekten
+// tamamlanmış (succeeded/partial) bir analizden sonra uygulanır; 300 sn Vercel
+// tavanında timeout olup 'running' kalan ya da 'failed' biten bir koşudan sonra
+// kullanıcı hemen tekrar deneyebilmeli (POST /analysis/run zaten izin veriyor,
+// bu olmadan UI onu kilitli gösteriyordu).
+async function resolveAnalysisAvailability(
+  supabase: SupabaseClient,
+  businessId: string,
+  lastScrapedAt: string | null,
+  plan: "free" | "pro",
+): Promise<{ nextAnalysisAvailableAt: string | null; cooldownActive: boolean }> {
+  const nextAvailableAt = getNextAnalysisAvailableAt(lastScrapedAt, plan);
+  const { data: latestRun } = await supabase
+    .from("analysis_runs")
+    .select("status, started_at")
+    .eq("business_id", businessId)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    nextAnalysisAvailableAt: nextAvailableAt ? nextAvailableAt.toISOString() : null,
+    cooldownActive: isAnalysisCooldownActive(nextAvailableAt) && !isRetryAllowedAfterFailure(latestRun),
+  };
+}
+
 export default async function OverviewPage() {
   const supabase = await createClient();
   const {
@@ -124,28 +155,28 @@ export default async function OverviewPage() {
     ]);
 
   // business.id'ye bağlı üç yükleme de birbirinden bağımsız — paralel çalıştır.
-  const [metrics, satisfaction, openTasks] = await Promise.all([
+  const [metrics, satisfaction, openTasks, analysisAvailability] = await Promise.all([
     loadExecutiveMetrics(supabase, business!.id),
     loadSatisfactionOverview(supabase, business!.id),
     resolveOpenTasks(supabase, business!.id, locale),
+    resolveAnalysisAvailability(
+      supabase,
+      business!.id,
+      business!.last_scraped_at,
+      resolvePlanAccess(subscription),
+    ),
   ]);
-  const topTasks = openTasks.slice(0, 3);
+  const summaryJson = metrics.latestSnapshot?.executive_summary;
+  const executiveSummary = summaryJson ? pickLocale(summaryJson, locale) : null;
   const isPro = hasProAccess(subscription);
-  const nextAnalysisAvailableAt = getNextAnalysisAvailableAt(
-    business!.last_scraped_at,
-    resolvePlanAccess(subscription),
-  );
-  const executiveSummary = metrics.latestSnapshot?.executive_summary
-    ? pickLocale(metrics.latestSnapshot.executive_summary, locale)
-    : null;
 
   return (
     <div className="flex flex-col gap-6">
       <AnalysisRunTrigger
         business={business!}
         isPro={isPro}
-        nextAnalysisAvailableAt={nextAnalysisAvailableAt ? nextAnalysisAvailableAt.toISOString() : null}
-        cooldownActive={isAnalysisCooldownActive(nextAnalysisAvailableAt)}
+        nextAnalysisAvailableAt={analysisAvailability.nextAnalysisAvailableAt}
+        cooldownActive={analysisAvailability.cooldownActive}
       />
 
       {executiveSummary && (
@@ -191,10 +222,10 @@ export default async function OverviewPage() {
 
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t("topTasksTitle")}</h2>
-        {topTasks.length === 0 ? (
+        {openTasks.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("topTasksEmpty")}</p>
         ) : (
-          <TaskList tasks={topTasks} showTitle={false} />
+          <TaskList tasks={openTasks.slice(0, 3)} showTitle={false} />
         )}
       </div>
 

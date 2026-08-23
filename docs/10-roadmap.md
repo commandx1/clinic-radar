@@ -305,6 +305,25 @@ Detay: `02-business-rules.md` Bölüm I, `03-database.md`, `04-api.md`.
   `06-prompts.md` (Aşama 2 theme-verbatim kuralı), `05-ai-pipeline.md` (kanonikleştirme adımı + açık görev
   etiketlerinin sözlükte pin'lenmesi), `02-business-rules.md` Bölüm D (dedup notuna Faz 2.9 eklendi).
 
+## Faz 2.10 — Başarısız analiz sonrası tekrar deneme
+- [x] **Problem:** `execute-analysis.ts`, `businesses.last_scraped_at`'i scrape sonrası, AI aşamalarından ÖNCE
+  yazıyor. Vercel'in sert `maxDuration=300` sınırı fonksiyonu AI aşamalarında öldürebiliyor (ölçülen: own+3
+  rakip gerçek Claude koşusu ~246-270s, tavanın %82-90'ı; bir `withRetryOnce` retry'ı sınırı kolayca aşar).
+  Bu durumda `last_scraped_at` zaten yazılmış oluyor ama analiz hiç tamamlanmıyor — kullanıcı sonuç almadan
+  tüm cooldown penceresi (Free 30, Pro 7 gün) boyunca kilitleniyor, Apify maliyeti de boşa gidiyor.
+- [x] **Çözüm:** `src/lib/task-engine/analysis-cooldown.ts`'e `isRetryAllowedAfterFailure` eklendi — işletmenin
+  en son `analysis_runs` satırı `failed` ise ya da stale eşiğini (`ANALYSIS_RUN_STALE_MS`, tek tanım artık
+  `src/lib/constants.ts`'te, `acquire-analysis-run.ts` da buradan import ediyor) aşmış terk edilmiş bir
+  `running` satırıysa, `run-manual-analysis.ts` cooldown bloğunu atlar ve kullanıcı hemen tekrar deneyebilir.
+  Son koşu `succeeded`/`partial` ise normal cooldown aynen uygulanır. Cron döngüsü (`run-cron-analysis-cycle.ts`)
+  bilinçli olarak bu davranışı paylaşmaz — sürekli başarısız bir işletmede her günlük tikte tekrar ücretli
+  Apify çekimi riskini önlemek için, cron kendi günlük ritmiyle bir sonraki uygun günde normal şekilde dener.
+- [x] Docs senkronu: `02-business-rules.md` Bölüm A (cooldown yalnızca tamamlanmış analize uygulanır notu),
+  `04-api.md` (manuel run 422 davranışı + cron asimetri notu).
+- [x] Birim test: `analysis-cooldown.test.ts` — `isRetryAllowedAfterFailure` (failed/stale-running → true,
+  fresh-running/succeeded/partial/null → false), injected `now` ile.
+- [x] Şema/migration yok — davranış değişikliği, yeni kolon/tablo eklenmedi.
+
 ## Faz 3
 - AI arama görünürlüğü modülü (ChatGPT/Gemini/Perplexity'de klinik nasıl öneriliyor)
 - Tema taksonomisi ölçeklenirse embedding/clustering katmanı (`05-ai-pipeline.md`'deki gerekçeye bkz.)

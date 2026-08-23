@@ -18,6 +18,13 @@ export const DISCOVERY_FETCH_BUFFER = 20;
 export const FREE_PLAN_ANALYSIS_COOLDOWN_DAYS = 30;
 export const PRO_PLAN_ANALYSIS_COOLDOWN_DAYS = 7;
 
+// Bir 'running' koşunun bu süreden daha eski kalması, onu başlatan serverless
+// invocation'ının zaman aşımına uğradığı (Vercel maxDuration = 300s) anlamına
+// gelir — bkz. src/lib/analysis/acquire-analysis-run.ts (stale-run reaper) ve
+// src/lib/task-engine/analysis-cooldown.ts (isRetryAllowedAfterFailure). Tek
+// tanım burada tutulur, iki çağıran taraf da buradan import eder.
+export const ANALYSIS_RUN_STALE_MS = 15 * 60 * 1000;
+
 // Cache TTL — bkz. docs/02-business-rules.md Bölüm C
 export const CACHE_TTL_DENSE_DAYS = 7;
 export const CACHE_TTL_SPARSE_DAYS = 14;

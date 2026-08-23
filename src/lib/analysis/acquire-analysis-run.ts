@@ -1,5 +1,6 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
 
+import { ANALYSIS_RUN_STALE_MS } from "@/lib/constants";
 import type { Database } from "@/types/database.types";
 
 type RunSupabaseClient = SupabaseClient<Database>;
@@ -8,7 +9,8 @@ type RunSupabaseClient = SupabaseClient<Database>;
 // invocation'ının zaman aşımına uğradığı (Vercel maxDuration = 300s) anlamına
 // gelir. Reaper böyle satırları 'failed' işaretler ki eşzamanlılık kilidi
 // (analysis_runs_one_running_per_business) işletmeyi kalıcı olarak kilitlemesin.
-const STALE_RUNNING_MS = 15 * 60 * 1000;
+// Tanım src/lib/constants.ts'te (ANALYSIS_RUN_STALE_MS) — analysis-cooldown.ts
+// da aynı eşiği kullanır, tek tanım.
 
 export type AcquireRunResult =
   | { ok: true; runId: string | null }
@@ -25,7 +27,7 @@ export async function acquireAnalysisRun(
   businessId: string,
   trigger: "manual" | "cron",
 ): Promise<AcquireRunResult> {
-  const staleCutoff = new Date(Date.now() - STALE_RUNNING_MS).toISOString();
+  const staleCutoff = new Date(Date.now() - ANALYSIS_RUN_STALE_MS).toISOString();
   await supabase
     .from("analysis_runs")
     .update({

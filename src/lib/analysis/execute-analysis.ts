@@ -413,9 +413,19 @@ async function fetchPreviousThemeData(
     // STAGE1_KNOWN_THEME_VOCABULARY_LIMIT temasına dayanan sözlük onu es
     // geçebilir (mention sayısı düşükse cap'ten düşer) ve görev bir sonraki
     // döngüde sessizce "absent" a düşebilir. Bu yüzden açık görevlerin
-    // etiketleri own sözlüğüne PIN'lenir (cap tarafından düşürülmez, bkz.
+    // etiketleri sözlüğe PIN'lenir (cap tarafından düşürülmez, bkz.
     // buildThemeVocabulary). `profile:*` anahtarları (profile_gap görevleri)
     // AI'a hiç gösterilmeyen sabit dahili anahtarlardır, hariç tutulur.
+    //
+    // PIN HEM own HEM rakip sözlüğüne uygulanır: `competitive_gap` görevlerinin
+    // teması RAKİP tarafından doğar (klinik o temada zaten sessizdir — fark
+    // budur), dolayısıyla yalnızca own sözlüğüne pin'lemek onları korumaz.
+    // Gerçek pilotta (2026-08, 5. döngü) tam olarak bu yaşandı: "Çocuklarla
+    // iletişim ve diş korkusunun yenilmesi" açık bir görevken rakip tarafı
+    // "Çocuk hastalarda diş korkusunun giderilmesi" diye yeniden adlandırıldı
+    // ve ikinci bir kopya görev üretildi (benzerlik ağı 0.43 ile 0.6 eşiğinin
+    // altında kaldı). Aynı etiketi iki sözlükte de göstermek ucuzdur ve
+    // sağlayıcı değişse bile (Claude -> Gemini) etiketi sabit tutar.
     supabase.from("tasks").select("theme").eq("business_id", businessId).eq("status", "open"),
   ]);
 
@@ -440,7 +450,7 @@ async function fetchPreviousThemeData(
   return {
     counts,
     ownVocabulary: buildThemeVocabulary(ownRows, openTaskThemes),
-    competitorAggregateVocabulary: buildThemeVocabulary(competitorAggregateRows),
+    competitorAggregateVocabulary: buildThemeVocabulary(competitorAggregateRows, openTaskThemes),
   };
 }
 

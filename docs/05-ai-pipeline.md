@@ -84,7 +84,7 @@ Klasik NLP mimarisinde (embedding → ayrı theme detection → ayrı intent det
   düşebiliyor, görev bir sonraki döngüde yine sessizce etiket kayması riskiyle karşılaşabiliyordu. Çözüm:
   `fetchPreviousThemeData` (`execute-analysis.ts`) artık aynı sorguda business'ın `status='open'` görevlerinin
   `theme` değerlerini de okur (`profile:*` sabit anahtarları hariç — bunlar AI'a hiç gösterilmez) ve own
-  sözlüğüne (`buildThemeVocabulary`) PIN olarak geçirir: pinned etiketler ÖNCE eklenir, cap'in geri kalanı
+  **hem own hem rakip agregat** sözlüğüne (`buildThemeVocabulary`) PIN olarak geçirir: pinned etiketler ÖNCE eklenir, cap'in geri kalanı
   mention sayısına göre sıralı temalarla doldurulur — yani bir görev hâlâ açıkken onun etiketi sözlükten asla
   düşürülmez (cap toplamı sabit kalır, düşen taraf en düşük mention'lı sıradan temalardır).
 - **Aşama 2 çıktısı kod tarafında kanonikleştirilir (Faz 2.9).** Yukarıdaki vocabulary kuralı Aşama 1'in
@@ -100,6 +100,13 @@ Klasik NLP mimarisinde (embedding → ayrı theme detection → ayrı intent det
   bırakılır (gerçekten yeni bir tema olabilir, zorla birleştirilmez). Bu, kanıt satırları/dedup/outcome
   metrikleri/trendin hepsinin AYNI etiketler üzerinden çalışmasını garanti eder. Detay ve verdict mantığı:
   `09-task-engine.md` "Faz 2.9 — iki tema metriği ailesi".
+
+  **Neden iki sözlüğe birden (5. döngü pilot bulgusu):** `competitive_gap` görevlerinin teması RAKİP
+  tarafından doğar — klinik o temada zaten sessizdir, fark tam olarak budur. Yalnızca own sözlüğüne PIN'lemek
+  bu görevleri korumaz: gerçek pilotta "Çocuklarla iletişim ve diş korkusunun yenilmesi" açık bir görevken rakip
+  tarafı bir sonraki döngüde "Çocuk hastalarda diş korkusunun giderilmesi" diye yeniden adlandırıldı ve ikinci bir
+  kopya görev üretildi (benzerlik ağı 0.43 skorla 0.6 eşiğinin altında kaldı). Aynı etiketi iki sözlükte de
+  göstermenin maliyeti yok denecek kadar azdır ve sağlayıcı değişse bile (Claude → Gemini) etiketi sabit tutar.
 
 ## Aşama 2 detayı
 - **Ne zaman çalışır:** Aşama 1 tüm seçili işletmeler için tamamlandıktan sonra.

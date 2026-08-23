@@ -18,10 +18,16 @@ export type BilingualText = z.infer<typeof bilingualTextSchema>;
 // tarafında bileşenlerden hesaplanması". Model artık impact_score üretmiyor;
 // skor Aşama 2 sonrası kod tarafında (`@/lib/task-engine/impact-score.ts`)
 // rakip yaygınlığı + trend + own eksikliği kırılımından hesaplanır.
+// bkz. docs/02-business-rules.md Bölüm D — 'profile_gap' bu şemanın (Aşama 2
+// modelinin) çıktısı DEĞİLDİR (buildTaskCandidateSchema'daki zod enum'u hâlâ
+// sadece competitive_gap/absolute_quality kabul eder); üçüncü değer sadece
+// ScoredTaskCandidate'ı (src/lib/analysis/task-candidates.ts) genişletebilmek
+// için tip birleşimine eklendi — src/lib/analysis/profile-gap-candidates.ts
+// deterministik adaylar üretirken bu tipi kullanır.
 export interface TaskCandidate {
   title: BilingualText;
   description: BilingualText;
-  source_type: "competitive_gap" | "absolute_quality";
+  source_type: "competitive_gap" | "absolute_quality" | "profile_gap";
   based_on_competitor_id: string | null;
   theme: string;
   effort_score: number;

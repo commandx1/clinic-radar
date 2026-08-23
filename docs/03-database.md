@@ -43,6 +43,8 @@ businesses (
   website text,                 -- Google Places'ten gelen ham site URL'si (Apify compass/crawler-google-places `website` alanı); Trustpilot domain'ini türetmek için kullanılır
   trustpilot_domain text,       -- Trustpilot'taki şirket kimliği (ör. 'natural.clinic'), `website`'ten türetilir; çözümlenemediyse null
   trustpilot_checked_at timestamptz  -- Trustpilot araması en son ne zaman denendi; null = hiç denenmedi. AYRI bir kolon: `trustpilot_domain IS NULL` tek başına "hiç bakmadık" ile "baktık, profili yok"u ayırt edemez — ayırt edilmezse profili olmayan her rakip için her analizde tekrar Apify parası ödenir (bkz. 02-business-rules.md Bölüm I)
+  avg_patient_value_usd numeric,  -- Fırsat tahmini kartı için opsiyonel iş girdisi (USD), kullanıcı edit formunda girer; null = girilmedi. CHECK (>= 0). Dışarı paylaşılmaz, yalnızca $ bandı hesaplamak için okunur (09-task-engine.md "Opportunity Estimate")
+  monthly_new_patients integer   -- aynı kart için opsiyonel ikinci girdi (aylık yeni hasta sayısı), null = girilmedi. CHECK (>= 0)
 )
 
 clinic_score_history (
@@ -170,7 +172,7 @@ tasks (
   title_i18n jsonb,               -- {tr: string, en: string}, not null — bkz. 06-prompts.md Aşama 2
   description_i18n jsonb,         -- {tr: string, en: string} | null, aynı şekil
   based_on_competitor_id uuid,   -- source_type='absolute_quality' ise null olabilir
-  source_type text,              -- 'competitive_gap' | 'absolute_quality', bkz. 02-business-rules.md Bölüm D
+  source_type text,              -- 'competitive_gap' | 'absolute_quality' | 'profile_gap', bkz. 02-business-rules.md Bölüm D. 'profile_gap' migration 20260823000200_tasks_profile_gap_source_type.sql ile eklendi — AI çağrısı olmadan uygulama kodunda deterministik üretilir.
   theme text,
   impact_score int,              -- 0-100, bkz. 09-task-engine.md
   effort_score int,              -- 1-5, bkz. 09-task-engine.md

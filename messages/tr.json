@@ -102,6 +102,21 @@
           "own_analysis_failed": "Bu döngüde kendi yorumlarının analizi tamamlanamadı, bu yüzden yeni görev üretilemedi. Bir sonraki analizde tekrar denenecek.",
           "stage2_failed": "Bu döngüde rakip karşılaştırması tamamlanamadı, bu yüzden yeni görev üretilemedi. Bir sonraki analizde tekrar denenecek."
         }
+      },
+      "opportunity": {
+        "title": "Fırsat tahmini",
+        "methodNote": "Yayınlanmış ortalamalara dayanan kaba bir tahmindir, kesin bir öngörü değildir.",
+        "ratingComparison": "Sen: {own} · Rakip medyanı: {competitor}",
+        "gapBehind": "Rakip medyanının {value} puan altındasın",
+        "gapAhead": "{value} puan öndesin",
+        "gapEven": "Rakip medyanıyla aynı puandasın",
+        "revenueUplift": "Farkı kapatmanın tahmini gelir etkisi: +%{min}–{max}",
+        "revenueUpliftHint": "kaynak: +1 yıldız ≈ %5–9 (yayınlanmış yerel işletme araştırmaları)",
+        "annualRevenue": "≈ ${min}–{max} / yıl",
+        "annualRevenueCta": "Hasta değeri ve aylık yeni hasta sayısını girerek $ tahmini gör",
+        "belowThresholdWarning": "4.0 eşiğinin altındasın — hastaların büyük kısmı 4.0 altını elemeden geçirmiyor",
+        "velocityLine": "Son {days} günde sen {own} yorum/ay, rakip ortalaması {competitor} yorum/ay",
+        "velocityWarning": "Rakiplerin senden çok daha hızlı yorum topluyor"
       }
     },
     "form": {
@@ -146,6 +161,14 @@
       "trustpilotDomainPlaceholder": "örn. natural.clinic",
       "trustpilotDomainHint": "Boş bırakırsan Trustpilot profili olmadığı varsayılır; sistem otomatik arama yapmaz.",
       "trustpilotDomainProOnly": "Trustpilot domain'ini elle düzeltmek Pro planına özeldir.",
+      "opportunity": {
+        "sectionTitle": "Fırsat tahmini girdileri (opsiyonel)",
+        "avgPatientValueLabel": "Ortalama hasta değeri (USD)",
+        "avgPatientValuePlaceholder": "örn. 2000",
+        "monthlyNewPatientsLabel": "Aylık yeni hasta sayısı",
+        "monthlyNewPatientsPlaceholder": "örn. 15",
+        "hint": "Sadece Fırsat tahmini kartı için kullanılır, dışarı paylaşılmaz."
+      },
       "submit": "Bağla",
       "submitting": "Kaydediliyor…",
       "steps": {
@@ -239,6 +262,13 @@
       },
       "impactEffort": "Etki {impact}/100 · Zorluk {effort}/5",
       "basedOnCompetitor": "{name} rakibine göre",
+      "sourceType": {
+        "profile_gap": "Profil farkı"
+      },
+      "profileThemes": {
+        "reply_rate": "Yorum yanıtlama",
+        "website": "Web sitesi"
+      },
       "evidence": {
         "competitiveGap": "Rakip yorumlarında bu tema {competitorPositive} kez olumlu geçiyor; senin yorumlarında {ownPositive} kez.",
         "competitorBreakdown": "({strongCount}/{totalCount} rakipte güçlü)",

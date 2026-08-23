@@ -8,12 +8,15 @@ import type { TaskEvidence } from "./task-card-body";
 // Görev kartındaki tek satırlık kanıt metni — own vs rakip mention kıyası,
 // `theme_summary`'den kod tarafında hesaplanır (resolve-tasks-shared.ts).
 // Tema eşleşmezse (isim drift'i) `evidence` undefined gelir, satır gizlenir —
-// uydurma sayı göstermek yerine gizlemeyi tercih ediyoruz.
+// uydurma sayı göstermek yerine gizlemeyi tercih ediyoruz. `profile_gap`
+// görevleri theme_summary'den gelmediği için (bkz. resolve-tasks-shared.ts
+// computeEvidence) `evidence` bu tipte hep undefined gelir — aşağıdaki erken
+// dönüş bunu zaten no-crash şekilde ele alır.
 export function TaskEvidenceLine({
   sourceType,
   evidence,
 }: {
-  sourceType?: "competitive_gap" | "absolute_quality" | null;
+  sourceType?: "competitive_gap" | "absolute_quality" | "profile_gap" | null;
   evidence?: TaskEvidence;
 }) {
   const t = useTranslations("business.tasks.evidence");

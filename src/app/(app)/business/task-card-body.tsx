@@ -38,7 +38,7 @@ export interface TaskCardData {
   impact_score: number | null;
   effort_score: number | null;
   competitorName: string | null;
-  source_type?: "competitive_gap" | "absolute_quality" | null;
+  source_type?: "competitive_gap" | "absolute_quality" | "profile_gap" | null;
   evidence?: TaskEvidence;
   checklist?: TaskChecklistItem[];
 }
@@ -48,6 +48,21 @@ const PRIORITY_BADGE_VARIANT: Record<string, "destructive" | "default" | "second
   medium: "default",
   low: "secondary",
 };
+
+// bkz. docs/02-business-rules.md Bölüm D üçüncü kaynak — profile_gap
+// görevlerinin `theme` alanı AI'ın ürettiği serbest metin değil, sabit bir
+// anahtar ("profile:reply_rate" / "profile:website"); ham anahtarı UI'da
+// göstermek yerine çeviri anahtarına eşlenir. Diğer kaynaklarda (AI'dan gelen
+// doğal dil temalar) `theme` olduğu gibi gösterilir.
+function resolveThemeLabel(theme: string, t: ReturnType<typeof useTranslations>): string {
+  if (theme === "profile:reply_rate") {
+    return t("profileThemes.reply_rate");
+  }
+  if (theme === "profile:website") {
+    return t("profileThemes.website");
+  }
+  return theme;
+}
 
 export function TaskCardBody({
   task,
@@ -71,7 +86,12 @@ export function TaskCardBody({
             {t(`priority.${task.priority}`)}
           </Badge>
         )}
-        {task.theme && <span className="text-xs text-muted-foreground">{task.theme}</span>}
+        {task.source_type === "profile_gap" && (
+          <Badge variant="outline">{t("sourceType.profile_gap")}</Badge>
+        )}
+        {task.theme && (
+          <span className="text-xs text-muted-foreground">{resolveThemeLabel(task.theme, t)}</span>
+        )}
       </div>
 
       <p className="font-medium">{task.title}</p>

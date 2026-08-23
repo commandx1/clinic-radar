@@ -45,6 +45,12 @@ impact_score = clamp(
 
 Ağırlık/eşik sabitleri `src/lib/constants.ts` içinde tek yerde tutulur (`IMPACT_SCORE_*`, `IMPACT_SCORE_MENTION_VOLUME_SCALE`) — kalibrasyon için buradan değiştirilir. Görev kartında "neden bu skor" kırılımını göstermek için `ImpactScoreBreakdown` (competitor_prevalence, own_deficiency, trend, trend_adjustment) ham bileşenleriyle birlikte döndürülür ve saklanır (`tasks.impact_score_breakdown`).
 
+**`profile_gap`** (rakip fark analizi/mention'a dayanmayan, deterministik profil sinyalleri — bkz. `02-business-rules.md` Bölüm D madde 3): ayrı bir formül yoktur, `computeCompetitiveGapImpactScore` (yukarıdaki `competitive_gap` formülü) reuse edilir; `trend` her zaman `null` (bu kaynağın theme_summary/trend kavramı yok). Girdi bileşenleri kaynağa göre yeniden yorumlanır:
+- **Yorum yanıt oranı** adayı: `competitor_prevalence` = rakip ortalama yanıt oranı (`positive_mentions = round(rakipOrtalamaOran×100)`), `own_deficiency` = own yanıtsız oranı (`positive_mentions = round(ownOran×100)` own girdisi olarak verilir, deficiency `(1-ownOran)×100` olarak çıkar).
+- **Website eksikliği** adayı: `competitor_prevalence` = website'ı olan rakip oranı (`positive_mentions = round(website'lıPay×100)`), own teması **verilmez** (`undefined`) → `own_deficiency` her zaman **100** (own website'sizse eksiklik zaten tamdır).
+
+Hesaplama `src/lib/analysis/profile-gap-candidates.ts` içinde yapılır (task-candidates.ts'in `attachImpactScores`'undan bağımsız — bu adaylar zaten skorlanmış (`ScoredTaskCandidate`) halde `execute-analysis.ts`'e döner, Stage 2 adaylarıyla `rankCandidates`'tan önce birleştirilir).
+
 ## Priority türetme (kod tarafında, promptta değil)
 ```
 priority_raw = impact_score / effort_score
@@ -94,3 +100,61 @@ Bu formül **v1 tahminidir** — gerçek kullanıcı verisiyle (özellikle hangi
 potential_rating_gain = sum(impact_score of open tasks with priority='high') / 1000
 ```
 Kaba bir tahmin katsayısıdır (1000 sabiti kalibrasyon gerektirir), amaç kesin bir bilimsel tahmin değil, kullanıcıya "bunu yaparsan işe yarar" hissi vermek.
+
+## Opportunity Estimate (Faz 2.5 — Overview'daki "Fırsat tahmini" kartı)
+
+Saf hesaplama `src/lib/task-engine/opportunity-estimate.ts` (`estimateOpportunity`), DB okuma katmanı
+`src/app/(app)/business/resolve-opportunity-estimate.ts`, kart `opportunity-estimate-card.tsx`. Sabitler
+`src/lib/constants.ts`'te `OPPORTUNITY_*` öneki ile. **Her zaman bantlı** — CLAUDE.md ve `10-roadmap.md`
+Faz 1.2 notundaki "asla '+0.18 yıldız' gibi kesin tahmin verilmez" kuralı bu kart için de geçerlidir.
+
+**Rating gap:**
+```
+competitor_median_rating = median(rakiplerin puanları, null olmayanlar)
+rating_gap = round1dp(competitor_median_rating - own_rating)   -- own puan ya da hiç rakip puanı yoksa null
+```
+`rating_gap > 0` → rakip önde (kullanıcı geride); `< 0` → kullanıcı önde; `0` → eşit. İkisi de aynı 1dp'ye
+yuvarlanır, ham (uydurma hassasiyette) bir sayı asla gösterilmez.
+
+**Gelir etkisi bandı (yalnızca rating_gap > 0 iken):**
+```
+revenue_uplift_pct_range = [round1dp(gap * OPPORTUNITY_REVENUE_PCT_PER_STAR_MIN),
+                             round1dp(gap * OPPORTUNITY_REVENUE_PCT_PER_STAR_MAX)]
+```
+`OPPORTUNITY_REVENUE_PCT_PER_STAR_MIN/MAX = 5/9` — yayınlanmış yerel işletme araştırmalarının (Luca 2011 /
+Anderson, HBS; Yelp verisiyle) verdiği "+1 yıldız ≈ +%5-9 gelir" bandı, tek bir katsayı değil. `docs/11-risks-assumptions.md`
+Bölüm C'deki fiyat/ROI anlatısıyla aynı kaynak ailesi ("bir yıllık ek hastanın değeri aboneliği kat kat
+öder") — kart bu anlatının somutlaştırılmış hali, ayrı bir tahmin modeli değil.
+
+**$ bandı (yalnızca `avg_patient_value_usd` ve `monthly_new_patients` doluysa, ikisi de opsiyonel iş
+girdisi — `businesses` tablosu, işletme düzenleme formu):**
+```
+annual_revenue_usd_range = [
+  round2sigfig(monthly_new_patients * 12 * avg_patient_value_usd * revenue_uplift_pct_range[0] / 100),
+  round2sigfig(monthly_new_patients * 12 * avg_patient_value_usd * revenue_uplift_pct_range[1] / 100),
+]
+```
+2 anlamlı basamağa yuvarlama (12.345 değil 12.000) bilinçli — bant, kesinlik değil. Girdiler eksikse kart
+$ bandı yerine girdileri girmeye yönlendiren bir CTA gösterir.
+
+**4.0 filtre eşiği uyarısı:**
+```
+below_filter_threshold = own_rating < OPPORTUNITY_RATING_FILTER_THRESHOLD (4.0)
+                          && competitor_median_rating >= OPPORTUNITY_RATING_FILTER_THRESHOLD
+```
+Rakip medyanı da 4.0 altındaysa uyarı gösterilmez — rakipler de düşükse bu bir rekabet fırsatı değildir
+(Impact Score'daki "competitor_prevalence" mantığıyla aynı ilke).
+
+**Yorum hızı açığı:**
+```
+own_reviews_per_month = own_reviews_in_window / (OPPORTUNITY_VELOCITY_WINDOW_DAYS / 30)
+competitor_avg_reviews_per_month = avg(competitor_reviews_in_window) / (OPPORTUNITY_VELOCITY_WINDOW_DAYS / 30)
+review_velocity_ratio = competitor_avg_reviews_per_month > 0 ? own/competitor : null
+velocity_gap = ratio !== null && ratio < OPPORTUNITY_REVIEW_VELOCITY_GAP_RATIO (0.7)
+```
+Pencere own/rakip için aynı (`reviews.published_at >= now() - OPPORTUNITY_VELOCITY_WINDOW_DAYS gün`, sabit
+90 gün) — pipeline'ın adaptif analiz penceresine (`AI_ANALYSIS_WINDOW_DAYS_STEPS`) bağlı DEĞİL, kasıtlı
+olarak ayrı bir sabit.
+
+**Kartın görünürlüğü:** `rating_gap` VE `review_velocity_ratio` ikisi de null ise (kıyaslanabilir hiçbir
+veri yok) kart hiç render edilmez.

@@ -49,7 +49,8 @@ interface TaskRowBase {
   effort_score: number | null;
   based_on_competitor_id: string | null;
   // DB kolonu `string` (bkz. database.types.ts) — gerçek değerler her zaman
-  // "competitive_gap" | "absolute_quality", burada literal union'a daraltılır.
+  // "competitive_gap" | "absolute_quality" | "profile_gap", burada literal
+  // union'a daraltılır.
   source_type?: string | null;
   checklist_i18n?: Json | null;
 }
@@ -87,10 +88,10 @@ function toChecklist(value: Json | null | undefined, locale: string): TaskCheckl
   return items.length > 0 ? items : undefined;
 }
 
-type TaskSourceType = "competitive_gap" | "absolute_quality" | null;
+type TaskSourceType = "competitive_gap" | "absolute_quality" | "profile_gap" | null;
 
 function toSourceType(value: string | null | undefined): TaskSourceType {
-  return value === "competitive_gap" || value === "absolute_quality" ? value : null;
+  return value === "competitive_gap" || value === "absolute_quality" || value === "profile_gap" ? value : null;
 }
 
 // Görevin teması ile theme_summary'deki own/competitor satırlarını eşleştirir.

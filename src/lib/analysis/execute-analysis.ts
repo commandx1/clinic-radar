@@ -12,6 +12,8 @@ import {
   type ThemeTrendInput,
 } from "@/lib/ai-pipeline/provider";
 import { computeAnalysisDelta, type AnalysisDelta } from "@/lib/analysis/analysis-delta";
+import { buildProfileGapCandidates } from "@/lib/analysis/profile-gap-candidates";
+import { loadProfileGapStats } from "@/lib/analysis/profile-gap-stats";
 import { resolveTrustpilotRefs } from "@/lib/analysis/resolve-trustpilot-refs";
 import { estimateScrapeCostUsd, type ScrapeMetrics } from "@/lib/analysis/scrape-metrics";
 import {
@@ -549,15 +551,30 @@ interface TaskGenerationSummary {
   filteredCount: number;
 }
 
+// bkz. docs/02-business-rules.md Bölüm D üçüncü kaynak — profile_gap adayları
+// AI'a bağımlı değildir; Stage 1 (own) ya da Stage 2 başarısız olsa bile tek
+// başlarına upsert edilir (deterministik görevler AI başarısına bağlı olmamalı).
+async function upsertProfileGapOnly(
+  supabase: AnalysisSupabaseClient,
+  businessId: string,
+  status: Exclude<TaskGenerationSummary["status"], "ok">,
+  profileGapCandidates: ScoredTaskCandidate[],
+): Promise<TaskGenerationSummary> {
+  const ranked = rankCandidates(profileGapCandidates);
+  const { created, updated } = await upsertTasks(supabase, businessId, ranked);
+  return { status, created, updated, filteredCount: 0 };
+}
+
 async function runStage2AndUpsertTasks(
   supabase: AnalysisSupabaseClient,
   businessId: string,
   ownThemes: ThemeItem[] | null,
   competitorStage1Results: Stage1Result[],
   aggregates: Omit<ThemeSummaryPersistResult, "hasCompetitorData"> & { hasCompetitorData: boolean },
+  profileGapCandidates: ScoredTaskCandidate[],
 ): Promise<TaskGenerationSummary> {
   if (!ownThemes) {
-    return { status: "skipped_own_failed", created: 0, updated: 0, filteredCount: 0 };
+    return upsertProfileGapOnly(supabase, businessId, "skipped_own_failed", profileGapCandidates);
   }
 
   const competitorsForStage2: CompetitorThemeInput[] = competitorStage1Results
@@ -569,7 +586,7 @@ async function runStage2AndUpsertTasks(
   );
 
   if (!stage2Result) {
-    return { status: "skipped_stage2_failed", created: 0, updated: 0, filteredCount: 0 };
+    return upsertProfileGapOnly(supabase, businessId, "skipped_stage2_failed", profileGapCandidates);
   }
 
   await setAnalysisStage(supabase, businessId, "tasks");
@@ -585,7 +602,10 @@ async function runStage2AndUpsertTasks(
     aggregates.competitorAggregated,
     aggregates.ownThemeTrends,
   );
-  const ranked = rankCandidates(scored);
+  // Profil farkı adayları AI adaylarıyla BİRLİKTE, rankCandidates'tan ÖNCE
+  // birleştirilir ki MAX_NEW_TASKS_PER_CYCLE kotası için adil rekabet etsinler
+  // (bkz. docs/02-business-rules.md Bölüm D).
+  const ranked = rankCandidates([...scored, ...profileGapCandidates]);
   const { created, updated } = await upsertTasks(supabase, businessId, ranked);
 
   return { status: "ok", created, updated, filteredCount: filtered.length };
@@ -687,8 +707,8 @@ async function computeAndStoreClinicScoreSnapshot(
 
 async function runAnalysisPipeline(
   supabase: AnalysisSupabaseClient,
-  business: { id: string; name: string; category: string | null },
-  competitors: { id: string; name: string }[],
+  business: { id: string; name: string; category: string | null; website: string | null },
+  competitors: { id: string; name: string; website: string | null }[],
   outputLanguage: string,
   notifyContext: { isPro: boolean; ownerEmail: string | null },
   previousRunAt: string | null,
@@ -750,6 +770,13 @@ async function runAnalysisPipeline(
     previousCounts: aggregates.previousCounts,
   });
 
+  // bkz. docs/02-business-rules.md Bölüm D üçüncü kaynak — deterministik
+  // profil farkı adayları, Stage 1/2'den bağımsız olarak burada hesaplanır;
+  // aşağıda runStage2AndUpsertTasks içinde AI adaylarıyla birleştirilir ya da
+  // (AI başarısızsa) tek başına upsert edilir.
+  const profileGapStats = await loadProfileGapStats(supabase, business, competitors, cutoffIso, windowDays);
+  const profileGapCandidates = buildProfileGapCandidates(profileGapStats);
+
   await setAnalysisStage(supabase, business.id, "gap");
   const taskGeneration = await runStage2AndUpsertTasks(
     supabase,
@@ -757,6 +784,7 @@ async function runAnalysisPipeline(
     ownStage1?.result?.themes ?? null,
     competitorStage1Results,
     aggregates,
+    profileGapCandidates,
   );
 
   // bkz. docs/05-ai-pipeline.md "Delta adımı" — Aşama 2/görev üretiminden
@@ -929,7 +957,7 @@ export async function executeAnalysis(
 
     const { themeAnalysis, taskGeneration, ownThemeTrends, delta } = await runAnalysisPipeline(
       supabase,
-      { id: business.id, name: business.name, category: business.category },
+      { id: business.id, name: business.name, category: business.category, website: business.website },
       competitors,
       outputLanguage,
       notifyContext,

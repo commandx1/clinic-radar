@@ -126,6 +126,34 @@ Detay: `02-business-rules.md` Bölüm I, `03-database.md`, `04-api.md`.
 - [x] **Sıfır yeni görev durumunda sessiz kalınmaz:** `zero_new_tasks_reason` (`no_new_signal` | `all_themes_below_threshold` | `own_analysis_failed` | `stage2_failed`) kullanıcıya "hiçbir şey olmadı" ile "her şey zaten iyi gidiyor"u ayırt ettiren bir cümle olarak gösterilir.
 - [x] Birim test: `analysis-delta.test.ts` (zero_new_tasks_reason eşlemesi, top-3 rakip sıralaması, tema başına 5 sınırı).
 
+## Faz 2.4 — Profil farkı görevleri (2026-08)
+- [x] **Üçüncü görev kaynağı** (`source_type = 'profile_gap'`): AI çağrısı olmadan, uygulama kodunda zaten sahip olduğumuz veriden (yorum yanıt oranı, Google İşletme Profili website alanı) deterministik üretilir — bkz. `02-business-rules.md` Bölüm D madde 3, `09-task-engine.md`. İki alt kural: yorum yanıt oranı rakip ortalamasına göre belirgin düşükse (`PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_RATE`, `PROFILE_GAP_REPLY_RATE_MIN_GAP`, `PROFILE_GAP_MIN_OWN_UNREPLIED`), own'un website'ı yoksa ama rakiplerin çoğunda varsa (`PROFILE_GAP_WEBSITE_MIN_COMPETITOR_SHARE`).
+- [x] **Şema:** `tasks.source_type` check constraint'i üçüncü değeri kapsayacak şekilde genişletildi (migration `20260823000200_tasks_profile_gap_source_type.sql`); `database.types.ts` diff'i boş (kolon zaten `text`, check constraint'ler codegen'e literal union olarak yansımıyor).
+- [x] **Impact score** mevcut `computeCompetitiveGapImpactScore` formülü reuse edilerek hesaplanır (own/rakip oranları prevalence/deficiency olarak yeniden yorumlanır) — ayrı bir formül eklenmedi, görev kartındaki kırılım UI'ı değişmeden çalışır.
+- [x] **AI başarısından bağımsız:** own tema analizi ya da Aşama 2 başarısız olsa bile profil farkı adayları hesaplanıp tek başına upsert edilir (`execute-analysis.ts` `upsertProfileGapOnly`); Aşama 2 başarılıysa AI adaylarıyla `rankCandidates`'tan önce birleştirilip aynı `MAX_NEW_TASKS_PER_CYCLE` kotası için yarışır.
+- [x] **UI:** görev kartındaki tema etiketi artık AI temaları için olduğu gibi, `profile:*` anahtarları için `business.tasks.profileThemes.*` çeviri anahtarına eşlenir; `profile_gap` görevlerinde ayrıca bir kaynak rozeti (`business.tasks.sourceType.profile_gap`) gösterilir. Kanıt satırı (`TaskEvidenceLine`) bu kaynak için `theme_summary` eşleşmesi olmadığından sessizce gizlenir (crash/uydurma sayı yok).
+- [x] Birim test: `profile-gap-candidates.test.ts` (her iki kural için eşik/uygunluk, `based_on_competitor_id` seçimi — eşitlikte en çok yoruma sahip rakip, impact kırılımı, veri yetersizken boş dizi).
+
+## Faz 2.5 — Fırsat tahmini kartı (2026-08)
+- [x] **"Fırsat tahmini" kartı.** Overview'da "Bu analizde ne değişti" kartının hemen altında, rakip
+  medyanına göre puan/yorum-hızı açığını **her zaman bantlı** gösterir — asla kesin bir öngörü değil
+  (CLAUDE.md, bu dokümandaki Faz 1.2 notu "asla '+0.18 yıldız' gibi kesin tahmin verilmez"). Kıyaslanabilir
+  veri yoksa kart hiç render edilmez (`OpportunityEstimateCard`, bkz. `08-dashboard.md`, `09-task-engine.md`
+  "Opportunity Estimate").
+- [x] **Saf hesaplama katmanı** (`src/lib/task-engine/opportunity-estimate.ts` + birim test): rating gap
+  (rakip medyanı − own), gap pozitifse yayınlanmış "+1 yıldız ≈ +%5-9 gelir" elastikiyetinden gelir etkisi
+  bandı, iki opsiyonel iş girdisi (ortalama hasta değeri, aylık yeni hasta sayısı) doluysa yıllık $ bandı
+  (2 anlamlı basamağa yuvarlı), 4.0 filtre eşiği uyarısı, son 90 günlük own/rakip yorum hızı kıyası.
+- [x] **Şema:** `businesses.avg_patient_value_usd numeric null`, `businesses.monthly_new_patients integer
+  null` (migration `20260823000300_businesses_opportunity_inputs.sql`) — ikisi de opsiyonel, işletme
+  düzenleme formunda girilir, mevcut RLS policy/grant'ları tablo bazlı olduğu için yeni bir policy/grant
+  gerekmedi.
+- [x] **API:** `PATCH /api/business/:id` iki alanı da opsiyonel + nullable kabul eder (`updateBusinessSchema`),
+  detay `04-api.md`.
+- [x] Birim test: `opportunity-estimate.test.ts` (rating gap yönü/yuvarlama, gelir bandı yalnızca gap>0'da,
+  $ bandı yalnızca girdiler doluyken + 2 anlamlı basamak yuvarlama, 4.0 eşik uyarısı, yorum hızı oranı/null
+  durumu).
+
 ## Faz 3
 - AI arama görünürlüğü modülü (ChatGPT/Gemini/Perplexity'de klinik nasıl öneriliyor)
 - Tema taksonomisi ölçeklenirse embedding/clustering katmanı (`05-ai-pipeline.md`'deki gerekçeye bkz.)

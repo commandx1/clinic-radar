@@ -102,6 +102,21 @@
           "own_analysis_failed": "We couldn't finish analyzing your own reviews this cycle, so no new tasks were generated. We'll retry on the next analysis.",
           "stage2_failed": "We couldn't finish the competitor comparison this cycle, so no new tasks were generated. We'll retry on the next analysis."
         }
+      },
+      "opportunity": {
+        "title": "Opportunity estimate",
+        "methodNote": "A rough estimate based on published averages, not a guaranteed prediction.",
+        "ratingComparison": "You: {own} · Competitor median: {competitor}",
+        "gapBehind": "You're {value} points below the competitor median",
+        "gapAhead": "You're {value} points ahead",
+        "gapEven": "You're tied with the competitor median",
+        "revenueUplift": "Estimated revenue impact of closing the gap: +%{min}–{max}",
+        "revenueUpliftHint": "source: +1 star ≈ +5–9% revenue (published local-business research)",
+        "annualRevenue": "≈ ${min}–{max} / year",
+        "annualRevenueCta": "Enter your patient value and monthly new patients to see a $ estimate",
+        "belowThresholdWarning": "You're below the 4.0 threshold — most patients filter out businesses under 4.0",
+        "velocityLine": "In the last {days} days you got {own} reviews/mo, competitors averaged {competitor} reviews/mo",
+        "velocityWarning": "Competitors are gathering reviews much faster than you"
       }
     },
     "form": {
@@ -146,6 +161,14 @@
       "trustpilotDomainPlaceholder": "e.g. natural.clinic",
       "trustpilotDomainHint": "Leave empty if there's no Trustpilot profile; auto-search won't run again.",
       "trustpilotDomainProOnly": "Manually correcting the Trustpilot domain is a Pro feature.",
+      "opportunity": {
+        "sectionTitle": "Opportunity estimate inputs (optional)",
+        "avgPatientValueLabel": "Average patient value (USD)",
+        "avgPatientValuePlaceholder": "e.g. 2000",
+        "monthlyNewPatientsLabel": "Monthly new patients",
+        "monthlyNewPatientsPlaceholder": "e.g. 15",
+        "hint": "Only used for the Opportunity estimate card — never shared."
+      },
       "submit": "Link",
       "submitting": "Saving…",
       "steps": {
@@ -239,6 +262,13 @@
       },
       "impactEffort": "Impact {impact}/100 · Effort {effort}/5",
       "basedOnCompetitor": "Based on {name}",
+      "sourceType": {
+        "profile_gap": "Profile gap"
+      },
+      "profileThemes": {
+        "reply_rate": "Review replies",
+        "website": "Website"
+      },
       "evidence": {
         "competitiveGap": "This theme appears positively {competitorPositive} times in competitor reviews — {ownPositive} times in yours.",
         "competitorBreakdown": "(strong in {strongCount}/{totalCount} competitors)",

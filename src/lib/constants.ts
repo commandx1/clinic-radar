@@ -100,3 +100,43 @@ export const TRUSTPILOT_FETCH_MAX_PAGES = 2;
 // pencere, takvim ayı değil); Pro/Agency sınırsız. Aynı yoruma tekrar taslak
 // üretmek de kotadan düşer (bilinçli olarak basit tutuldu).
 export const FREE_PLAN_REPLY_DRAFTS_PER_MONTH = 5;
+
+// Profil farkı görevleri (source_type='profile_gap') — bkz. docs/02-business-rules.md
+// Bölüm D üçüncü kaynak, src/lib/analysis/profile-gap-candidates.ts. AI çağrısı
+// olmadan, uygulama kodunda elimizdeki veriden (yorum yanıt oranı, website
+// varlığı) deterministik üretilir.
+// Kural A (yorum yanıt oranı): rakip ortalama yanıt oranı bu eşiğin altındaysa
+// görev üretilmez — rakipler de kötüyse bu bir rekabet fırsatı değildir.
+export const PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_RATE = 0.5;
+// own ile rakip ortalama yanıt oranı arasındaki fark en az bu kadar (0-1
+// skalasında yüzde puanı) olmalı.
+export const PROFILE_GAP_REPLY_RATE_MIN_GAP = 0.2;
+// own tarafında en az bu kadar yanıtlanmamış yorum olmalı — gürültü eşiği,
+// tek bir yanıtsız yorum için görev üretmek anlamsız.
+export const PROFILE_GAP_MIN_OWN_UNREPLIED = 3;
+// Kural B (website eksik): own website boşsa VE rakiplerin en az bu oranı
+// website'a sahipse görev üretilir.
+export const PROFILE_GAP_WEBSITE_MIN_COMPETITOR_SHARE = 0.5;
+
+// ============ Fırsat tahmini kartı (Overview) — bkz. docs/08-dashboard.md,
+// docs/09-task-engine.md "Opportunity Estimate", src/lib/task-engine/opportunity-estimate.ts.
+// Her zaman BANTLI gösterilir, asla kesin bir tahmin değildir (CLAUDE.md,
+// docs/10-roadmap.md "asla '+0.18 yıldız' gibi kesin tahmin verilmez").
+// +1 yıldızın yerel işletme gelirine etkisi üzerine yayınlanmış tahminler
+// (Luca 2011 / Anderson HBS, Yelp verisiyle) ~%5-9 arasında bir bant veriyor —
+// kesin bir katsayı yok, bu yüzden MIN/MAX bandı olarak tutulur.
+export const OPPORTUNITY_REVENUE_PCT_PER_STAR_MIN = 5;
+export const OPPORTUNITY_REVENUE_PCT_PER_STAR_MAX = 9;
+// Hastaların büyük kısmının 4.0 altındaki işletmeleri filtrelediği kabul
+// edilen eşik (yaygın tüketici davranışı gözlemi) — own rating bu eşiğin
+// altında ve rakip medyanı üstündeyse ayrı bir uyarı rozeti gösterilir.
+export const OPPORTUNITY_RATING_FILTER_THRESHOLD = 4.0;
+// Own aylık yorum hızı, rakip ortalamasının bu oranının altındaysa "yorum
+// hızı açığı" uyarısı gösterilir (rakipler daha hızlı yorum topluyor →
+// Google'ın sıralama/tazelik sinyalinde geride kalma riski).
+export const OPPORTUNITY_REVIEW_VELOCITY_GAP_RATIO = 0.7;
+// Own/rakip yorum sayımlarının okunduğu pencere (gün) — AI_ANALYSIS_WINDOW_DAYS
+// ile aynı değer ama kasıtlı olarak ayrı bir sabit: bu kart pipeline'ın
+// adaptif pencere büyütmesine (AI_ANALYSIS_WINDOW_DAYS_STEPS) bağlı değil,
+// sabit 90 günlük bir "son dönem" kıyası.
+export const OPPORTUNITY_VELOCITY_WINDOW_DAYS = 90;

@@ -1,6 +1,7 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
 
 import { acquireAnalysisRun } from "@/lib/analysis/acquire-analysis-run";
+import { toAnalysisDeltaColumn } from "@/lib/analysis/analysis-delta";
 import { executeAnalysis } from "@/lib/analysis/execute-analysis";
 import { toScrapeMetricColumns } from "@/lib/analysis/scrape-metrics";
 import { MIN_COMPETITORS } from "@/lib/constants";
@@ -93,6 +94,7 @@ export async function runManualAnalysisForBusiness(
       website: business.website,
       trustpilot_domain: business.trustpilot_domain,
       trustpilot_checked_at: business.trustpilot_checked_at,
+      last_scraped_at: business.last_scraped_at,
     },
     competitors,
     outputLanguage,
@@ -125,6 +127,7 @@ export async function runManualAnalysisForBusiness(
         status: result.status === "partial" ? "partial" : "succeeded",
         finished_at: new Date().toISOString(),
         ...toScrapeMetricColumns(result.scrape),
+        ...toAnalysisDeltaColumn(result.delta),
       })
       .eq("id", runId);
   }

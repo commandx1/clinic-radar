@@ -11,9 +11,14 @@ Kullanıcı detay okumadan durumu görmeli. 5 metrik:
 | Completed Tasks | `tasks` (status='done') / toplam | "8/11" |
 | Potential Rating Gain | açık görevlerin `impact_score` toplamından türetilen tahmini | "+0.3 puan potansiyeli" |
 
+## "Bu analizde ne değişti" kartı (Faz 2.3)
+Executive özet/istatistik alanının hemen altında, `AnalysisDeltaCard` (`src/app/(app)/business/analysis-delta-card.tsx`). En son `status in ('succeeded','partial')` ve `delta` dolu olan `analysis_runs` satırını okur (`resolve-analysis-delta.ts`); hiç yoksa (ilk analiz henüz koşmadıysa ya da tüm koşular failed'se) kart hiç render edilmez — boş kart gösterilmez. Şekil ve hesaplama detayı `05-ai-pipeline.md` "Delta adımı", `03-database.md` `analysis_runs.delta`.
+
+Gösterilenler: koşu tarihi + "Son {window_days} gün" pencere bağlamı; own/rakip yeni yorum sayısı (rakip tarafında en çok yeni yorum alan 3 rakip, "en çok: {isim} +{sayı}"); yeni/güncellenen/yeniden açılan görev sayısı; own temalardan kötüleşen/iyileşen/kritik chip listeleri (`Badge`, her biri en fazla 5); yanıtlanmamış own yorum sayısı + Reviews sekmesine link. **Yeni görev sayısı 0 ise** (`tasks_created === 0`), `zero_new_tasks_reason`'a göre açıklayıcı bir cümle gösterilir — ör. "Yeni bir sorun sinyali yok — bu iyi haber" (`no_new_signal`) — böylece kullanıcı sessizliği "bir şey bozuldu mu" diye yorumlamaz.
+
 ## Sekmeler — Faz 1 (MVP)
 
-**Overview** — Executive özet kartı + en yüksek öncelikli 3 görev + kısa trend grafiği önizlemesi.
+**Overview** — Executive özet kartı + "Bu analizde ne değişti" kartı + en yüksek öncelikli 3 görev + kısa trend grafiği önizlemesi.
 
 **Tasks** — Tüm görevler, `status`/`priority` filtreli liste. Her görev: başlık, açıklama, impact/effort göstergesi, hangi rakip(ler)den doğduğu, tamamla/reddet aksiyonları. Görev kartlarında ayrıca kod tarafında hesaplanan bir kanıt satırı gösterilir — `theme_summary`'den own vs rakip mention sayısı kıyası (`competitive_gap` için rakip pozitif/own pozitif, `absolute_quality` için own negatif). Görevin teması ile `theme_summary` satırları eşleşmezse (AI'ın ürettiği tema adı drift ederse) satır gösterilmez, uydurma sayı verilmez.
 

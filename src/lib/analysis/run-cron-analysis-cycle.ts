@@ -2,6 +2,7 @@ import { type SupabaseClient } from "@supabase/supabase-js";
 
 import { defaultLocale } from "@/i18n/locales";
 import { acquireAnalysisRun } from "@/lib/analysis/acquire-analysis-run";
+import { toAnalysisDeltaColumn } from "@/lib/analysis/analysis-delta";
 import { executeAnalysis } from "@/lib/analysis/execute-analysis";
 import { toScrapeMetricColumns } from "@/lib/analysis/scrape-metrics";
 import { MIN_COMPETITORS, PRO_PLAN_ANALYSIS_COOLDOWN_DAYS } from "@/lib/constants";
@@ -58,7 +59,7 @@ export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promis
       ? await supabase
           .from("businesses")
           .select(
-            "id, google_place_id, lat, name, category, rating, user_id, website, trustpilot_domain, trustpilot_checked_at",
+            "id, google_place_id, lat, name, category, rating, user_id, website, trustpilot_domain, trustpilot_checked_at, last_scraped_at",
           )
           .in("user_id", proUserIds)
           .not("google_place_id", "is", null)
@@ -149,6 +150,7 @@ export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promis
           website: business.website,
           trustpilot_domain: business.trustpilot_domain,
           trustpilot_checked_at: business.trustpilot_checked_at,
+          last_scraped_at: business.last_scraped_at,
         },
         competitors,
         defaultLocale,
@@ -186,6 +188,7 @@ export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promis
             error: null,
             finished_at: new Date().toISOString(),
             ...toScrapeMetricColumns(result.scrape),
+            ...toAnalysisDeltaColumn(result.delta),
           })
           .eq("id", runId);
         if (updateError) {

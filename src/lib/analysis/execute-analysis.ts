@@ -11,6 +11,7 @@ import {
   type ThemeItem,
   type ThemeTrendInput,
 } from "@/lib/ai-pipeline/provider";
+import { computeAnalysisDelta, type AnalysisDelta } from "@/lib/analysis/analysis-delta";
 import { resolveTrustpilotRefs } from "@/lib/analysis/resolve-trustpilot-refs";
 import { estimateScrapeCostUsd, type ScrapeMetrics } from "@/lib/analysis/scrape-metrics";
 import {
@@ -417,16 +418,18 @@ async function persistThemeSummary(
 // negatif mention sayısı bir önceki döngüye göre 2x artarsa yeniden `open`
 // olur. Bu adım upsertTasks'tan ÖNCE çalışmalı ki reopen edilen görevler
 // upsertTasks tarafından mevcut "open" görev olarak eşleşip güncellensin,
-// tekrar yeni satır olarak eklenmesin.
+// tekrar yeni satır olarak eklenmesin. Dönüş değeri (reopen edilen görev
+// sayısı) sadece analiz delta kartı için taşınır (bkz. analysis-delta.ts) —
+// reopen mantığının kendisini etkilemez.
 async function reopenBurstingDismissedTasks(
   supabase: AnalysisSupabaseClient,
   businessId: string,
   previousCounts: Map<string, MentionCounts>,
   ownAggregated: AggregatedTheme[],
-): Promise<void> {
+): Promise<number> {
   const themesToReopen = selectThemesToReopen(previousCounts, ownAggregated);
   if (themesToReopen.length === 0) {
-    return;
+    return 0;
   }
 
   const { data: dismissedTasks, error: selectError } = await supabase
@@ -437,7 +440,7 @@ async function reopenBurstingDismissedTasks(
 
   if (selectError) {
     console.error("Failed to reopen dismissed tasks on negative mention burst:", selectError);
-    return;
+    return 0;
   }
 
   const normalizedThemesToReopen = new Set(themesToReopen.map(normalizeTheme));
@@ -446,7 +449,7 @@ async function reopenBurstingDismissedTasks(
     .map((task) => task.id);
 
   if (matchedIds.length === 0) {
-    return;
+    return 0;
   }
 
   const { error } = await supabase
@@ -456,7 +459,10 @@ async function reopenBurstingDismissedTasks(
 
   if (error) {
     console.error("Failed to reopen dismissed tasks on negative mention burst:", error);
+    return 0;
   }
+
+  return matchedIds.length;
 }
 
 async function upsertTasks(
@@ -537,6 +543,10 @@ interface TaskGenerationSummary {
   status: "ok" | "skipped_own_failed" | "skipped_stage2_failed";
   created: number;
   updated: number;
+  // Stage 2 filterCandidates çıktısının uzunluğu — sadece analiz delta
+  // kartındaki zero_new_tasks_reason ayrımı için (bkz. analysis-delta.ts),
+  // skorlama/kota mantığını etkilemez.
+  filteredCount: number;
 }
 
 async function runStage2AndUpsertTasks(
@@ -547,7 +557,7 @@ async function runStage2AndUpsertTasks(
   aggregates: Omit<ThemeSummaryPersistResult, "hasCompetitorData"> & { hasCompetitorData: boolean },
 ): Promise<TaskGenerationSummary> {
   if (!ownThemes) {
-    return { status: "skipped_own_failed", created: 0, updated: 0 };
+    return { status: "skipped_own_failed", created: 0, updated: 0, filteredCount: 0 };
   }
 
   const competitorsForStage2: CompetitorThemeInput[] = competitorStage1Results
@@ -559,7 +569,7 @@ async function runStage2AndUpsertTasks(
   );
 
   if (!stage2Result) {
-    return { status: "skipped_stage2_failed", created: 0, updated: 0 };
+    return { status: "skipped_stage2_failed", created: 0, updated: 0, filteredCount: 0 };
   }
 
   await setAnalysisStage(supabase, businessId, "tasks");
@@ -578,7 +588,7 @@ async function runStage2AndUpsertTasks(
   const ranked = rankCandidates(scored);
   const { created, updated } = await upsertTasks(supabase, businessId, ranked);
 
-  return { status: "ok", created, updated };
+  return { status: "ok", created, updated, filteredCount: filtered.length };
 }
 
 // Aşama 3 girdisi için bir önceki döngünün skoru — snapshot insert'inden önce
@@ -681,6 +691,7 @@ async function runAnalysisPipeline(
   competitors: { id: string; name: string }[],
   outputLanguage: string,
   notifyContext: { isPro: boolean; ownerEmail: string | null },
+  previousRunAt: string | null,
 ) {
   const now = new Date();
   const windowDays = await determineAnalysisWindowDays(supabase, business.id);
@@ -719,7 +730,12 @@ async function runAnalysisPipeline(
     periodEnd,
   );
 
-  await reopenBurstingDismissedTasks(supabase, business.id, aggregates.previousCounts, aggregates.ownAggregated);
+  const tasksReopened = await reopenBurstingDismissedTasks(
+    supabase,
+    business.id,
+    aggregates.previousCounts,
+    aggregates.ownAggregated,
+  );
 
   // bkz. docs/02-business-rules.md Bölüm G kural 3 — yalnızca Pro plan
   // işletmeler için kritik sinyal kontrolü; free planlarda haftalık özete
@@ -743,6 +759,23 @@ async function runAnalysisPipeline(
     aggregates,
   );
 
+  // bkz. docs/05-ai-pipeline.md "Delta adımı" — Aşama 2/görev üretiminden
+  // sonra, aynı analiz isteği içinde hesaplanır ve analysis_runs.delta'ya
+  // yazılmak üzere döndürülür (bkz. run-manual-analysis.ts, run-cron-analysis-cycle.ts).
+  const delta = await computeAnalysisDelta(supabase, {
+    businessId: business.id,
+    competitors,
+    windowDays,
+    previousRunAt,
+    windowStartIso: cutoffIso,
+    tasksCreated: taskGeneration.created,
+    tasksUpdated: taskGeneration.updated,
+    tasksReopened,
+    ownThemeTrends: aggregates.ownThemeTrends,
+    taskGenerationStatus: taskGeneration.status,
+    filteredCandidateCount: taskGeneration.filteredCount,
+  });
+
   return {
     themeAnalysis: {
       ownersSucceeded: stage1Results
@@ -754,6 +787,7 @@ async function runAnalysisPipeline(
     },
     taskGeneration,
     ownThemeTrends: aggregates.ownThemeTrends,
+    delta,
   };
 }
 
@@ -770,6 +804,7 @@ type ExecuteAnalysisResult =
       themeAnalysis: AnalysisPipelineResult["themeAnalysis"];
       taskGeneration: TaskGenerationSummary;
       scrape: ScrapeMetrics;
+      delta: AnalysisDelta;
     }
   | {
       ok: false;
@@ -793,6 +828,12 @@ export async function executeAnalysis(
     website: string | null;
     trustpilot_domain: string | null;
     trustpilot_checked_at: string | null;
+    // Analiz delta kartı için "önceki koşu" referansı — bu fonksiyonun
+    // aşağıda `last_scraped_at`'i kendi güncellemesinden ÖNCEki (çağıran
+    // tarafın DB'den okuduğu) değer olmalı (bkz. analysis-delta.ts previous_run_at
+    // notu). run-manual-analysis.ts ve run-cron-analysis-cycle.ts bunu business
+    // satırını fetch ederken zaten okuyor.
+    last_scraped_at: string | null;
   },
   competitors: {
     id: string;
@@ -808,6 +849,10 @@ export async function executeAnalysis(
   options?: { apifyTimeoutMs?: number },
 ): Promise<ExecuteAnalysisResult> {
   const apifyTimeoutMs = options?.apifyTimeoutMs ?? DEFAULT_APIFY_TIMEOUT_MS;
+  // Bu fonksiyon aşağıda `businesses.last_scraped_at`'i günceller (scrape
+  // başarılı olduktan hemen sonra) — analiz delta kartının "önceki koşu"
+  // referansı için o güncellemeden ÖNCEki değer burada yakalanır.
+  const previousRunAt = business.last_scraped_at;
 
   // Trustpilot sadece Pro planda çalışır (bkz. docs/02-business-rules.md
   // "Trustpilot'a özgü kurallar"). Pro olmayan kullanıcılarda
@@ -882,12 +927,13 @@ export async function executeAnalysis(
       console.error("last_scraped_at güncellenemedi:", touchError);
     }
 
-    const { themeAnalysis, taskGeneration, ownThemeTrends } = await runAnalysisPipeline(
+    const { themeAnalysis, taskGeneration, ownThemeTrends, delta } = await runAnalysisPipeline(
       supabase,
       { id: business.id, name: business.name, category: business.category },
       competitors,
       outputLanguage,
       notifyContext,
+      previousRunAt,
     );
 
     await setAnalysisStage(supabase, business.id, "summary");
@@ -908,6 +954,7 @@ export async function executeAnalysis(
       themeAnalysis,
       taskGeneration,
       scrape,
+      delta,
     };
   } finally {
     await setAnalysisStage(supabase, business.id, null);

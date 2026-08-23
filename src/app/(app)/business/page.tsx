@@ -8,6 +8,7 @@ import { getNextAnalysisAvailableAt, isAnalysisCooldownActive } from "@/lib/task
 import { calculatePotentialRatingGain } from "@/lib/task-engine/potential-rating-gain";
 import type { Json } from "@/types/database.types";
 
+import { AnalysisDeltaCard } from "./analysis-delta-card";
 import { AnalysisRunTrigger } from "./analysis-run-trigger";
 import { OverviewStatsGrid } from "./overview-stats-grid";
 import { resolveOpenTasks } from "./resolve-open-tasks";
@@ -157,6 +158,8 @@ export default async function OverviewPage() {
       ) : (
         <p className="text-sm text-muted-foreground">{t("notEnoughData")}</p>
       )}
+
+      <AnalysisDeltaCard businessId={business!.id} />
 
       <SatisfactionCard t={tSatisfaction} overview={satisfaction} compact />
 

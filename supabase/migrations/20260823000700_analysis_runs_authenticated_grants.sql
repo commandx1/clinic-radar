@@ -1,0 +1,29 @@
+-- ============ analysis_runs: authenticated GRANT'ları ============
+-- bkz. docs/03-database.md, CLAUDE.md "rolbypassrls GRANT yerine geçmez".
+--
+-- Bug (2026-08-23, tarayıcıda UI doğrulaması sırasında yakalandı): `analysis_runs`
+-- RLS politikalarına (analysis_runs_owner_select/insert/update) sahipti ama
+-- `authenticated` rolüne tablo düzeyinde HİÇBİR SELECT/INSERT/UPDATE grant'ı
+-- verilmemişti — public şemasındaki tablolar arasında bu durumdaki TEK tablo.
+-- Policy tek başına yetmez; Postgres önce GRANT'a bakar.
+--
+-- İki sonucu vardı:
+--   1. **Manuel analiz koşuları hiç loglanmıyordu.** `acquireAnalysisRun`
+--      (run-manual-analysis.ts, kullanıcı oturumlu client) insert'te
+--      "permission denied" alıyor, bunu 23505 (unique) DIŞI bir hata olarak
+--      görüp `{ ok: true, runId: null }` dönüyordu — yani analiz çalışmaya
+--      devam ediyor ama `analysis_runs` satırı hiç oluşmuyordu. Graceful
+--      degradation olduğu için sessizce yıllarca fark edilmeyebilirdi
+--      (cron yolu service_role kullandığından etkilenmiyordu, bkz.
+--      20260711000000_service_role_grants.sql).
+--   2. **"Bu analizde ne değişti" kartı hiç render edilmiyordu** (Faz 2.2).
+--      `resolveAnalysisDelta` kullanıcı oturumuyla `analysis_runs`'ı okuyor,
+--      permission denied alıyor, `data` null geldiği için kart kendini
+--      gizliyordu — özellik uygulamada %100 görünmezdi.
+--
+-- Kapsam: kullanıcının kendi işletmesinin koşularını okuması (kart + gelecekteki
+-- "analiz geçmişi" görünümleri) ve manuel koşuyu başlatıp kapatabilmesi
+-- (insert + update). DELETE bilinçli olarak verilmiyor — koşu geçmişi
+-- kullanıcı tarafından silinmez. Satır bazlı kısıt zaten RLS politikalarında.
+
+grant select, insert, update on public.analysis_runs to authenticated;

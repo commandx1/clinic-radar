@@ -1,14 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
-import type { ReviewsTranslator } from "./review-card";
 import { useReplyDraft, type ReplyTone } from "./use-reply-draft";
+
+// bkz. review-card.tsx — bu bir CLIENT component; server tarafındaki
+// `getTranslations` çevirmeni (fonksiyon) prop olarak GEÇİRİLEMEZ
+// ("Functions cannot be passed directly to Client Components", 2026-08-23'te
+// Reviews sayfasını komple çökertiyordu). Client tarafında next-intl'in kendi
+// hook'u kullanılır; anahtar uzayı server tarafıyla birebir aynı.
+type ReviewsTranslator = ReturnType<typeof useTranslations<"business.reviews">>;
 
 function ToneToggle({
   tone,
@@ -93,15 +100,14 @@ export function ReplyDraftPanel({
   initialMarkedAt,
   reviewUrl,
   sourceLabel,
-  t,
 }: {
   reviewId: string;
   initialDraft: string | null;
   initialMarkedAt: string | null;
   reviewUrl: string | null;
   sourceLabel: string | null;
-  t: ReviewsTranslator;
 }) {
+  const t = useTranslations("business.reviews");
   const { tone, setTone, draftText, setDraftText, markedAt, generate, isGenerating, generateErrorCode, toggleMarked, isMarking } =
     useReplyDraft(reviewId, initialDraft, initialMarkedAt);
   const [copied, setCopied] = useState(false);

@@ -77,7 +77,6 @@ export function ReviewCard({
             initialMarkedAt={review.reply_marked_at}
             reviewUrl={review.review_url}
             sourceLabel={labelKey ? t(labelKey) : null}
-            t={t}
           />
         )}
       </CardContent>

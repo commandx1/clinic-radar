@@ -118,7 +118,7 @@
         "gapBehind": "You're {value} points below the competitor median",
         "gapAhead": "You're {value} points ahead",
         "gapEven": "You're tied with the competitor median",
-        "revenueUplift": "Estimated revenue impact of closing the gap: +%{min}–{max}",
+        "revenueUplift": "Estimated revenue impact of closing the gap: +{min}–{max}%",
         "revenueUpliftHint": "source: +1 star ≈ +5–9% revenue (published local-business research)",
         "annualRevenue": "≈ ${min}–{max} / year",
         "annualRevenueCta": "Enter your patient value and monthly new patients to see a $ estimate",

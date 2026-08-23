@@ -73,6 +73,51 @@ describe("buildOutcomeMetric", () => {
     });
   });
 
+  // bkz. docs/09-task-engine.md "Görev sonuç takibi" + theme-similarity.ts —
+  // tam eşleşme kaçarsa (model temayı morfolojik olarak farklı adlandırmışsa)
+  // fuzzy güvenlik ağı devreye girer; sahte "absent" (ve dolayısıyla sahte
+  // "improved" verdict'i, bkz. aşağıdaki compareOutcome testi) üretilmemeli.
+  it("tam eşleşme kaçarsa ama morfolojik varyant varsa (fuzzy güvenlik ağı) onu bulur, absent=false", () => {
+    const metric = buildOutcomeMetric(
+      { theme: "Randevu sürecinde", source_type: "competitive_gap" },
+      {
+        ownAggregated: [theme({ theme: "Randevu süreci", positive_mentions: 2, negative_mentions: 6 })],
+        ownReply: { total: 0, replied: 0 },
+        ownWebsite: null,
+        measuredAt: MEASURED_AT,
+        windowDays: 90,
+      },
+    );
+
+    expect(metric).toEqual({
+      kind: "theme",
+      theme: "Randevu sürecinde",
+      positive: 2,
+      negative: 6,
+      negative_ratio: 0.75,
+      absent: false,
+      measured_at: MEASURED_AT,
+      window_days: 90,
+    });
+  });
+
+  it("gerçek pilot rephrasing'i (tam token rephrase) fuzzy güvenlik ağını da geçemez, absent=true kalır — bu Part A'nın (known-theme vocabulary) işi", () => {
+    const metric = buildOutcomeMetric(
+      { theme: "Sahte online yorum iddiası", source_type: "absolute_quality" },
+      {
+        ownAggregated: [
+          theme({ theme: "Sahte yorum ve itibar manipülasyonu şüphesi", positive_mentions: 0, negative_mentions: 4 }),
+        ],
+        ownReply: { total: 0, replied: 0 },
+        ownWebsite: null,
+        measuredAt: MEASURED_AT,
+        windowDays: 90,
+      },
+    );
+
+    expect(metric).toMatchObject({ absent: true, positive: 0, negative: 0 });
+  });
+
   it("toplam mention 0 iken negative_ratio 0 kalır (bölme hatası yok)", () => {
     const metric = buildOutcomeMetric(
       { theme: "Hijyen", source_type: "competitive_gap" },
@@ -275,6 +320,39 @@ describe("compareOutcome", () => {
       measured_at: MEASURED_AT,
       window_days: 90,
     };
+    expect(compareOutcome(baseline, latest)).toBe("flat");
+  });
+
+  // Yeniden adlandırılan bir tema, benzerlik ağı yakaladığı sürece "absent"
+  // kısayolu üzerinden sahte bir "improved" verdict'i üretmemeli. Uçtan
+  // uca: buildOutcomeMetric fuzzy güvenlik ağıyla morfolojik varyantı bulur
+  // (absent=false), compareOutcome bu yüzden "yok oldu" kısayolunu (yukarıdaki
+  // testler) DEĞİL, gerçek negative_ratio kıyasını kullanır.
+  it("tema morfolojik olarak yeniden adlandırılsa da (fuzzy eşleşme) negatif oran değişmediyse flat kalır — sahte 'improved' ÜRETİLMEZ", () => {
+    const baseline: OutcomeMetric = {
+      kind: "theme",
+      theme: "Randevu süreci",
+      positive: 2,
+      negative: 6,
+      negative_ratio: 0.75,
+      absent: false,
+      measured_at: "2026-08-01T00:00:00.000Z",
+      window_days: 90,
+    };
+    // Aynı döngüdeki gerçek mention dağılımı DEĞİŞMEDİ, sadece AI bu döngüde
+    // temayı "Randevu sürecinde" olarak etiketledi.
+    const latest = buildOutcomeMetric(
+      { theme: "Randevu süreci", source_type: "competitive_gap" },
+      {
+        ownAggregated: [theme({ theme: "Randevu sürecinde", positive_mentions: 2, negative_mentions: 6 })],
+        ownReply: { total: 0, replied: 0 },
+        ownWebsite: null,
+        measuredAt: MEASURED_AT,
+        windowDays: 90,
+      },
+    );
+
+    expect(latest).toMatchObject({ absent: false, negative_ratio: 0.75 });
     expect(compareOutcome(baseline, latest)).toBe("flat");
   });
 

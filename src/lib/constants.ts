@@ -48,6 +48,35 @@ export const MAX_NEW_TASKS_PER_CYCLE = 5;
 export const THEME_TREND_DELTA_THRESHOLD = 0.1;
 export const THEME_TREND_MIN_MENTIONS = 5;
 
+// bkz. docs/05-ai-pipeline.md "known-theme vocabulary", docs/06-prompts.md
+// Aşama 1 — gerçek iki döngülük Mersin diş kliniği pilotunda tema etiketleri
+// döngüler arasında rephrase edildiği (ör. "Tedavi sürecinde bilgilendirme ve
+// şeffaflık" → "Tedavi süreci hakkında detaylı bilgilendirme") tespit edildi;
+// bu, tema-tabanlı eşleştirmeye dayanan HER ŞEYİ (task dedup, outcome lookup,
+// trend, dismissed reopen) sessizce kırıyordu. Birincil çözüm: bir önceki
+// döngüde kullanılmış tema etiketlerini Aşama 1 çağrısına "sözlük" olarak
+// vermek — model aynı konu için etiketi AYNEN tekrar kullanmaya yönlendirilir.
+// Prompt boyutunu sınırlı tutmak için bu sözlük en çok bahsedilen temadan
+// başlayarak bu kadar etiketle sınırlanır (bkz. execute-analysis.ts
+// fetchPreviousThemeData).
+export const STAGE1_KNOWN_THEME_VOCABULARY_LIMIT = 40;
+
+// bkz. docs/02-business-rules.md Bölüm C/D/E, src/lib/task-engine/theme-similarity.ts
+// — vocabulary kuralına (yukarıdaki STAGE1_KNOWN_THEME_VOCABULARY_LIMIT) rağmen
+// model yine de farklı bir etiket üretirse diye ikincil bir güvenlik ağı: token
+// (Türkçe ek toleranslı, 5 karaktere kırpılmış) Jaccard benzerliği bu eşiği
+// (veya fazlasını) geçen en iyi aday "aynı tema" kabul edilir. Sadece dar
+// morfolojik varyantları (ör. "randevu süreci"/"randevu sürecinde",
+// "temizlik"/"temizliği" — ölçülen jaccard = 1.0) yakalayacak şekilde kalibre
+// edildi. DÜRÜST SINIR: gerçek iki-döngülük pilot verisindeki hiçbir rephrasing
+// (bkz. yukarıdaki örnek) bu eşiği geçmiyor — hatta bazı "aynı aile" morfolojik
+// varyantlar bile (ör. "bekleme süresi"/"bekleme süreleri" → jaccard ≈ 0.33)
+// eşiğin altında kalıyor, çünkü tek kelimelik temalarda tek token'ın 5 karaktere
+// kırpılması ekleri her zaman aynı noktada kesmiyor. Eşiği bunları da
+// yakalayacak kadar düşürmek alakasız temaların yanlışlıkla birleşmesi riskini
+// artırır — ölçülen gerçek skorlar için src/lib/task-engine/theme-similarity.test.ts.
+export const THEME_SIMILARITY_THRESHOLD = 0.6;
+
 // Priority türetme formülü — bkz. docs/09-task-engine.md
 export const TASK_PRIORITY_HIGH_THRESHOLD = 30;
 export const TASK_PRIORITY_MEDIUM_THRESHOLD = 12;

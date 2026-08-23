@@ -36,6 +36,28 @@ export interface ReviewInput {
   published_at: string | null;
 }
 
+// Sağlayıcıdan bağımsız Aşama 1 girdi sözleşmesi — hem claude/theme-extraction.ts
+// hem gemini/theme-extraction.ts bunu birebir kullanır (extractThemes params),
+// böylece iki sağlayıcı da otomatik olarak aynı alanları taşımak zorunda kalır.
+export interface Stage1ExtractThemesParams {
+  businessName: string;
+  category: string | null;
+  reviews: ReviewInput[];
+  outputLanguage: string;
+  windowDays: number;
+  // bkz. docs/05-ai-pipeline.md "known-theme vocabulary", docs/02-business-rules.md
+  // Bölüm C/D/E "tema etiketi kayması" (gerçek Mersin diş kliniği pilotu,
+  // 2026-08 — aynı konu iki döngü arasında farklı etiketlendi ve dedup/outcome/
+  // trend eşleştirmesi sessizce kırıldı). Bir önceki döngüde bu owner scope'unda
+  // (own çağrısı için own'un kendi önceki etiketleri; her rakip çağrısı için
+  // önceki AGREGAT rakip etiketleri — tek tek rakip değil, bkz.
+  // execute-analysis.ts fetchPreviousThemeData) kullanılmış tema etiketleri, en
+  // çok bahsedilenden başlayarak en fazla STAGE1_KNOWN_THEME_VOCABULARY_LIMIT
+  // (constants.ts) adet. İlk analizde (önceki döngü yok) boş dizi — bu durumda
+  // prompt'a hiçbir sözlük eklenmez (bkz. buildStage1UserPrompt).
+  knownThemes: string[];
+}
+
 // ÖNEMLİ: "theme" alanının çıktı dilinde üretilmesi zorunlu tutuluyor çünkü
 // aggregate-competitor-themes.ts, temaları normalizeTheme() (sadece
 // trim+lowercase, fuzzy eşleştirme YOK) ile birleştiriyor. Model tema
@@ -60,18 +82,21 @@ export function buildStage1SystemPrompt(outputLanguage: string): string {
     "yüksek fiyat, resepsiyon nezaketsizliği vb.) için \"normal\" kullan — " +
     "\"critical\"ı sadece gerçekten ciddi durumlar için kullan, aksi halde " +
     "gürültü yaratırsın. " +
+    "Sana ayrıca önceki analiz döngüsünde bu işletme için kullanılmış tema " +
+    "etiketlerinin bir listesi verilebilir (varsa). Bulduğun bir tema bu " +
+    "listedeki etiketlerden biriyle AYNI konuyu anlatıyorsa, o etiketi " +
+    "karakter karakter (birebir) AYNEN kullanmalısın — yeni bir isim uydurma; " +
+    "yalnızca gerçekten yeni bir konu için yeni bir etiket oluştur. Bu liste " +
+    "bir SÖZLÜKTÜR, bir KONTROL LİSTESİ DEĞİLDİR: listede olan ama bu " +
+    "yorumlarda hiç geçmeyen bir etiket için zorla bir tema uydurma ya da var " +
+    "olmayan mention'lar icat etme. " +
     `"theme" ve "summary" alanlarını, girdi yorumların dili ne olursa olsun ` +
     `(yorumlar çok dilli olabilir) her zaman "${outputLanguage}" dilinde yaz. ` +
     "Sadece belirtilen JSON şemasında yanıt ver."
   );
 }
 
-export function buildStage1UserPrompt(params: {
-  businessName: string;
-  category: string | null;
-  reviews: ReviewInput[];
-  windowDays: number;
-}): string {
+export function buildStage1UserPrompt(params: Stage1ExtractThemesParams): string {
   const reviewList = params.reviews.map((r) => ({
     rating: r.rating,
     text: r.text,
@@ -79,10 +104,26 @@ export function buildStage1UserPrompt(params: {
     published_at: r.published_at,
   }));
 
-  return [
+  const lines = [
     `İşletme: ${params.businessName}${params.category ? ` (${params.category})` : ""}`,
     `Yorumlar (son ${String(params.windowDays)} gün, ${String(params.reviews.length)} adet):`,
     JSON.stringify(reviewList),
+  ];
+
+  // bkz. yukarıdaki Stage1ExtractThemesParams.knownThemes notu — ilk analizde
+  // (liste boş) bu bölüm hiç eklenmez, prompt'a gereksiz gürültü katılmaz.
+  if (params.knownThemes.length > 0) {
+    lines.push(
+      "",
+      "Önceki analiz döngüsünde kullanılan tema etiketleri (bu bir SÖZLÜKTÜR: " +
+        "bulduğun bir tema bu etiketlerden biriyle aynı konuysa AYNEN tekrar " +
+        "kullan; burada olmayan yeni bir tema bulman engellenmez; buradaki bir " +
+        "etiket bu yorumlarda hiç geçmiyorsa onu zorla kullanma):",
+      JSON.stringify(params.knownThemes),
+    );
+  }
+
+  lines.push(
     "",
     "Her tekrar eden tema için:",
     '- theme: kısa tema adı (ör. "bekleme süresi", "fiyat şeffaflığı")',
@@ -91,5 +132,7 @@ export function buildStage1UserPrompt(params: {
     "- summary: kendi cümlelerinle 1 cümlelik özet (asla alıntı değil)",
     '- treatment: ilgili tedavi/hizmet türü (ör. "implant", "ortodonti") ya da null',
     "- severity: normal | critical (sağlık/güvenlik zararı, ciddi etik/yasal risk ya da dolandırıcılık iddiası içeren EN AZ BİR yorum varsa critical, aksi halde normal)",
-  ].join("\n");
+  );
+
+  return lines.join("\n");
 }

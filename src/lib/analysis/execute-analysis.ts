@@ -45,6 +45,7 @@ import {
   AI_ANALYSIS_WINDOW_DAYS_STEPS,
   MAX_NEW_TASKS_PER_CYCLE,
   REVIEWS_FETCH_MAX_PER_SOURCE_REF,
+  STAGE1_KNOWN_THEME_VOCABULARY_LIMIT,
   THEME_TREND_DELTA_THRESHOLD,
   THEME_TREND_MIN_MENTIONS,
 } from "@/lib/constants";
@@ -54,8 +55,9 @@ import { fetchReviewsFromAllSources } from "@/lib/reviews/fetch-all";
 import type { ReviewSource, ScrapedSourceReview } from "@/lib/reviews/types";
 import { calculateClinicScore, calculateCompetitorRank } from "@/lib/task-engine/clinic-score";
 import { derivePriority } from "@/lib/task-engine/priority";
-import { normalizeTheme, selectThemesToReopen } from "@/lib/task-engine/reopen";
+import { selectThemesToReopen } from "@/lib/task-engine/reopen";
 import { buildOutcomeMetric, type BuildOutcomeMetricContext } from "@/lib/task-engine/task-outcome";
+import { findSimilarTheme, normalizeTheme } from "@/lib/task-engine/theme-similarity";
 import type { Database, Json, TablesInsert } from "@/types/database.types";
 
 // bkz. docs/04-api.md — Apify çağrısının varsayılan zaman aşımı; manuel
@@ -262,17 +264,32 @@ async function fetchRecentReviews(
   return byOwner;
 }
 
+// bkz. docs/05-ai-pipeline.md "known-theme vocabulary" — own çağrısı own'un
+// kendi önceki etiketlerini, her rakip çağrısı ise önceki döngünün AGREGAT
+// rakip etiketlerini (tek tek rakibin değil — bkz. fetchPreviousThemeData)
+// alır; böylece etiketler hem döngüler arasında hem de aynı döngüdeki
+// rakipler arasında tutarlı kalır.
 async function runStage1ForOwners(
   owners: OwnerInfo[],
   reviewsByOwnerId: Map<string, ReviewInput[]>,
   outputLanguage: string,
   windowDays: number,
+  ownKnownThemes: string[],
+  competitorKnownThemes: string[],
 ): Promise<Stage1Result[]> {
   return Promise.all(
     owners.map(async (owner): Promise<Stage1Result> => {
       const reviews = reviewsByOwnerId.get(owner.id) ?? [];
+      const knownThemes = owner.ownerType === "own" ? ownKnownThemes : competitorKnownThemes;
       const result = await withRetryOnce(() =>
-        extractThemes({ businessName: owner.name, category: owner.category, reviews, outputLanguage, windowDays }),
+        extractThemes({
+          businessName: owner.name,
+          category: owner.category,
+          reviews,
+          outputLanguage,
+          windowDays,
+          knownThemes,
+        }),
       );
       return { owner, result };
     }),
@@ -299,8 +316,14 @@ interface MentionCounts {
 
 // bkz. docs/02-business-rules.md Bölüm C — trend AI değil kod tarafında,
 // döngüler arası negatif oran deltasından hesaplanır. Önceki döngüde tema yoksa
-// (model temayı farklı adlandırmışsa da eşleşme kaçar — fuzzy eşleştirme yok,
-// bilinçli sınırlama) trend null kalır.
+// trend null kalır. BURADA BİLİNÇLİ OLARAK yalnızca exact (normalize edilmiş)
+// eşleşme kullanılır — theme-similarity.ts'teki fuzzy güvenlik ağı buraya
+// KASITLI OLARAK eklenmedi (Faz 2.8'de trend/scoring semantiği bilinçli olarak
+// değiştirilmedi). Model artık aynı konu için etiketi tekrar kullanmaya
+// yönlendiriliyor (bkz. docs/05-ai-pipeline.md "known-theme vocabulary",
+// fetchPreviousThemeData) — bu, eşleşmenin döngüler arası kaçma olasılığını
+// asıl kaynağında azaltır; eşleşme yine de kaçarsa trend null kalmaya devam
+// eder (bilinçli sınırlama).
 function computeTrend(prev: MentionCounts | undefined, next: MentionCounts): ThemeTrendInput["trend"] {
   const nextTotal = next.positive_mentions + next.negative_mentions;
   if (!prev || nextTotal < THEME_TREND_MIN_MENTIONS) {
@@ -320,22 +343,62 @@ function computeTrend(prev: MentionCounts | undefined, next: MentionCounts): The
   return "stable";
 }
 
-// Önceki döngünün satırları delete-then-reinsert ile silineceği için trend
-// karşılaştırma verisi delete'lerden ÖNCE okunur.
-async function fetchPreviousThemeCounts(
+interface PreviousThemeData {
+  counts: Map<string, MentionCounts>;
+  // bkz. docs/05-ai-pipeline.md "known-theme vocabulary" — Aşama 1'e geçirilen
+  // sözlükler, en çok bahsedilen temadan başlayarak en fazla
+  // STAGE1_KNOWN_THEME_VOCABULARY_LIMIT adet (prompt boyutunu sınırlamak için).
+  ownVocabulary: string[];
+  // Sadece toplulaştırılmış (competitor_id NULL) satırlardan — rakip bazlı
+  // satırlar (competitor_id dolu) dahil edilmez, aksi halde aynı tema N rakip
+  // kadar tekrar sayılıp sıralamayı bozar.
+  competitorAggregateVocabulary: string[];
+}
+
+// En çok bahsedilen (positive+negative toplamı en yüksek) temadan başlayarak
+// sınırlar — bkz. STAGE1_KNOWN_THEME_VOCABULARY_LIMIT.
+function buildThemeVocabulary(rows: { theme: string; total: number }[]): string[] {
+  return [...rows]
+    .sort((a, b) => b.total - a.total)
+    .slice(0, STAGE1_KNOWN_THEME_VOCABULARY_LIMIT)
+    .map((row) => row.theme);
+}
+
+// Önceki döngünün satırları delete-then-reinsert ile silineceği için hem trend
+// karşılaştırma verisi (counts) hem de Aşama 1'e geçirilecek known-theme
+// sözlükleri (ownVocabulary/competitorAggregateVocabulary — bkz.
+// docs/05-ai-pipeline.md) AYNI sorguda, delete'lerden ÖNCE okunur. Bu yüzden
+// (trend hesabının aksine) bu fonksiyon artık Stage 1 çağrılarından ÖNCE
+// çalıştırılır (bkz. runAnalysisPipeline) — counts, persistThemeSummary'ye
+// parametre olarak geçirilir.
+async function fetchPreviousThemeData(
   supabase: AnalysisSupabaseClient,
   businessId: string,
-): Promise<Map<string, MentionCounts>> {
+): Promise<PreviousThemeData> {
   const { data } = await supabase
     .from("theme_summary")
     .select("owner_type, competitor_id, theme, positive_mentions, negative_mentions")
     .eq("business_id", businessId);
 
-  const byKey = new Map<string, MentionCounts>();
+  const counts = new Map<string, MentionCounts>();
+  const ownRows: { theme: string; total: number }[] = [];
+  const competitorAggregateRows: { theme: string; total: number }[] = [];
+
   for (const row of data ?? []) {
-    byKey.set(`${row.owner_type}|${row.competitor_id ?? "agg"}|${normalizeTheme(row.theme)}`, row);
+    counts.set(`${row.owner_type}|${row.competitor_id ?? "agg"}|${normalizeTheme(row.theme)}`, row);
+    const total = row.positive_mentions + row.negative_mentions;
+    if (row.owner_type === "own") {
+      ownRows.push({ theme: row.theme, total });
+    } else if (row.owner_type === "competitor" && row.competitor_id === null) {
+      competitorAggregateRows.push({ theme: row.theme, total });
+    }
   }
-  return byKey;
+
+  return {
+    counts,
+    ownVocabulary: buildThemeVocabulary(ownRows),
+    competitorAggregateVocabulary: buildThemeVocabulary(competitorAggregateRows),
+  };
 }
 
 // bkz. docs/10-roadmap.md Faz 1.2 madde 3 — `competitorId` verilirse (own hariç)
@@ -393,9 +456,11 @@ async function persistThemeSummary(
   competitorStage1Results: Stage1Result[],
   periodStart: string,
   periodEnd: string,
+  // bkz. fetchPreviousThemeData — artık burada değil, Stage 1 çağrılarından
+  // ÖNCE (runAnalysisPipeline) okunur (known-theme vocabulary ihtiyacı için);
+  // trend hesabı aynı veriyi burada parametre olarak alır, davranış DEĞİŞMEDİ.
+  previousCounts: Map<string, MentionCounts>,
 ): Promise<ThemeSummaryPersistResult> {
-  const previousCounts = await fetchPreviousThemeCounts(supabase, businessId);
-
   const ownAggregated = ownResult
     ? aggregateCompetitorThemes([{ competitorId: "own", themes: ownResult.themes }])
     : [];
@@ -492,7 +557,9 @@ async function reopenBurstingDismissedTasks(
   return matchedIds.length;
 }
 
-async function upsertTasks(
+// export edilir: execute-analysis.test.ts fuzzy dedup (theme-similarity.ts
+// güvenlik ağı, Faz 2.8) davranışını doğrudan test eder.
+export async function upsertTasks(
   supabase: AnalysisSupabaseClient,
   businessId: string,
   candidates: ScoredTaskCandidate[],
@@ -504,7 +571,7 @@ async function upsertTasks(
   for (const candidate of candidates) {
     const priority = derivePriority(candidate.impact_score, candidate.effort_score);
 
-    const { data: existing } = await supabase
+    const { data: exactMatch } = await supabase
       .from("tasks")
       .select("id")
       .eq("business_id", businessId)
@@ -513,14 +580,43 @@ async function upsertTasks(
       .eq("status", "open")
       .maybeSingle();
 
-    // Kota yalnızca yeni oluşturmaları sınırlar; güncellemeler her zaman
-    // işlenir (skor/öncelik taze kalsın). Liste skor sıralı geldiği için
-    // "ilk 5 yeni" = en yüksek fırsat skorlu 5 yeni aday.
-    if (!existing && created >= MAX_NEW_TASKS_PER_CYCLE) {
+    let existingId = exactMatch?.id ?? null;
+
+    // bkz. docs/02-business-rules.md Bölüm D, src/lib/task-engine/theme-similarity.ts
+    // — exact dedup kaçarsa (Aşama 1 modeli aynı temayı bu döngüde hafifçe
+    // farklı adlandırmışsa; birincil savunma known-theme vocabulary'dir, bkz.
+    // docs/05-ai-pipeline.md, ama bu bir güvenlik ağıdır) aynı source_type
+    // içindeki AÇIK görevler arasında morfolojik olarak benzer bir tema aranır.
+    // Bulunursa o görev candidate'in GÜNCEL skor/başlık/açıklamasıyla
+    // güncellenir — theme kolonu ve outcome_baseline (görevin kendi geçmişi)
+    // BİLİNÇLİ OLARAK dokunulmadan kalır (aşağıdaki UPDATE payload'ında ikisi
+    // de yok), aksi halde iki döngü arasında sadece etiket kaydığı için aynı
+    // konuyu takip eden görev sanki yeni doğmuş gibi baseline'ını kaybederdi.
+    if (!existingId) {
+      const { data: openSameSourceType } = await supabase
+        .from("tasks")
+        .select("id, theme")
+        .eq("business_id", businessId)
+        .eq("source_type", candidate.source_type)
+        .eq("status", "open");
+
+      const openThemeLabels = (openSameSourceType ?? [])
+        .map((t) => t.theme)
+        .filter((theme): theme is string => theme !== null);
+      const similarLabel = findSimilarTheme(candidate.theme, openThemeLabels);
+      existingId = similarLabel
+        ? ((openSameSourceType ?? []).find((t) => t.theme === similarLabel)?.id ?? null)
+        : null;
+    }
+
+    // Kota yalnızca yeni oluşturmaları sınırlar; güncellemeler (exact ya da
+    // fuzzy eşleşme) her zaman işlenir (skor/öncelik taze kalsın). Liste skor
+    // sıralı geldiği için "ilk 5 yeni" = en yüksek fırsat skorlu 5 yeni aday.
+    if (!existingId && created >= MAX_NEW_TASKS_PER_CYCLE) {
       continue;
     }
 
-    if (existing) {
+    if (existingId) {
       await supabase
         .from("tasks")
         .update({
@@ -533,7 +629,7 @@ async function upsertTasks(
           based_on_competitor_id: candidate.based_on_competitor_id,
           last_priority_recalc_at: new Date().toISOString(),
         })
-        .eq("id", existing.id);
+        .eq("id", existingId);
       updated += 1;
     } else {
       // bkz. supabase/migrations/20260823000400_tasks_outcome.sql, docs/09-task-engine.md
@@ -857,13 +953,27 @@ async function runAnalysisPipeline(
   );
 
   await setAnalysisStage(supabase, business.id, "themes");
+  // bkz. docs/05-ai-pipeline.md "known-theme vocabulary" — önceki döngünün
+  // theme_summary satırları bu döngüde SİLİNECEĞİ için (persistThemeSummary
+  // içindeki replaceThemeSummaryRows), hem trend karşılaştırma verisi hem de
+  // Aşama 1'e geçirilecek etiket sözlükleri Stage 1 çağrılarından ÖNCE, TEK
+  // sorguda okunur.
+  const previousThemeData = await fetchPreviousThemeData(supabase, business.id);
+
   // bkz. src/lib/analysis/recent-ratings.ts — own+rakip Aşama 1 tema
   // analiziyle bağımsız, aynı anda çalıştırılır (ikisi de sadece bu
   // döngünün pencere içindeki yorumlarını okur). Önceki recent_rating
   // değerleri bu çağrı içinde UPDATE'ten ÖNCE okunur (rakip uyarıları
   // competitor_rating_shift için gerekli).
   const [stage1Results, recentRatings] = await Promise.all([
-    runStage1ForOwners(owners, reviewsByOwnerId, outputLanguage, windowDays),
+    runStage1ForOwners(
+      owners,
+      reviewsByOwnerId,
+      outputLanguage,
+      windowDays,
+      previousThemeData.ownVocabulary,
+      previousThemeData.competitorAggregateVocabulary,
+    ),
     computeAndPersistRecentRatings(supabase, business, competitors, cutoffIso, windowDays),
   ]);
   const ownStage1 = stage1Results.find((r) => r.owner.ownerType === "own") ?? null;
@@ -876,6 +986,7 @@ async function runAnalysisPipeline(
     competitorStage1Results,
     periodStart,
     periodEnd,
+    previousThemeData.counts,
   );
 
   const tasksReopened = await reopenBurstingDismissedTasks(

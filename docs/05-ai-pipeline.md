@@ -51,6 +51,33 @@ Klasik NLP mimarisinde (embedding → ayrı theme detection → ayrı intent det
 - **own vs competitor toplulaştırması:** Aşama 1, own + her seçili rakip için AYRI AYRI çağrılır (rakip bazlı analiz doğruluğu ve Aşama 2'nin rakip kimliğine ihtiyacı için). Ama `theme_summary.owner_type='competitor'` satırları TEK bir rakibi değil, TÜM seçili rakiplerin toplamını temsil eder (tabloda rakip kimliğini tutan bir kolon yok, bkz. `03-database.md`) — N rakibin Aşama 1 çıktısı tema bazında (normalize edilmiş isimle, fuzzy eşleştirme yok) toplanıp tek bir `owner_type='competitor'` satır kümesi olarak yazılır.
 - **Negatif/pozitif mention eşiği** (`02-business-rules.md` Bölüm D) burada değil, Aşama 2'de görev filtrelemesinde uygulanır.
 - **Severity alanı:** her tema öğesi bir `severity: "normal" | "critical"` alanı taşır. Model, temaya değinen yorumlardan en az biri sağlık/güvenlik zararı, ciddi bir etik/yasal risk ya da dolandırıcılık iddiası içeriyorsa `critical` işaretler — mention_count'tan bağımsız (`06-prompts.md`). `aggregate-competitor-themes.ts` aynı normalize temaya gelen birden fazla kaynaktan HERHANGİ BİRİ `critical` derse aggregate `critical` olur. `theme_summary.severity`'ye yazılır ve own tarafında Aşama 2 filtrelemesindeki mention eşiğini atlamak için kullanılır (`02-business-rules.md` Bölüm D).
+- **Known-theme vocabulary (Faz 2.8 — tema etiketi kayması düzeltmesi).** **Problem, gerçek veriyle bulundu:**
+  Mersin diş kliniği pilotunda, AYNI yorumlar üzerinde art arda koşulan iki analiz döngüsünde model aynı
+  konuya farklı tema etiketleri verdi (ör. "Tedavi sürecinde bilgilendirme ve şeffaflık" → "Tedavi süreci
+  hakkında detaylı bilgilendirme", "Sahte online yorum iddiası" → "Sahte yorum ve itibar manipülasyonu
+  şüphesi"). Kod tabanındaki her tema-tabanlı eşleştirme (görev dedup, outcome takibi, `theme_summary.trend`,
+  dismissed reopen) normalize edilmiş (trim+lowercase) EXACT string eşitliği kullandığı için bu kayma
+  sessizce eşleşmeyi kaçırdı — görev dedup'u kaçırınca aynı konu için mükerrer görev oluştu, outcome takibi
+  eski etiketi "artık hiç geçmiyor" (absent) sayıp sahte bir "improved" verdict'i üretti.
+  **Çözüm:** Aşama 1 çağrısına, önceki analiz döngüsünde AYNI owner scope'unda (own çağrısı için own'un kendi
+  önceki etiketleri; her rakip çağrısı için önceki döngünün AGREGAT rakip etiketleri — tek tek rakip değil,
+  böylece aynı döngüdeki rakipler arasında da etiketler tutarlı kalır) kullanılmış tema etiketleri, en çok
+  bahsedilenden başlayarak en fazla `STAGE1_KNOWN_THEME_VOCABULARY_LIMIT` (40, `constants.ts`) adet
+  `knownThemes: string[]` olarak geçirilir (`Stage1ExtractThemesParams`,
+  `src/lib/ai-pipeline/theme-extraction-schema.ts` — sağlayıcıdan bağımsız, Claude/Gemini implementasyonları
+  aynı tipi kullanır). Model bu listeyi bir SÖZLÜK olarak kullanır: aynı konu için aynı etiketi AYNEN tekrar
+  kullanır, ama listedeki bir etiket bu döngünün yorumlarında hiç geçmiyorsa onu zorla kullanmaz (bkz.
+  `06-prompts.md`). İlk analizde (önceki döngü yok) liste boştur, prompt'a hiç eklenmez.
+  **Wiring:** `execute-analysis.ts` `fetchPreviousThemeData` — önceki döngünün `theme_summary` satırları bu
+  döngüde silineceği için (delete-then-reinsert, bkz. aşağıdaki "own vs competitor toplulaştırması"), hem
+  trend karşılaştırma verisi (`previousCounts`) hem de bu sözlükler AYNI sorguda, delete'lerden ÖNCE, Stage 1
+  çağrılarından ÖNCE okunur.
+  **İkincil güvenlik ağı (kod tarafı, AI değil):** vocabulary kuralına rağmen model yine de farklı bir etiket
+  üretirse diye `src/lib/task-engine/theme-similarity.ts` (`findSimilarTheme`) morfolojik varyantları (Türkçe
+  ek toleranslı, kaba token benzerliği) yakalayan bir güvenlik ağı sağlar — SADECE görev dedup'unda ve outcome
+  eşleştirmesinde kullanılır, trend/reopen KASITLI OLARAK hâlâ exact match kullanır. Bu ağın bilinen sınırı:
+  tam yeniden ifade etmeleri (yukarıdaki gerçek pilot örnekleri) yakalamaz — onlar için asıl savunma
+  yukarıdaki vocabulary kuralıdır. Detay ve eşikler: `02-business-rules.md` Bölüm C/D/E, `09-task-engine.md`.
 
 ## Aşama 2 detayı
 - **Ne zaman çalışır:** Aşama 1 tüm seçili işletmeler için tamamlandıktan sonra.

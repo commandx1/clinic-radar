@@ -61,6 +61,21 @@ else                    → priority = "low"
 ```
 Bu eşikler ilk 20-30 gerçek görev üzerinde kalibre edilmeli — başlangıç değerleri olarak kullanılsın.
 
+## Görev dedup (`upsertTasks`, mükerrer görev üretmeyi önleme)
+Kural kaynağı `02-business-rules.md` Bölüm D — burada sadece mekanizma özetlenir. `upsertTasks`
+(`src/lib/analysis/execute-analysis.ts`) her aday için önce EXACT (normalize edilmiş) `theme`+`source_type`+
+`status='open'` eşleşmesine bakar; bulunursa mevcut görev güncellenir (insert edilmez).
+
+**Faz 2.8 — fuzzy güvenlik ağı.** Exact eşleşme kaçarsa (Aşama 1 modeli aynı konuyu bu döngüde hafifçe farklı
+adlandırmışsa — gerçek Mersin pilotunda gözlemlendi, bkz. `05-ai-pipeline.md`), aynı `source_type`'taki AÇIK
+görevler arasında `findSimilarTheme` (`src/lib/task-engine/theme-similarity.ts`, `THEME_SIMILARITY_THRESHOLD =
+0.6`, Jaccard benzerliği) ile morfolojik olarak benzer bir tema aranır. Bulunursa o görev candidate'in güncel
+skor/başlık/açıklamasıyla güncellenir; `theme` kolonu ve `outcome_baseline` BİLİNÇLİ OLARAK dokunulmadan
+kalır (görevin kendi kimliği ve geçmişi korunur). Bu, `MAX_NEW_TASKS_PER_CYCLE` kotasına dahil edilmez (kota
+yalnızca gerçek yeni oluşturmaları sınırlar — Bölüm D). Birincil savunma yine de kaynağındadır: Aşama 1'e
+verilen known-theme vocabulary (`05-ai-pipeline.md`), etiketin döngüler arası kaymasını en başta azaltır;
+fuzzy ağ SADECE bunun kaçırdığı dar morfolojik varyantlar için bir son çare.
+
 ## Görev yeniden önceliklendirme (her analiz döngüsünde)
 impact_score artık Aşama 2 modelinden gelmediği için (yukarı bkz.), ayrı bir
 "14 gün aging bump" süreci **kaldırılmıştır**. Bunun yerine her analiz döngüsünde
@@ -92,12 +107,22 @@ mantığı `src/lib/task-engine/task-outcome.ts`'te; supabase'e dokunan taze­le
 `src/lib/analysis/task-outcomes.ts`'te (`refreshTaskOutcomes`).
 
 **Metric türleri** (görevin `theme`/`source_type`'ına göre):
-- **`theme`** (`competitive_gap` / `absolute_quality`): görevin teması
+- **`theme`** (`competitive_gap` / `absolute_quality`): görevin teması ÖNCE
   `normalizeTheme` ile own tarafının o döngüdeki `theme_summary` kırılımına
   eşleştirilir (bkz. `02-business-rules.md` Bölüm C tema eşleştirme kuralı).
   Eşleşme bulunursa `positive`/`negative`/`negative_ratio` (`negative /
   (positive + negative)`, toplam 0 ise 0) ve `absent: false`; bulunamazsa (tema
   artık own yorumlarında hiç geçmiyor) `absent: true` ve sayılar sıfır.
+  **Faz 2.8:** exact eşleşme kaçarsa, "absent" sonucuna varmadan ÖNCE
+  `findSimilarTheme` (`src/lib/task-engine/theme-similarity.ts`) ile bir
+  benzerlik denemesi daha yapılır — gerekçe: eski bir etiket sessizce yeniden
+  adlandırılmışsa (bkz. `05-ai-pipeline.md` "known-theme vocabulary" — gerçek
+  Mersin pilotunda gözlemlendi), `absent: true` `compareOutcome`'ın "tema
+  tamamen kayboldu → improved" kısayolunu (aşağıdaki Verdict eşikleri) yanlış
+  tetikleyip sahte bir "işe yaradı!" verdict'i üretiyordu. Benzerlik ağı sadece
+  dar morfolojik varyantları yakalar (eşik `THEME_SIMILARITY_THRESHOLD = 0.6`)
+  — tam rephrasing'lerde (gerçek pilot örnekleri) yine de `absent: true` kalır,
+  bunun asıl çözümü kaynağındaki (Aşama 1) known-theme vocabulary'dir.
 - **`reply_rate`** (`theme = "profile:reply_rate"`): own'un o pencerede
   `total`/`replied` yorum sayısı ve `rate = replied/total` (total 0 ise 0).
 - **`website`** (`theme = "profile:website"`): own'un `website` alanının dolu

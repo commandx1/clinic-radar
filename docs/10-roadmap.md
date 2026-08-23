@@ -202,6 +202,56 @@ Detay: `02-business-rules.md` Bölüm I, `03-database.md`, `04-api.md`.
 - [x] Birim test: `recent-ratings.test.ts` (15 test — `computeRecentRating`, `computeRecentRank`, `median`,
   `extractRecentRatingTrendPoint`), `competitor-alerts.test.ts` (14 test — üç alert türü + çoklu rakip).
 
+## Faz 2.8 — Tema etiketi kayması düzeltmesi (2026-08)
+- [x] **Problem (gerçek veriyle bulundu):** Mersin diş kliniği pilotunda, aynı yorumlar üzerinde ard arda
+  koşulan iki analiz döngüsünde Aşama 1 modeli aynı konuya farklı tema etiketleri verdi — ör. "Tedavi
+  sürecinde bilgilendirme ve şeffaflık" → "Tedavi süreci hakkında detaylı bilgilendirme", "Sahte online yorum
+  iddiası" → "Sahte yorum ve itibar manipülasyonu şüphesi", "Randevu sürecinin esnekliği ve sorunsuzluğu" →
+  "Hızlı iletişim ve randevu kolaylığı". Kod tabanındaki HER tema-tabanlı eşleştirme normalize edilmiş
+  (trim+lowercase) EXACT string eşitliği kullandığından (bilinçli bir Faz 1 sınırlaması olarak belgelenmişti,
+  bkz. eski `02-business-rules.md` Bölüm C notu), bu kayma sessizce üç gerçek hataya yol açtı: (1) `upsertTasks`
+  dedup'u (theme+source_type+status='open') kaçırdı → aynı klinik için 2. döngüde 5 yeni neredeyse-mükerrer
+  görev oluştu (toplam 10) — ürünün "az sayıda, tamamlanabilir görev listesi" ilkesini bozuyordu; (2)
+  `buildOutcomeMetric` eski etiketi "absent" sayıp `compareOutcome`'ın "tema tamamen kayboldu" kısayolunu
+  tetikleyerek sahte bir "improved" verdict'i üretti; (3) `theme_summary.trend` ve dismissed-task reopen
+  kuralı sessizce hiç eşleşmedi.
+- [x] **Birincil çözüm — known-theme vocabulary (Aşama 1 girdisine sözlük).** Bir önceki döngüde kullanılmış
+  tema etiketleri (own çağrısı için own'un kendi etiketleri, her rakip çağrısı için önceki AGREGAT rakip
+  etiketleri — tek tek rakip değil) Aşama 1 prompt'una `knownThemes` olarak geçirilir; model aynı konu için
+  bu etiketlerden birini AYNEN tekrar kullanmaya yönlendirilir (bir sözlük, kontrol listesi değil — var
+  olmayan bir tema için zorla mention uydurmaz). Sağlayıcıdan bağımsız (`Stage1ExtractThemesParams`,
+  `src/lib/ai-pipeline/theme-extraction-schema.ts`), Claude/Gemini implementasyonları (`src/lib/claude/`,
+  `src/lib/gemini/theme-extraction.ts`) sadece paylaşılan tipi kullanacak şekilde güncellendi, prompt
+  mantığında değişiklik gerekmedi. Sözlük prompt boyutunu sınırlamak için en çok bahsedilen temadan başlayarak
+  `STAGE1_KNOWN_THEME_VOCABULARY_LIMIT` (40) ile sınırlanır. Wiring: `execute-analysis.ts`
+  `fetchPreviousThemeData` — önceki döngünün `theme_summary` satırları bu döngüde silineceği için (delete-then-
+  reinsert), hem trend karşılaştırma verisi hem de sözlükler Stage 1 çağrılarından ÖNCE, TEK sorguda okunur.
+- [x] **İkincil güvenlik ağı — morfolojik benzerlik.** Yeni modül `src/lib/task-engine/theme-similarity.ts`:
+  `normalizeTheme` (tek implementasyon — `reopen.ts`'ten taşındı, oradan re-export edilir) + `findSimilarTheme`
+  (normalize → tokenize → 3 karakterden kısa token'ları ve tr/en stopword'leri düşür → her token'ı ilk 5
+  karaktere kırp (kaba Türkçe ek toleransı) → Jaccard benzerliği ≥ `THEME_SIMILARITY_THRESHOLD` (0.6) olan en
+  iyi aday). SADECE iki yerde kullanılır (trend/reopen semantiği KASITLI OLARAK değiştirilmedi — hâlâ yalnızca
+  exact match): `upsertTasks` dedup'unda exact eşleşme kaçarsa aynı `source_type`'taki açık görevler arasında
+  benzer tema aranır (bulunursa mevcut görev güncellenir, theme kolonu ve `outcome_baseline` dokunulmadan
+  kalır — YENİ görev eklenmez), ve `buildOutcomeMetric`'te exact eşleşme kaçarsa "absent" sonucuna varmadan
+  önce benzer tema aranır.
+- [x] **Dürüstçe belgelenen sınır:** gerçek pilot verisindeki üç etiket çiftinin HİÇBİRİ (yukarıdaki örnek)
+  benzerlik güvenlik ağının eşiğini geçmiyor (ölçülen jaccard: 0.5 / 0.286 / 0.143 — hepsi tam rephrasing,
+  neredeyse hiç ortak token yok) — bunları yakalamak Part A'nın (vocabulary) işi. Güvenlik ağı yalnızca dar
+  morfolojik varyantları yakalar (ör. "randevu süreci"/"randevu sürecinde", "temizlik"/"temizliği" — jaccard
+  1.0); hatta aynı "aile"den bazı varyantlar bile (ör. "bekleme süresi"/"bekleme süreleri" — jaccard ≈ 0.33)
+  5-karakter kırpmanın eki her zaman aynı noktada kesmemesi yüzünden eşiğin altında kalabilir. Eşik bilinçli
+  olarak DÜŞÜRÜLMEDİ — alakasız temaların yanlışlıkla birleşme riskini artırırdı.
+- [x] **Şema/migration yok** — additive kod değişikliği, hiçbir tablo/kolon eklenmedi.
+- [x] Birim test: `theme-similarity.test.ts` (gerçek üç cycle-1→cycle-2 çiftinin hiçbirinin eşleşmediğini,
+  morfolojik varyantların eşleştiğini tablo halinde doğrular), `task-outcome.test.ts`'e eklenen fuzzy-match
+  testleri (absent yerine gerçek kırılım, sahte "improved" üretilmediği), `execute-analysis.test.ts`'e eklenen
+  `upsertTasks` testleri (fuzzy eşleşmede insert değil update, theme/outcome_baseline dokunulmaz; gerçek tam
+  rephrasing'de güvenlik ağı da bulamayınca insert edildiği).
+- [x] Docs senkronu: `05-ai-pipeline.md` (known-theme vocabulary adımı), `06-prompts.md` (Aşama 1 sözlük
+  kuralı), `02-business-rules.md` Bölüm C/D/E ("fuzzy eşleştirme yok" notları revize edildi), `09-task-engine.md`
+  (dedup + outcome eşleştirme).
+
 ## Faz 3
 - AI arama görünürlüğü modülü (ChatGPT/Gemini/Perplexity'de klinik nasıl öneriliyor)
 - Tema taksonomisi ölçeklenirse embedding/clustering katmanı (`05-ai-pipeline.md`'deki gerekçeye bkz.)

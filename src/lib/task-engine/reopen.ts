@@ -1,4 +1,5 @@
 import { TASK_MENTION_THRESHOLD, DISMISSED_REOPEN_NEGATIVE_MULTIPLIER } from "@/lib/constants";
+import { normalizeTheme } from "@/lib/task-engine/theme-similarity";
 
 // `fetchPreviousThemeCounts` (src/app/api/business/[id]/analysis/run/route.ts)
 // çıktısıyla uyumlu minimal tipler — dosya arası I/O bağımlılığı olmasın diye
@@ -13,9 +14,13 @@ export interface OwnThemeAggregate {
   negative_mentions: number;
 }
 
-export function normalizeTheme(theme: string): string {
-  return theme.trim().toLowerCase();
-}
+// bkz. docs/02-business-rules.md Bölüm E — bu kontrol BİLİNÇLİ OLARAK sadece
+// tam (normalize edilmiş) eşleşme kullanır, theme-similarity.ts'teki fuzzy
+// güvenlik ağını KULLANMAZ (trend/reopen semantiği Faz 2.8'de bilinçli olarak
+// değiştirilmedi) — reopen tetikleyicisi zaten dar bir eşik (2x negatif
+// patlama + TASK_MENTION_THRESHOLD) üzerine kurulu, buraya fuzzy eşleştirme
+// eklemek yanlış temayı yeniden açma riskini artırır.
+export { normalizeTheme };
 
 // bkz. docs/02-business-rules.md Bölüm E: `dismissed` bir görev, aynı temada
 // (kendi/own taraf) negatif mention sayısı bir önceki döngüye göre en az 2x

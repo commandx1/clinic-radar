@@ -20,11 +20,30 @@ Bu dokümandaki şablonlar `05-ai-pipeline.md`'deki Aşama 1 ve Aşama 2 çağr�
 
 **Not (adaptif pencere):** `{window_days}` sabit 90 değil — own tarafında son 90 günde yeterli metinli yorum yoksa (`02-business-rules.md` Bölüm C) 180/365'e genişleyen gerçek pencere değeridir; own+rakip için aynı çağrı döngüsünde aynı değer kullanılır.
 
+**Not (Faz 2.8 — known-theme vocabulary, tema etiketi kayması düzeltmesi):** Sistem promptuna bir kural daha
+eklendi — modele önceki analiz döngüsünde kullanılmış tema etiketlerinin bir listesi verilebilir (varsa);
+model bulduğu bir temanın bu listedeki bir etiketle AYNI konuyu anlattığını fark ederse, o etiketi karakter
+karakter (birebir) AYNEN kullanmalıdır, yeni bir isim uydurmamalıdır — yalnızca gerçekten yeni bir konu için
+yeni bir etiket üretir. Bu liste bir SÖZLÜKTÜR, bir KONTROL LİSTESİ DEĞİLDİR: modelden listedeki her etiket
+için bir şey bulması beklenmez, listede olan ama yorumlarda hiç geçmeyen bir etiket için zorla bir tema
+uydurmaz ya da var olmayan mention'lar icat etmez. **Gerekçe:** gerçek bir Mersin diş kliniği pilotunda, aynı
+yorumlar üzerinde art arda koşulan iki analiz döngüsünde model aynı konuya farklı etiketler verdi (ör. "Tedavi
+sürecinde bilgilendirme ve şeffaflık" → "Tedavi süreci hakkında detaylı bilgilendirme") ve bu, kod tabanındaki
+normalize edilmiş EXACT string eşleştirmesine dayanan her şeyi (görev dedup, outcome takibi, tema trendi,
+dismissed reopen) sessizce kırdı — detay ve ikincil bir kod-tarafı güvenlik ağı için `02-business-rules.md`
+Bölüm C/D/E, `05-ai-pipeline.md` "known-theme vocabulary", `09-task-engine.md`.
+
 **Kullanıcı promptu (yapı):**
 ```
 İşletme: {business_name} ({category})
 Yorumlar (son {window_days} gün, {review_count} adet):
 {review_list: [{rating, text, language, published_at}, ...]}
+
+[yalnızca knownThemes boş değilse eklenir:]
+Önceki analiz döngüsünde kullanılan tema etiketleri (bu bir SÖZLÜKTÜR — aynı konu için varsa AYNEN tekrar
+kullan; burada olmayan yeni bir tema bulman engellenmez; buradaki bir etiket bu yorumlarda hiç geçmiyorsa
+onu zorla kullanma):
+{known_themes: string[], en fazla STAGE1_KNOWN_THEME_VOCABULARY_LIMIT (40) adet, en çok bahsedilenden başlayarak}
 
 Her tekrar eden tema için:
 - theme: kısa tema adı (ör. "bekleme süresi", "fiyat şeffaflığı")

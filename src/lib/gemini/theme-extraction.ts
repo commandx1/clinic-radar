@@ -2,23 +2,22 @@ import {
   buildStage1SystemPrompt,
   buildStage1UserPrompt,
   themeExtractionOutputSchema,
-  type ReviewInput,
+  type Stage1ExtractThemesParams,
   type ThemeExtractionOutput,
 } from "@/lib/ai-pipeline/theme-extraction-schema";
 import { GEMINI_MODEL, getGeminiClient } from "@/lib/gemini/client";
 import { toGeminiJsonSchema } from "@/lib/gemini/json-schema";
 
-export type { ReviewInput, ThemeExtractionOutput, ThemeItem } from "@/lib/ai-pipeline/theme-extraction-schema";
+export type {
+  ReviewInput,
+  Stage1ExtractThemesParams,
+  ThemeExtractionOutput,
+  ThemeItem,
+} from "@/lib/ai-pipeline/theme-extraction-schema";
 
 // Şema uyuşmazlığında null döner, SDK/ağ hatalarında fırlatır — Claude
 // tarafındaki extractThemes ile birebir aynı kontrat (bkz. src/lib/claude/theme-extraction.ts).
-export async function extractThemes(params: {
-  businessName: string;
-  category: string | null;
-  reviews: ReviewInput[];
-  outputLanguage: string;
-  windowDays: number;
-}): Promise<ThemeExtractionOutput | null> {
+export async function extractThemes(params: Stage1ExtractThemesParams): Promise<ThemeExtractionOutput | null> {
   const client = getGeminiClient();
 
   const response = await client.models.generateContent({

@@ -16,7 +16,12 @@ export type {
 } from "@/lib/ai-pipeline/executive-summary-schema";
 export type { CompetitorThemeInput, GapAnalysisOutput, TaskCandidate } from "@/lib/ai-pipeline/gap-analysis-schema";
 export type { ReplyDraftInput, ReplyDraftOutput } from "@/lib/ai-pipeline/reply-draft-schema";
-export type { ReviewInput, ThemeExtractionOutput, ThemeItem } from "@/lib/ai-pipeline/theme-extraction-schema";
+export type {
+  ReviewInput,
+  Stage1ExtractThemesParams,
+  ThemeExtractionOutput,
+  ThemeItem,
+} from "@/lib/ai-pipeline/theme-extraction-schema";
 
 // Tek geçiş noktası: hangi AI sağlayıcısının kullanıldığı AI_PROVIDER env
 // değişkeniyle belirlenir. Anthropic hesabındaki kredi bakiyesi tükendiğinde

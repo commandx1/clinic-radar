@@ -8,7 +8,7 @@ import { z } from "zod";
 
 import type { AggregatedTheme } from "@/lib/ai-pipeline/aggregate-competitor-themes";
 import { TASK_MENTION_THRESHOLD, THEME_TREND_DELTA_THRESHOLD } from "@/lib/constants";
-import { normalizeTheme } from "@/lib/task-engine/reopen";
+import { findSimilarTheme, normalizeTheme } from "@/lib/task-engine/theme-similarity";
 
 export type OutcomeMetric =
   | {
@@ -93,8 +93,15 @@ export interface BuildOutcomeMetricContext {
 // bkz. docs/02-business-rules.md Bölüm D — üç görev kaynağı: tema-tabanlı
 // (`competitive_gap`/`absolute_quality`, theme_summary'den eşleştirilir) ve
 // profil farkı (`profile:reply_rate` / `profile:website`, sabit tema
-// anahtarları). Tema eşleşmesi normalizeTheme ile yapılır — diğer trend/reopen
-// hesaplarıyla aynı kural (bkz. reopen.ts, execute-analysis.ts computeTrend).
+// anahtarları). Tema eşleşmesi ÖNCE normalizeTheme (exact) ile, bulunamazsa
+// findSimilarTheme (fuzzy güvenlik ağı, bkz. theme-similarity.ts) ile
+// denenir — model bir temayı döngüler arasında hafifçe farklı adlandırırsa
+// (ör. "bekleme süresi" → "bekleme sürecinde") görev sahte bir "absent"a
+// (ve dolayısıyla sahte bir "improved" verdict'ine, bkz. compareOutcome)
+// düşmesin. Bu, trend hesabıyla (execute-analysis.ts computeTrend) VE
+// reopen.ts'in reopen tetikleyicisiyle KASITLI OLARAK AYRIŞIYOR — onlar
+// (Faz 2.8'de bilinçli olarak değiştirilmeyen trend/scoring semantiği) hâlâ
+// sadece exact match kullanır.
 export function buildOutcomeMetric(
   task: { theme: string | null; source_type: string },
   ctx: BuildOutcomeMetricContext,
@@ -127,7 +134,15 @@ export function buildOutcomeMetric(
   }
 
   const normalized = normalizeTheme(task.theme);
-  const match = ctx.ownAggregated.find((t) => normalizeTheme(t.theme) === normalized);
+  let match = ctx.ownAggregated.find((t) => normalizeTheme(t.theme) === normalized);
+
+  if (!match) {
+    const similarLabel = findSimilarTheme(
+      task.theme,
+      ctx.ownAggregated.map((t) => t.theme),
+    );
+    match = similarLabel ? ctx.ownAggregated.find((t) => t.theme === similarLabel) : undefined;
+  }
 
   if (!match) {
     return {

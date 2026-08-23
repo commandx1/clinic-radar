@@ -43,6 +43,15 @@ export const AI_ANALYSIS_MIN_OWN_REVIEWS_FOR_WINDOW = 5;
 export const TASK_MENTION_THRESHOLD = 3;
 export const ABSOLUTE_QUALITY_NEGATIVE_RATIO_THRESHOLD = 0.3;
 export const MAX_NEW_TASKS_PER_CYCLE = 5;
+// Bir işletmede aynı anda açık kalabilecek toplam görev sayısı tavanı — bkz.
+// docs/02-business-rules.md Bölüm D "Açık görev tavanı". MAX_NEW_TASKS_PER_CYCLE
+// yalnızca TEK bir döngüyü sınırlar; kullanıcı hiçbir görevi tamamlamazsa liste
+// döngü döngü büyür ve ürünün "az sayıda, tamamlanabilir görev" vaadi
+// (docs/01-product-vision.md kuzey yıldızı) bozulur. Gerçek pilotta 6 döngüde
+// 15 açık göreve ulaşıldı. Tavan doluyken YENİ görev üretilmez; mevcut açık
+// görevlerin skor/öncelik güncellemesi sürer (liste bayatlamaz) ve kullanıcı
+// bir görevi tamamladıkça/reddettikçe yer açılır.
+export const MAX_OPEN_TASKS = 12;
 
 // Tema trend hesabı (döngüler arası negatif oran deltası) — bkz. docs/02-business-rules.md Bölüm C
 export const THEME_TREND_DELTA_THRESHOLD = 0.1;

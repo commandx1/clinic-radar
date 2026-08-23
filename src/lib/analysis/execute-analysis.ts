@@ -45,6 +45,7 @@ import {
   AI_ANALYSIS_WINDOW_DAYS,
   AI_ANALYSIS_WINDOW_DAYS_STEPS,
   MAX_NEW_TASKS_PER_CYCLE,
+  MAX_OPEN_TASKS,
   REVIEWS_FETCH_MAX_PER_SOURCE_REF,
   STAGE1_KNOWN_THEME_VOCABULARY_LIMIT,
   THEME_TREND_DELTA_THRESHOLD,
@@ -621,6 +622,22 @@ export async function upsertTasks(
   let created = 0;
   let updated = 0;
 
+  // bkz. docs/02-business-rules.md Bölüm D "Açık görev tavanı",
+  // docs/01-product-vision.md — ürünün vaadi "az sayıda, tamamlanabilir görev".
+  // Döngü başına 5 yeni görev sınırı toplamı sınırlamıyordu: kullanıcı hiçbir
+  // şeyi tamamlamazsa liste her döngüde büyür ve "rapor okuma" deneyimine geri
+  // döner (gerçek pilotta 6 döngüde 15 açık göreve ulaştı). Tavana ulaşıldığında
+  // YENİ görev üretilmez; mevcut açık görevlerin güncellenmesi (skor/öncelik
+  // tazeleme) her zaman sürer, yani liste bayatlamaz — kullanıcı bir görevi
+  // tamamladıkça/reddettikçe yer açılır ve bir sonraki döngüde en güçlü aday
+  // yükselir.
+  const { count: openTaskCount } = await supabase
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId)
+    .eq("status", "open");
+  let openTasks = openTaskCount ?? 0;
+
   for (const candidate of candidates) {
     const priority = derivePriority(candidate.impact_score, candidate.effort_score);
 
@@ -665,7 +682,7 @@ export async function upsertTasks(
     // Kota yalnızca yeni oluşturmaları sınırlar; güncellemeler (exact ya da
     // fuzzy eşleşme) her zaman işlenir (skor/öncelik taze kalsın). Liste skor
     // sıralı geldiği için "ilk 5 yeni" = en yüksek fırsat skorlu 5 yeni aday.
-    if (!existingId && created >= MAX_NEW_TASKS_PER_CYCLE) {
+    if (!existingId && (created >= MAX_NEW_TASKS_PER_CYCLE || openTasks >= MAX_OPEN_TASKS)) {
       continue;
     }
 
@@ -717,6 +734,7 @@ export async function upsertTasks(
         payload: { theme: candidate.theme, title_i18n: candidate.title },
       });
       created += 1;
+      openTasks += 1;
     }
   }
 

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { buildOwnerMap, buildThemeVocabulary, upsertTasks } from "@/lib/analysis/execute-analysis";
 import type { ScoredTaskCandidate } from "@/lib/analysis/task-candidates";
-import { STAGE1_KNOWN_THEME_VOCABULARY_LIMIT } from "@/lib/constants";
+import { MAX_OPEN_TASKS, STAGE1_KNOWN_THEME_VOCABULARY_LIMIT } from "@/lib/constants";
 import type { BuildOutcomeMetricContext } from "@/lib/task-engine/task-outcome";
 
 describe("buildOwnerMap", () => {
@@ -57,14 +57,14 @@ describe("buildOwnerMap", () => {
 // sonuca çözülür (bkz. resolve-trustpilot-refs.test.ts'teki daha basit tek
 // tablo mock'u — burada birden fazla farklı sorgu şekli aynı "tasks" tablosuna
 // SIRAYLA gittiği için `from` her çağrıda ayrı bir builder döner).
-function createQueryBuilder(result: { data: unknown; error: unknown }) {
+function createQueryBuilder(result: { data: unknown; error: unknown; count?: number }) {
   const builder = {
     select: vi.fn((_columns?: string) => builder),
     eq: vi.fn((_column: string, _value: unknown) => builder),
     maybeSingle: vi.fn(() => Promise.resolve(result)),
     update: vi.fn((_payload: Record<string, unknown>) => builder),
     insert: vi.fn((_payload: Record<string, unknown>) => Promise.resolve(result)),
-    then: (resolve: (value: { data: unknown; error: unknown }) => void) => {
+    then: (resolve: (value: { data: unknown; error: unknown; count?: number }) => void) => {
       resolve(result);
     },
   };
@@ -96,6 +96,9 @@ const OUTCOME_CTX: BuildOutcomeMetricContext = {
 
 describe("upsertTasks (fuzzy dedup güvenlik ağı)", () => {
   it("exact eşleşme kaçarsa ama aynı source_type'ta morfolojik olarak benzer bir açık görev varsa, YENİ görev eklemek yerine onu günceller", async () => {
+    // İlk sorgu artık açık görev sayacı (MAX_OPEN_TASKS tavanı, bkz.
+    // docs/02-business-rules.md Bölüm D) — tavanın altında bir değer.
+    const openTaskCount = createQueryBuilder({ data: null, error: null, count: 3 });
     const exactMatchMiss = createQueryBuilder({ data: null, error: null });
     const openTasksList = createQueryBuilder({
       data: [{ id: "task-existing-1", theme: "Randevu süreci" }],
@@ -105,6 +108,7 @@ describe("upsertTasks (fuzzy dedup güvenlik ağı)", () => {
 
     const fromMock = vi
       .fn()
+      .mockReturnValueOnce(openTaskCount)
       .mockReturnValueOnce(exactMatchMiss)
       .mockReturnValueOnce(openTasksList)
       .mockReturnValueOnce(updateResult);
@@ -139,6 +143,7 @@ describe("upsertTasks (fuzzy dedup güvenlik ağı)", () => {
 
     const fromMock = vi
       .fn()
+      .mockReturnValueOnce(createQueryBuilder({ data: null, error: null, count: 3 }))
       .mockReturnValueOnce(exactMatchMiss)
       .mockReturnValueOnce(openTasksList)
       .mockReturnValueOnce(insertResult)
@@ -158,6 +163,29 @@ describe("upsertTasks (fuzzy dedup güvenlik ağı)", () => {
     );
     // Var olan (alakasız kabul edilen) görev HİÇ güncellenmedi.
     expect(openTasksList.update).not.toHaveBeenCalled();
+  });
+
+  it("açık görev tavanına (MAX_OPEN_TASKS) ulaşılmışsa yeni görev üretilmez, mevcutlar güncellenmeye devam eder", async () => {
+    // bkz. docs/02-business-rules.md Bölüm D "Açık görev tavanı" — gerçek
+    // pilotta 6 döngüde 15 açık göreve ulaşıldı; ürünün "az sayıda,
+    // tamamlanabilir görev" vaadi için toplam açık görev sayısı da sınırlı.
+    const openTaskCount = createQueryBuilder({ data: null, error: null, count: MAX_OPEN_TASKS });
+    const exactMatchMiss = createQueryBuilder({ data: null, error: null });
+    const openTasksList = createQueryBuilder({ data: [], error: null });
+    const insertResult = createQueryBuilder({ data: null, error: null });
+
+    const fromMock = vi
+      .fn()
+      .mockReturnValueOnce(openTaskCount)
+      .mockReturnValueOnce(exactMatchMiss)
+      .mockReturnValueOnce(openTasksList)
+      .mockReturnValueOnce(insertResult);
+    const supabase = { from: fromMock } as unknown as Parameters<typeof upsertTasks>[0];
+
+    const result = await upsertTasks(supabase, "biz-1", [baseCandidate({ theme: "Tamamen yeni bir tema" })], OUTCOME_CTX);
+
+    expect(result).toEqual({ created: 0, updated: 0 });
+    expect(insertResult.insert).not.toHaveBeenCalled();
   });
 });
 

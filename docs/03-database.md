@@ -198,6 +198,8 @@ tasks (
 ## Yetkilendirme (RLS + GRANT)
 Her tabloda RLS açık ve `authenticated` rolüne satır bazlı policy'lerle eşleşen `grant`'lar veriliyor. **Önemli:** `service_role`'ün `rolbypassrls=true` olması yalnızca RLS policy değerlendirmesini atlar, Postgres'in tablo düzeyindeki `GRANT` kontrolünü atlamaz — ikisi ayrı mekanizma. `20260711000000_service_role_grants.sql`, cron pipeline'ının (`run-cron-analysis-cycle.ts`, `execute-analysis.ts`, `run-daily-maintenance.ts`, `auto-dismiss.ts`, `weekly-digest.ts`, `record-notification.ts`) fiilen dokunduğu tablo/operasyon çiftlerine `service_role` grant'ı ekler — bu olmadan admin client her sorguda "permission denied" alıyordu (Faz 1.2 sonunda keşfedilip düzeltildi). Yeni bir tablo eklerken cron veya `scripts/*.ts` bakım script'lerinden erişilecekse aynı migration'da `service_role`'e de grant vermeyi unutma.
 
+**Aynı hata sınıfı 2026-08-23'te tekrar yakalandı** (`20260823000600_service_role_competitors_update_grant.sql`): `competitors` tablosuna yalnızca SELECT verilmişti, ama cron pipeline'ı bu tabloya iki yerde YAZIYOR — `resolve-trustpilot-refs.ts` (trustpilot_domain/checked_at cache'i; yazılamadığı için her Pro döngüsünde aynı Apify araması boşuna tekrarlanıyordu) ve `recent-ratings.ts` (Faz 2.7 canlı puan). Ders: yeni bir kolon eklemek yetmez — o kolona **hangi rolün yazdığı** kontrol edilmeli. `authenticated` tarafı hem grant hem "competitors update own" policy'siyle zaten doğruydu, bu yüzden hata yalnızca cron yolunda görülüyordu.
+
 ## İndeks önerileri
 - `reviews(business_id, owner_type, published_at)` — trend sorguları için.
 - `reviews(source, source_ref, review_id)` unique — kaynak-agnostik dedup (eski `place_id, review_id` dedup indeksinin yerine geçti).

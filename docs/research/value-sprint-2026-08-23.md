@@ -29,12 +29,12 @@ Değişmeyen ilkeler: ham yorum metni UI'da gösterilmez; eşikler kodda, prompt
 |---|---|---|
 | 1A | Yorum Yanıt Asistanı (`POST /api/reviews/:id/reply-draft`, Free 5/ay, Pro sınırsız) | ✅ `f84548a` |
 | 1B | "Bu analizde ne değişti" kartı (`analysis_runs.delta`) + 0-görev açıklaması | ✅ `24e968c` |
-| 1C | Profil farkı görevleri (`source_type='profile_gap'`: yanıt oranı, web sitesi) | ⏳ |
+| 1C | Profil farkı görevleri (`source_type='profile_gap'`: yanıt oranı, web sitesi) | ✅ `d5949f3` |
 | 2D | Görev sonuç takibi (`tasks.outcome_baseline` / `outcome_latest`) | ⏳ |
-| 2E | Tahmini hasta/gelir fırsatı kartı (bantlı, şeffaf formül) | ⏳ |
-| 3F | Rakip uyarıları (puan değişimi, yorum patlaması) → haftalık özet | ⏳ |
+| 2E | Tahmini hasta/gelir fırsatı kartı (bantlı, şeffaf formül) | ✅ `00033c7` |
+| 3F | Rakip uyarıları (son-90-gün puanı, yorum patlaması, rakip negatif tema sıçraması) → haftalık özet; Trend'i canlı puanla besle | ⏳ |
 | 3G | Cron analiz çıktı dili = `users.preferred_locale` | ⏳ |
-| 3H | Pro erişim helper'ı (`hasProAccess`: plan + status + period_end) — önceden var olan açık | ⏳ |
+| 3H | Pro erişim helper'ı (`hasProAccess`: plan + status + period_end) — önceden var olan açık | ✅ `c65f692` |
 | 3I | Docs drift (05/launch-checklist provider), scrape alarm wiring | ⏳ |
 
 Kod dışı kararlar (kurucuya): fiyat ($29 → $49?) + LemonSqueezy variant; Vercel plan (300 sn tavanı); concierge testi.

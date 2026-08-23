@@ -1,12 +1,17 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
 
-import { defaultLocale } from "@/i18n/locales";
+import { defaultLocale, isLocale, type Locale } from "@/i18n/locales";
 import { acquireAnalysisRun } from "@/lib/analysis/acquire-analysis-run";
 import { toAnalysisDeltaColumn } from "@/lib/analysis/analysis-delta";
 import { executeAnalysis } from "@/lib/analysis/execute-analysis";
 import { toScrapeMetricColumns } from "@/lib/analysis/scrape-metrics";
+import { computeScrapeSuccessRate, shouldAlertScrapeSuccess } from "@/lib/analysis/scrape-success-alert";
 import { hasProAccess } from "@/lib/billing/plan-access";
-import { MIN_COMPETITORS, PRO_PLAN_ANALYSIS_COOLDOWN_DAYS } from "@/lib/constants";
+import {
+  MIN_COMPETITORS,
+  PRO_PLAN_ANALYSIS_COOLDOWN_DAYS,
+  SCRAPE_SUCCESS_RATE_ALERT_THRESHOLD,
+} from "@/lib/constants";
 import type { Database } from "@/types/database.types";
 
 type CronSupabaseClient = SupabaseClient<Database>;
@@ -32,6 +37,13 @@ interface CronCycleSummary {
   remaining: number;
   // Zaten 'running' koşusu olduğu için atlanan işletme sayısı (eşzamanlılık kilidi).
   skippedRunning: number;
+  // bkz. docs/11-risks-assumptions.md Risk 3 — bu döngüde executeAnalysis
+  // çağrılan işletmeler arasında scrape.success===true oranı (processed=0
+  // iken null, hiç deneme yapılmadı demektir).
+  scrapeSuccessRate: number | null;
+  // scrapeSuccessRate, SCRAPE_SUCCESS_RATE_ALERT_THRESHOLD altına düştüğünde
+  // true — aynı koşulda tek bir console.error alarmı da basılır.
+  scrapeAlert: boolean;
 }
 
 // bkz. docs/02-business-rules.md Bölüm A — Pro plan haftalık analiz döngüsü.
@@ -79,17 +91,28 @@ export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promis
   // bkz. docs/02-business-rules.md Bölüm G kural 3 — kritik sinyal e-postası
   // için işletme sahibinin e-postasına ihtiyaç var; bu döngüdeki tüm
   // işletmeler zaten Pro filtresinden geçti (yukarıdaki proUserIds sorgusu).
-  const ownerEmailByUserId = new Map<string, string>();
+  // preferred_locale de aynı sorgudan okunur (bkz. docs/05-ai-pipeline.md
+  // "Cron sınırlaması" — daha önce sabit defaultLocale kullanılıyordu, artık
+  // sahibinin arayüz dili tercihi AI çıktı diline yansır) — ikinci bir
+  // sorgu açmak yerine tek `users` sorgusuna ekleniyor.
+  const ownerByUserId = new Map<string, { email: string; locale: Locale }>();
   if (businesses.length > 0) {
     const { data: ownerUsers } = await supabase
       .from("users")
-      .select("id, email")
+      .select("id, email, preferred_locale")
       .in(
         "id",
         Array.from(new Set(businesses.map((b) => b.user_id))),
       );
     for (const ownerUser of ownerUsers ?? []) {
-      ownerEmailByUserId.set(ownerUser.id, ownerUser.email);
+      ownerByUserId.set(ownerUser.id, {
+        email: ownerUser.email,
+        // Kayıt DB check constraint'iyle ('tr'|'en') korunuyor (bkz.
+        // 20260720000000_users_preferred_locale.sql) ama kolon tipi düz
+        // `string` — savunmacı olarak desteklenen locale listesine karşı
+        // doğrulanır, tanınmayan/eksik değerde defaultLocale kullanılır.
+        locale: isLocale(ownerUser.preferred_locale) ? ownerUser.preferred_locale : defaultLocale,
+      });
     }
   }
   const eligible = businesses.length;
@@ -99,6 +122,7 @@ export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promis
   let failed = 0;
   let iterated = 0;
   let skippedRunning = 0;
+  let scrapeSuccessCount = 0;
 
   const startTime = Date.now();
 
@@ -158,10 +182,14 @@ export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promis
           last_scraped_at: business.last_scraped_at,
         },
         competitors,
-        defaultLocale,
-        { isPro: true, ownerEmail: ownerEmailByUserId.get(business.user_id) ?? null },
+        ownerByUserId.get(business.user_id)?.locale ?? defaultLocale,
+        { isPro: true, ownerEmail: ownerByUserId.get(business.user_id)?.email ?? null },
         { apifyTimeoutMs: CRON_APIFY_TIMEOUT_MS },
       );
+
+      if (result.scrape.success) {
+        scrapeSuccessCount += 1;
+      }
 
       if (!result.ok) {
         if (runId) {
@@ -229,5 +257,28 @@ export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promis
 
   const remaining = eligible - iterated;
 
-  return { eligible, processed, succeeded, partial, failed, remaining, skippedRunning };
+  // bkz. docs/11-risks-assumptions.md Risk 3 / Bölüm E "Scrape eşik
+  // alarmları" — yalnızca en az bir işletme denendiyse (processed >= 1)
+  // anlamlı; aksi halde oran null'dır ve alarm hiç değerlendirilmez.
+  const scrapeSuccessRate = computeScrapeSuccessRate(scrapeSuccessCount, processed);
+  const scrapeAlert = shouldAlertScrapeSuccess(scrapeSuccessRate, processed);
+  if (scrapeAlert) {
+    console.error("[alert] scrape success rate below threshold", {
+      rate: scrapeSuccessRate,
+      processed,
+      threshold: SCRAPE_SUCCESS_RATE_ALERT_THRESHOLD,
+    });
+  }
+
+  return {
+    eligible,
+    processed,
+    succeeded,
+    partial,
+    failed,
+    remaining,
+    skippedRunning,
+    scrapeSuccessRate,
+    scrapeAlert,
+  };
 }

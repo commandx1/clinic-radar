@@ -15,7 +15,7 @@
 | Grup | Değişkenler |
 |---|---|
 | Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` |
-| AI | `AI_PROVIDER` (`gemini` \| `anthropic`), sağlayıcıya göre `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` |
+| AI | `AI_PROVIDER` (`claude` \| `gemini`), sağlayıcıya göre `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` |
 | Scraping | `APIFY_TOKEN`, opsiyonel `APIFY_PRICE_PER_REVIEW_USD`, `APIFY_PRICE_PER_TRUSTPILOT_REVIEW_USD`, `CRON_APIFY_TIMEOUT_MS` |
 | Google | `GOOGLE_MAPS_API_KEY` (Places API kısıtlı key — sadece gerekli API'ler ve HTTP referrer/IP kısıtı) |
 | Billing | `LEMONSQUEEZY_API_KEY`, `LEMONSQUEEZY_STORE_ID`, `LEMONSQUEEZY_PRO_VARIANT_ID`, `LEMONSQUEEZY_WEBHOOK_SECRET` (**live** değerler — test mode değil) |

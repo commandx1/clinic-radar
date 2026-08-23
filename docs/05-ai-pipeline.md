@@ -1,10 +1,11 @@
 # 05 — AI Pipeline
 
-> **Geçici sağlayıcı notu:** Anthropic hesabındaki kredi bakiyesi tükendiği
-> için pipeline şu an `AI_PROVIDER=gemini` ile Google Gemini üzerinden
-> çalışıyor (bkz. CLAUDE.md Stack, `src/lib/ai-pipeline/provider.ts`). Bu
-> dokümandaki "Claude" referansları mimari/tasarım kararını anlatıyor —
-> sağlayıcı kredi yenilenince `AI_PROVIDER=claude`'a geri dönecek.
+> **Geçici sağlayıcı notu:** Temmuz 2026'da Anthropic kredisi yenilendiğinde
+> aktif sağlayıcı `AI_PROVIDER=claude`'a geri döndü — pipeline şu an Claude
+> üzerinden çalışıyor (bkz. CLAUDE.md Stack, `src/lib/ai-pipeline/provider.ts`).
+> Google Gemini implementasyonu (`src/lib/gemini/`) yedek sağlayıcı olarak
+> duruyor; kredi sorunu tekrar yaşanırsa geçiş yalnızca `AI_PROVIDER=gemini`
+> ortam değişkenini ayarlamayı gerektirir.
 
 ## Tasarım kararı: neden 2 zengin çağrı, 10 mikroservis değil
 
@@ -42,7 +43,7 @@ Klasik NLP mimarisinde (embedding → ayrı theme detection → ayrı intent det
 ```
 
 ## Aşama 1 detayı
-- **Ne zaman çalışır:** yeni yorum çekildiğinde (ilk analiz + haftalık/aylık yenileme). Haftalık yenileme Faz 1.1'de gerçek: Pro plan işletmeleri `/api/cron/weekly-analysis` üzerinden otomatik yeniden analiz edilir (bkz. `04-api.md`); her koşu — manuel ya da cron — `analysis_runs` tablosuna loglanır (`03-database.md`); koşuyla birlikte scrape gözlemlenebilirlik metrikleri de yazılır (`scrape_success`, `fetched_reviews`, `scrape_latency_ms`, `scrape_cost_usd` — Risk 3 sinyalleri, bkz. `11-risks-assumptions.md`; ölçüm `executeAnalysis` içinde yapılır, davranışı değiştirmez). **Cron sınırlaması:** otomatik run'larda `outputLanguage = defaultLocale ("en")` kullanılır — TR kullanıcı cron çıktısını İngilizce alabilir; kabul edilen bir Faz 1.1 sınırıdır (kalıcı çözüm: kullanıcı locale tercihinin persist edilmesi, sonraya).
+- **Ne zaman çalışır:** yeni yorum çekildiğinde (ilk analiz + haftalık/aylık yenileme). Haftalık yenileme Faz 1.1'de gerçek: Pro plan işletmeleri `/api/cron/weekly-analysis` üzerinden otomatik yeniden analiz edilir (bkz. `04-api.md`); her koşu — manuel ya da cron — `analysis_runs` tablosuna loglanır (`03-database.md`); koşuyla birlikte scrape gözlemlenebilirlik metrikleri de yazılır (`scrape_success`, `fetched_reviews`, `scrape_latency_ms`, `scrape_cost_usd` — Risk 3 sinyalleri, bkz. `11-risks-assumptions.md`; ölçüm `executeAnalysis` içinde yapılır, davranışı değiştirmez). **Cron sınırlaması (çözüldü):** otomatik run'larda `outputLanguage`, işletme sahibinin `users.preferred_locale` tercihinden okunur (desteklenen locale listesine göre doğrulanır, null/tanınmayan değerde `defaultLocale`'a düşer) — TR kullanıcı artık cron çıktısını kendi arayüz dilinde alır (bkz. `run-cron-analysis-cycle.ts`).
 - **Input:** bir işletmenin (own ya da bir competitor) son 90 günlük (own tarafında yetersizse adaptif olarak 180/365 güne genişleyen — bkz. `02-business-rules.md` Bölüm C) yorumları, ham metin + puan + dil.
 - **Dil tespiti ve temizlik:** aynı çağrının içinde, prompt'ta talep edilir — ayrı adım değil.
 - **Output şeması:** `06-prompts.md`'de tanımlı (toplulaştırılmış tema listesi — yorum bazlı değil), `theme_summary` tablosuna yazılır. `review_analysis` (yorum bazlı emotion/urgency/confidence) bu şema ile üretilemiyor — Faz 1'de yazılmıyor, hiçbir kod da okumuyor; yorum bazlı sinyal gerektiğinde Aşama 1 prompt şeması ayrıca genişletilmeli (ertelenen bir geliştirme).

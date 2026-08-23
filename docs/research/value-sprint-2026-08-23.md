@@ -30,11 +30,33 @@ Değişmeyen ilkeler: ham yorum metni UI'da gösterilmez; eşikler kodda, prompt
 | 1A | Yorum Yanıt Asistanı (`POST /api/reviews/:id/reply-draft`, Free 5/ay, Pro sınırsız) | ✅ `f84548a` |
 | 1B | "Bu analizde ne değişti" kartı (`analysis_runs.delta`) + 0-görev açıklaması | ✅ `24e968c` |
 | 1C | Profil farkı görevleri (`source_type='profile_gap'`: yanıt oranı, web sitesi) | ✅ `d5949f3` |
-| 2D | Görev sonuç takibi (`tasks.outcome_baseline` / `outcome_latest`) | ⏳ |
+| 2D | Görev sonuç takibi (`tasks.outcome_baseline` / `outcome_latest`) | ✅ `4c503e3` |
 | 2E | Tahmini hasta/gelir fırsatı kartı (bantlı, şeffaf formül) | ✅ `00033c7` |
-| 3F | Rakip uyarıları (son-90-gün puanı, yorum patlaması, rakip negatif tema sıçraması) → haftalık özet; Trend'i canlı puanla besle | ⏳ |
-| 3G | Cron analiz çıktı dili = `users.preferred_locale` | ⏳ |
+| 3F | Canlı puan + rakip uyarıları → haftalık özet, Trend, Overview | ✅ `d37ff9e` |
+| 3G | Cron analiz çıktı dili = `users.preferred_locale` | ✅ `914efbd` |
 | 3H | Pro erişim helper'ı (`hasProAccess`: plan + status + period_end) — önceden var olan açık | ✅ `c65f692` |
-| 3I | Docs drift (05/launch-checklist provider), scrape alarm wiring | ⏳ |
+| 3I | Docs drift (05/launch-checklist provider), scrape alarm wiring | ✅ `914efbd` |
 
 Kod dışı kararlar (kurucuya): fiyat ($29 → $49?) + LemonSqueezy variant; Vercel plan (300 sn tavanı); concierge testi.
+
+## 4. Gerçek veriyle uçtan uca doğrulama (2026-08-23)
+
+Lokal DB'deki gerçek fixture (Mersin'de bir diş kliniği + 3 gerçek ortodonti rakibi) üzerinde
+tam pipeline çalıştırıldı — Apify scrape + Claude Aşama 1/2/3 dahil.
+
+**Sonuç:** 720 yorum çekildi (162 own + 558 rakip), 4/4 tema analizi başarılı, **5 görev üretildi**
+(4 `competitive_gap` + 1 `absolute_quality`), 53 `theme_summary` satırı, delta + clinic score
+snapshot + 5 bildirim yazıldı. Süre ~257 sn (300 sn Vercel tavanının altında ama payı dar).
+
+**Bulgular:**
+1. **Gerçek bug — `service_role`'de `competitors` UPDATE grant'ı yok** (`d16b944` ile düzeltildi).
+   Yalnızca yeni canlı-puan kodunu değil, **mevcut Trustpilot domain cache'ini** de cron'da
+   kırıyordu: Pro işletmelerde her haftalık döngüde aynı Apify araması boşuna tekrarlanıyordu.
+2. **Kalibrasyon — yanıt oranı kuralı fazla katıydı.** Rakip yanıt oranları %100 (169 yorum),
+   %0 (143), %0 (25) → ortalama %33, eşiğin (%50) altında kaldığı için görev üretilmedi. Oysa
+   klinik 8 yorumun 0'ına yanıt vermiş ve doğrudan rakibi 169 yorumun tamamına yanıt veriyor.
+   Kural "referans rakip" dalıyla genişletildi (bkz. `02-business-rules.md` Bölüm D).
+3. **Ürün sinyali:** kliniğin resmi Google puanı **4.0**, ama son 365 günün puanı **3.38** —
+   canlı puan (Faz 2.7) tam olarak bunu görünür kılmak için var; eski ortalama gerilemeyi gizliyor.
+4. **Adaptif pencere doğrulandı:** own tarafında son 90 günde yalnızca 1-2 metinli yorum vardı,
+   pencere otomatik 365 güne genişledi ve analiz boş dönmedi (Risk 1 panzehiri gerçek veride çalıştı).

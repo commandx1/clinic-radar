@@ -42,19 +42,29 @@ interface TreatmentRow {
 function buildTreatmentRows(
   summaries: { treatment: string | null; owner_type: string; positive_mentions: number; negative_mentions: number }[],
 ): TreatmentRow[] {
+  // Gruplama anahtarı normalize edilir (trim + lowercase) — model aynı tedaviyi
+  // farklı büyük/küçük harfle döndürebiliyor ("Ortodonti" vs "ortodonti") ve
+  // ham etiketle gruplayınca aynı tedavi UI'da İKİ AYRI satır olarak
+  // görünüyordu (2026-08-23'te tarayıcı doğrulamasında görüldü). Gösterilen
+  // etiket ilk görülen orijinal yazımdır; normalizasyon yalnızca eşleştirme
+  // için — normalizeTheme ile aynı ilke (bkz. theme-similarity.ts).
   const byTreatment = new Map<string, TreatmentRow>();
 
   for (const row of summaries) {
     if (row.treatment === null) {
       continue;
     }
-    const existing = byTreatment.get(row.treatment) ?? { treatment: row.treatment, own: null, competitor: null };
+    const key = row.treatment.trim().toLowerCase();
+    if (key === "") {
+      continue;
+    }
+    const existing = byTreatment.get(key) ?? { treatment: row.treatment.trim(), own: null, competitor: null };
     const bucket = row.owner_type === "own" ? "own" : "competitor";
     const cell = existing[bucket] ?? { positive_mentions: 0, negative_mentions: 0 };
     cell.positive_mentions += row.positive_mentions;
     cell.negative_mentions += row.negative_mentions;
     existing[bucket] = cell;
-    byTreatment.set(row.treatment, existing);
+    byTreatment.set(key, existing);
   }
 
   return Array.from(byTreatment.values());

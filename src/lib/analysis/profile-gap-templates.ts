@@ -11,6 +11,12 @@ export interface ReplyRateTaskContentParams {
   unrepliedCount: number;
   ownRatePct: number;
   competitorRatePct: number;
+  // Referans rakibin adı ve bu oranın hesaplandığı pencere içindeki yorum
+  // sayısı — bkz. profile-gap-candidates.ts buildReplyRateCandidate. Açıklama
+  // artık rakibi isimle anıp iki sayıyı da (rakibin yorum sayısı + oranı,
+  // kullanıcının oranı) dürüstçe belirtiyor, soyut bir "ortalama" değil.
+  competitorName: string;
+  competitorCount: number;
   windowDays: number;
 }
 
@@ -31,6 +37,8 @@ export function buildReplyRateTaskContent(params: ReplyRateTaskContentParams): P
   const ownRatePct = String(params.ownRatePct);
   const competitorRatePct = String(params.competitorRatePct);
   const windowDays = String(params.windowDays);
+  const competitorName = params.competitorName;
+  const competitorCount = String(params.competitorCount);
 
   return {
     title: {
@@ -39,11 +47,13 @@ export function buildReplyRateTaskContent(params: ReplyRateTaskContentParams): P
     },
     description: {
       tr:
-        `Son ${windowDays} günde rakiplerinin ortalama yorum yanıt oranı %${competitorRatePct}, ` +
-        `seninki ise %${ownRatePct}. Şu anda ${unrepliedCount} yorumun hâlâ yanıtsız.`,
+        `Son ${windowDays} günde ${competitorName}, aldığı ${competitorCount} yorumun ` +
+        `%${competitorRatePct}'ine yanıt verdi; senin yanıt oranın %${ownRatePct}. Şu anda ` +
+        `${unrepliedCount} yorumun hâlâ yanıtsız.`,
       en:
-        `Over the last ${windowDays} days, your competitors reply to reviews at an average rate of ` +
-        `${competitorRatePct}% — yours is ${ownRatePct}%. You currently have ${unrepliedCount} unanswered reviews.`,
+        `Over the last ${windowDays} days, ${competitorName} replied to ${competitorRatePct}% of the ` +
+        `${competitorCount} reviews it received — your reply rate is ${ownRatePct}%. You currently have ` +
+        `${unrepliedCount} unanswered reviews.`,
     },
     checklist: [
       { tr: "Yorumlar sekmesini aç", en: "Open the Reviews tab" },

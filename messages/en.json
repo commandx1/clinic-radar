@@ -89,6 +89,8 @@
         "windowLabel": "Last {days} days",
         "ownNewReviews": "{count} new reviews for you",
         "competitorNewReviews": "{count} new reviews for competitors",
+        "ownFirstRunReviews": "{count} reviews collected in this first analysis",
+        "competitorFirstRunReviews": "{count} for competitors",
         "competitorNewReviewsTop": "most: {name} +{count}",
         "tasksSummary": "{created} new tasks, {updated} updated, {reopened} reopened",
         "worseningThemesTitle": "Worsening themes",

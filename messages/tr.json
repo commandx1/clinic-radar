@@ -89,6 +89,8 @@
         "windowLabel": "Son {days} gün",
         "ownNewReviews": "{count} yeni yorum sende",
         "competitorNewReviews": "{count} yeni yorum rakiplerde",
+        "ownFirstRunReviews": "İlk analizde {count} yorumun toplandı",
+        "competitorFirstRunReviews": "rakiplerde {count}",
         "competitorNewReviewsTop": "en çok: {name} +{count}",
         "tasksSummary": "{created} yeni görev, {updated} güncellendi, {reopened} yeniden açıldı",
         "worseningThemesTitle": "Kötüleşen temalar",

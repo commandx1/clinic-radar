@@ -107,9 +107,23 @@ export const FREE_PLAN_REPLY_DRAFTS_PER_MONTH = 5;
 // varlığı) deterministik üretilir.
 // Kural A (yorum yanıt oranı): rakip ortalama yanıt oranı bu eşiğin altındaysa
 // görev üretilmez — rakipler de kötüyse bu bir rekabet fırsatı değildir.
+// İSTİSNA (gerçek veriyle kalibre edildi — Mersin diş kliniği pilotu, 2026-08):
+// 3 rakipten biri penceredeki 169 yorumun TAMAMINA yanıt verirken diğer ikisi
+// hiç yanıt vermiyordu (0/143, 0/25) → ortalama %33, eşiğin altında, görev HİÇ
+// üretilmedi. Oysa 169 yorumun tamamına yanıt veren tek bir güçlü rakip gerçek
+// ve eyleme geçirilebilir bir rekabet açığıdır — ortalama bunu gizliyor. Bu
+// yüzden eşik artık VEYA ile çalışır: ortalama eşiği geçer YA DA hacim eşiğini
+// (aşağıdaki MIN_COMPETITOR_REVIEWS) geçen rakiplerden en az biri tek başına bu
+// oranı geçer (bkz. profile-gap-candidates.ts buildReplyRateCandidate,
+// docs/02-business-rules.md Bölüm D).
 export const PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_RATE = 0.5;
-// own ile rakip ortalama yanıt oranı arasındaki fark en az bu kadar (0-1
-// skalasında yüzde puanı) olmalı.
+// Yukarıdaki istisna için hacim eşiği — bir rakibin "referans" (tek başına
+// eşiği geçebilecek) sayılması için pencerede en az bu kadar yorumu olmalı.
+// Az yorumlu bir rakibin şans eseri yüksek orana sahip olması (ör. 3 yorumun
+// 3'üne yanıt) gürültüdür, gerçek bir sinyal değildir.
+export const PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_REVIEWS = 10;
+// own ile referans rakip (bkz. yukarıdaki not) yanıt oranı arasındaki fark en
+// az bu kadar (0-1 skalasında yüzde puanı) olmalı.
 export const PROFILE_GAP_REPLY_RATE_MIN_GAP = 0.2;
 // own tarafında en az bu kadar yanıtlanmamış yorum olmalı — gürültü eşiği,
 // tek bir yanıtsız yorum için görev üretmek anlamsız.

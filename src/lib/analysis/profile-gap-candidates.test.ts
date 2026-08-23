@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { buildProfileGapCandidates, type ProfileGapStats } from "@/lib/analysis/profile-gap-candidates";
 
 // Sabitler (bkz. src/lib/constants.ts): PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_RATE = 0.5,
+// PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_REVIEWS = 10 (referans rakip olabilmek
+// için hacim eşiği — bkz. FIX 1, gerçek veriyle kalibre edildi),
 // PROFILE_GAP_REPLY_RATE_MIN_GAP = 0.2, PROFILE_GAP_MIN_OWN_UNREPLIED = 3,
 // PROFILE_GAP_WEBSITE_MIN_COMPETITOR_SHARE = 0.5. Impact score ağırlıkları
 // (competitor_prevalence 0.5, own_deficiency 0.4) computeCompetitiveGapImpactScore'dan
@@ -34,14 +36,90 @@ describe("buildProfileGapCandidates — reply_rate kuralı", () => {
     expect(replyTask?.source_type).toBe("profile_gap");
     expect(replyTask?.effort_score).toBe(1);
     // en yüksek yanıt oranına sahip rakip (c1: 8/10=0.8 > c2: 3/5=0.6) seçilir.
+    // c1'in kendisi de hacim eşiğini (total=10 >= MIN_COMPETITOR_REVIEWS) geçtiği
+    // için referans oran artık rakip ORTALAMASI değil, doğrudan c1'in kendi oranı
+    // (0.8) — bkz. FIX 1.
     expect(replyTask?.based_on_competitor_id).toBe("c1");
-    // prevalence = rakip ortalama oranı (70) = ratio(70,100)*100; deficiency = own eksikliği
-    // own rate=0.2 → deficiency=(1-0.2)*100=80. score = 70*0.5 + 80*0.4 = 67.
-    expect(replyTask?.impact_score_breakdown.competitor_prevalence).toBe(70);
+    // prevalence = referans rakibin oranı (c1: %80); deficiency = own eksikliği
+    // own rate=0.2 → deficiency=(1-0.2)*100=80. score = 80*0.5 + 80*0.4 = 72.
+    expect(replyTask?.impact_score_breakdown.competitor_prevalence).toBe(80);
     expect(replyTask?.impact_score_breakdown.own_deficiency).toBe(80);
-    expect(replyTask?.impact_score).toBe(67);
+    expect(replyTask?.impact_score).toBe(72);
     expect(replyTask?.checklist).toHaveLength(3);
     expect(replyTask?.title.tr).toContain("8");
+  });
+
+  it("gerçek veri şekli: 3 rakipten biri (169 yorum) %100 yanıtlıyor, diğer ikisi %0 — ortalama " +
+    "(%33) eşiğin altında kalsa bile hacim eşiğini geçen referans rakip TEK BAŞINA görev üretir", () => {
+    const stats = makeStats({
+      own: { total: 8, replied: 0, website: "own.com" },
+      windowDays: 365,
+      competitors: [
+        {
+          id: "c-strong",
+          name: "Mersin Ortodonti Uzmanı Yrd Doç Hatice Akıncı Cansunar (invisaling, diş teli, şeffaf plak)",
+          total: 169,
+          replied: 169,
+          website: null,
+        },
+        { id: "c-silent-1", name: "Silent Competitor 1", total: 143, replied: 0, website: null },
+        { id: "c-silent-2", name: "Silent Competitor 2", total: 25, replied: 0, website: null },
+      ],
+    });
+
+    // Ortalama = (1.0 + 0 + 0) / 3 = %33.3 — eski kuralda eşiğin (%50) altında
+    // kalıp görev ÜRETİLMEZDİ. Yeni kuralda hacim eşiğini (>=10) geçen 3 rakip
+    // arasından en yüksek orana sahip olan (c-strong, %100) referans alınır ve
+    // tek başına eşiği geçtiği için görev üretilir.
+    const candidates = buildProfileGapCandidates(stats);
+    const replyTask = candidates.find((c) => c.theme === "profile:reply_rate");
+
+    expect(replyTask).toBeDefined();
+    expect(replyTask?.based_on_competitor_id).toBe("c-strong");
+    expect(replyTask?.description.tr).toContain("Mersin Ortodonti Uzmanı");
+    expect(replyTask?.description.tr).toContain("169");
+    expect(replyTask?.description.tr).toContain("%100");
+    expect(replyTask?.description.tr).toContain("%0");
+    expect(replyTask?.description.tr).toContain("8 yorumun");
+    expect(replyTask?.impact_score_breakdown.competitor_prevalence).toBe(100);
+    expect(replyTask?.impact_score_breakdown.own_deficiency).toBe(100);
+  });
+
+  it("az yorumlu ama yüksek oranlı bir rakip (3/3 = %100) tek başına referans olamaz", () => {
+    const stats = makeStats({
+      own: { total: 10, replied: 1, website: "own.com" }, // unreplied = 9
+      competitors: [
+        // Hacim eşiğinin (10) altında, oranı yüksek ama gürültü sayılır.
+        { id: "c-small", name: "Small", total: 3, replied: 3, website: null },
+        // Hacim eşiğini geçen rakiplerin oranları düşük — referans bunlardan
+        // seçilir (en yükseği), ortalamayı c-small yukarı çekse de eşiği
+        // (mean 0.4 < 0.5) geçmiyor.
+        { id: "c-big-1", name: "Big 1", total: 15, replied: 2, website: null },
+        { id: "c-big-2", name: "Big 2", total: 15, replied: 1, website: null },
+      ],
+    });
+
+    const candidates = buildProfileGapCandidates(stats);
+    expect(candidates.find((c) => c.theme === "profile:reply_rate")).toBeUndefined();
+  });
+
+  it("hiçbir rakip hacim eşiğini geçmese de rakip ortalaması eşiği geçerse eski davranışla aday üretir", () => {
+    const stats = makeStats({
+      own: { total: 10, replied: 2, website: "own.com" }, // unreplied = 8
+      competitors: [
+        { id: "c1", name: "C1", total: 5, replied: 4, website: null }, // 0.8, hacim eşiğinin altında
+        { id: "c2", name: "C2", total: 3, replied: 1, website: null }, // 0.333, hacim eşiğinin altında
+      ],
+    });
+
+    // Ortalama = (0.8 + 0.333) / 2 = %56.7 >= %50 → mean-based yol tetiklenir
+    // (hiçbir rakip hacim eşiğini geçmediği için referans oran = ortalama,
+    // based_on = en yüksek orana sahip rakip — eski davranışla birebir aynı).
+    const candidates = buildProfileGapCandidates(stats);
+    const replyTask = candidates.find((c) => c.theme === "profile:reply_rate");
+
+    expect(replyTask).toBeDefined();
+    expect(replyTask?.based_on_competitor_id).toBe("c1");
   });
 
   it("eşit yanıt oranında en çok yoruma sahip rakip seçilir", () => {

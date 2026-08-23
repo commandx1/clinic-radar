@@ -30,6 +30,11 @@ export async function AnalysisDeltaCard({ businessId }: { businessId: string }) 
   // `no-unnecessary-condition` bunu yanlış pozitif olarak işaretler.
   const hasTopCompetitor = delta.competitor_new_reviews_top.length > 0;
   const topCompetitor = delta.competitor_new_reviews_top[0];
+  // İlk analizde `previous_run_at` null'dur ve penceredeki HER satır "yeni"
+  // sayılır (bkz. analysis-delta.ts computeAnalysisDelta — previousRunAt
+  // yoksa sinceIso = windowStartIso) — bu, gerçekte "yeni gelen" yorum değil,
+  // "toplanan" yorumdur; "yeni yorum" ifadesi ilk analizde yanıltıcı olur.
+  const isFirstRun = delta.previous_run_at === null;
 
   return (
     <Card>
@@ -42,8 +47,10 @@ export async function AnalysisDeltaCard({ businessId }: { businessId: string }) 
       <CardContent className="flex flex-col gap-3">
         <ul className="flex flex-col gap-1 text-sm">
           <li>
-            {t("ownNewReviews", { count: delta.own_new_reviews })},{" "}
-            {t("competitorNewReviews", { count: delta.competitor_new_reviews })}
+            {t(isFirstRun ? "ownFirstRunReviews" : "ownNewReviews", { count: delta.own_new_reviews })},{" "}
+            {t(isFirstRun ? "competitorFirstRunReviews" : "competitorNewReviews", {
+              count: delta.competitor_new_reviews,
+            })}
             {hasTopCompetitor
               ? ` — ${t("competitorNewReviewsTop", { name: topCompetitor.name, count: topCompetitor.count })}`
               : null}

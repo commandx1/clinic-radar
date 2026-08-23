@@ -6,6 +6,7 @@ import type { ScoredTaskCandidate } from "@/lib/analysis/task-candidates";
 import {
   PROFILE_GAP_MIN_OWN_UNREPLIED,
   PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_RATE,
+  PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_REVIEWS,
   PROFILE_GAP_REPLY_RATE_MIN_GAP,
   PROFILE_GAP_WEBSITE_MIN_COMPETITOR_SHARE,
 } from "@/lib/constants";
@@ -43,9 +44,26 @@ function replyRate(stats: { total: number; replied: number }): number {
   return stats.total > 0 ? stats.replied / stats.total : 0;
 }
 
+// En yüksek yanıt oranına sahip rakip seçilir (eşitlikte en çok yoruma sahip
+// olan kazanır) — `based_on_competitor_id` ve "referans rakip" seçimi bu
+// fonksiyonla yapılır (bkz. buildReplyRateCandidate).
+function pickHighestRateCompetitor(
+  competitors: ProfileGapCompetitorStats[],
+): ProfileGapCompetitorStats {
+  return competitors.slice().sort((a, b) => {
+    const rateDiff = replyRate(b) - replyRate(a);
+    return rateDiff !== 0 ? rateDiff : b.total - a.total;
+  })[0];
+}
+
 // Kural A: own tarafında rakiplere kıyasla belirgin derecede düşük yorum
-// yanıt oranı. En yüksek yanıt oranına sahip rakip `based_on_competitor_id`
-// olarak seçilir (eşitlikte en çok yoruma sahip olan kazanır).
+// yanıt oranı. Görev, İKİ yoldan biriyle tetiklenir (bkz. constants.ts
+// PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_RATE üzerindeki not, docs/02-business-rules.md
+// Bölüm D): (a) rakip ortalama yanıt oranı eşiği geçerse (eski davranış), YA
+// DA (b) hacim eşiğini (PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_REVIEWS)
+// geçen rakiplerden en az biri TEK BAŞINA eşiği geçerse — gerçek veride
+// (Mersin pilotu) 3 rakipten biri 169/169 yanıtlarken diğer ikisi 0 yanıt
+// verince ortalama (%33) eşiğin altında kalıp bu gerçek fırsatı gizliyordu.
 function buildReplyRateCandidate(stats: ProfileGapStats): ScoredTaskCandidate | null {
   const eligibleCompetitors = stats.competitors.filter((c) => c.total >= 1);
   if (eligibleCompetitors.length === 0) {
@@ -53,30 +71,48 @@ function buildReplyRateCandidate(stats: ProfileGapStats): ScoredTaskCandidate | 
   }
 
   const ownRate = replyRate(stats.own);
+  const ownUnreplied = stats.own.total - stats.own.replied;
   const competitorAvgRate =
     eligibleCompetitors.reduce((sum, c) => sum + replyRate(c), 0) / eligibleCompetitors.length;
-  const ownUnreplied = stats.own.total - stats.own.replied;
+
+  // Hacim eşiğini geçen rakipler (potansiyel "referans rakip" havuzu) — az
+  // yorumlu bir rakibin şans eseri yüksek orana sahip olması (ör. 3/3) tek
+  // başına referans olamaz, gürültü sayılır.
+  const volumeQualifiedCompetitors = eligibleCompetitors.filter(
+    (c) => c.total >= PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_REVIEWS,
+  );
+
+  // Referans rakip ve oranı: hacim eşiğini geçen rakip varsa aralarında en
+  // yüksek orana sahip olan seçilir ve KENDİ oranı referans oran olur; yoksa
+  // eski davranışa (rakip ortalaması, en yüksek orana sahip rakip based_on
+  // olarak) düşülür.
+  const basedOnCompetitor =
+    volumeQualifiedCompetitors.length > 0
+      ? pickHighestRateCompetitor(volumeQualifiedCompetitors)
+      : pickHighestRateCompetitor(eligibleCompetitors);
+  const referenceRate =
+    volumeQualifiedCompetitors.length > 0 ? replyRate(basedOnCompetitor) : competitorAvgRate;
+
+  const meanEligible = competitorAvgRate >= PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_RATE;
+  const volumeEligible =
+    volumeQualifiedCompetitors.length > 0 && referenceRate >= PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_RATE;
 
   const eligible =
-    competitorAvgRate >= PROFILE_GAP_REPLY_RATE_MIN_COMPETITOR_RATE &&
-    competitorAvgRate - ownRate >= PROFILE_GAP_REPLY_RATE_MIN_GAP &&
+    (meanEligible || volumeEligible) &&
+    referenceRate - ownRate >= PROFILE_GAP_REPLY_RATE_MIN_GAP &&
     ownUnreplied >= PROFILE_GAP_MIN_OWN_UNREPLIED;
 
   if (!eligible) {
     return null;
   }
 
-  const basedOnCompetitor = eligibleCompetitors.slice().sort((a, b) => {
-    const rateDiff = replyRate(b) - replyRate(a);
-    return rateDiff !== 0 ? rateDiff : b.total - a.total;
-  })[0];
-
-  // Reuse edilen formül: prevalence = rakip yanıt oranı, deficiency = own
+  // Reuse edilen formül: prevalence = referans rakibin yanıt oranı
+  // (kullanıcının gerçekte karşılaştırıldığı sayı), deficiency = own
   // yanıtsız oranı — bkz. docs/09-task-engine.md "profile_gap impact eşlemesi".
   const { score, breakdown } = computeCompetitiveGapImpactScore(
     {
-      positive_mentions: Math.round(competitorAvgRate * 100),
-      negative_mentions: Math.round((1 - competitorAvgRate) * 100),
+      positive_mentions: Math.round(referenceRate * 100),
+      negative_mentions: Math.round((1 - referenceRate) * 100),
     },
     {
       positive_mentions: Math.round(ownRate * 100),
@@ -88,7 +124,9 @@ function buildReplyRateCandidate(stats: ProfileGapStats): ScoredTaskCandidate | 
   const { title, description, checklist } = buildReplyRateTaskContent({
     unrepliedCount: ownUnreplied,
     ownRatePct: Math.round(ownRate * 100),
-    competitorRatePct: Math.round(competitorAvgRate * 100),
+    competitorRatePct: Math.round(referenceRate * 100),
+    competitorName: basedOnCompetitor.name,
+    competitorCount: basedOnCompetitor.total,
     windowDays: stats.windowDays,
   });
 

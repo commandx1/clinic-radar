@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { hasProAccess } from "@/lib/billing/plan-access";
 import { normalizeTrustpilotDomainInput } from "@/lib/reviews/sources/trustpilot-domain";
 import { createClient } from "@/lib/supabase/server";
 import { updateBusinessSchema } from "@/lib/validations/business";
@@ -53,10 +54,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (trustpilot_domain_override !== undefined) {
     const { data: subscription } = await supabase
       .from("subscriptions")
-      .select("plan")
+      .select("plan, status, current_period_end")
       .eq("user_id", user.id)
       .maybeSingle();
-    const isPro = subscription?.plan === "pro" || subscription?.plan === "agency";
+    const isPro = hasProAccess(subscription);
 
     if (!isPro) {
       return NextResponse.json({ error: "pro_required" }, { status: 403 });

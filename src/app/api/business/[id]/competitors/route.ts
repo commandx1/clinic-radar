@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { hasProAccess } from "@/lib/billing/plan-access";
 import { FREE_PLAN_MAX_COMPETITORS, PRO_PLAN_MAX_COMPETITORS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { selectCompetitorsSchema } from "@/lib/validations/competitors";
@@ -34,11 +35,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("plan")
+    .select("plan, status, current_period_end")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const planMax = subscription?.plan === "pro" ? PRO_PLAN_MAX_COMPETITORS : FREE_PLAN_MAX_COMPETITORS;
+  const planMax = hasProAccess(subscription) ? PRO_PLAN_MAX_COMPETITORS : FREE_PLAN_MAX_COMPETITORS;
 
   if (parsed.data.candidates.length > planMax) {
     return NextResponse.json({ error: "plan_limit_exceeded", planMax }, { status: 422 });

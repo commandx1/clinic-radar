@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { hasProAccess } from "@/lib/billing/plan-access";
 import { FREE_PLAN_MAX_COMPETITORS, MIN_COMPETITORS, PRO_PLAN_MAX_COMPETITORS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,10 +34,10 @@ export default async function BusinessLayout({ children }: Readonly<{ children: 
 
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("plan")
+    .select("plan, status, current_period_end")
     .eq("user_id", user!.id)
     .maybeSingle();
-  const isPro = subscription?.plan === "pro" || subscription?.plan === "agency";
+  const isPro = hasProAccess(subscription);
 
   if (business.lat === null || business.lng === null) {
     return (

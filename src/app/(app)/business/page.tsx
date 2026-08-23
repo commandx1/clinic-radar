@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { hasProAccess, resolvePlanAccess } from "@/lib/billing/plan-access";
 import { createClient } from "@/lib/supabase/server";
 import { getNextAnalysisAvailableAt, isAnalysisCooldownActive } from "@/lib/task-engine/analysis-cooldown";
 import { calculatePotentialRatingGain } from "@/lib/task-engine/potential-rating-gain";
@@ -106,7 +107,11 @@ export default async function OverviewPage() {
         .select("id, name, category, google_place_id, last_scraped_at, trustpilot_domain")
         .eq("user_id", user!.id)
         .maybeSingle(),
-      supabase.from("subscriptions").select("plan").eq("user_id", user!.id).maybeSingle(),
+      supabase
+        .from("subscriptions")
+        .select("plan, status, current_period_end")
+        .eq("user_id", user!.id)
+        .maybeSingle(),
       getTranslations("business.overview"),
       getTranslations("business.monthlyReport"),
       getTranslations("business.satisfaction"),
@@ -120,8 +125,11 @@ export default async function OverviewPage() {
     resolveOpenTasks(supabase, business!.id, locale),
   ]);
   const topTasks = openTasks.slice(0, 3);
-  const isPro = subscription?.plan === "pro" || subscription?.plan === "agency";
-  const nextAnalysisAvailableAt = getNextAnalysisAvailableAt(business!.last_scraped_at, subscription?.plan);
+  const isPro = hasProAccess(subscription);
+  const nextAnalysisAvailableAt = getNextAnalysisAvailableAt(
+    business!.last_scraped_at,
+    resolvePlanAccess(subscription),
+  );
   const executiveSummary = metrics.latestSnapshot?.executive_summary
     ? pickLocale(metrics.latestSnapshot.executive_summary, locale)
     : null;

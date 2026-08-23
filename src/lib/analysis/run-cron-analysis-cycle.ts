@@ -5,6 +5,7 @@ import { acquireAnalysisRun } from "@/lib/analysis/acquire-analysis-run";
 import { toAnalysisDeltaColumn } from "@/lib/analysis/analysis-delta";
 import { executeAnalysis } from "@/lib/analysis/execute-analysis";
 import { toScrapeMetricColumns } from "@/lib/analysis/scrape-metrics";
+import { hasProAccess } from "@/lib/billing/plan-access";
 import { MIN_COMPETITORS, PRO_PLAN_ANALYSIS_COOLDOWN_DAYS } from "@/lib/constants";
 import type { Database } from "@/types/database.types";
 
@@ -38,13 +39,17 @@ interface CronCycleSummary {
 // uygunluk taraması ve analysis_runs kayıt/trigger farkı vardır. Dosya başına
 // ~100 satır sınırı (CLAUDE.md) nedeniyle route.ts'den ayrıldı.
 export async function runCronAnalysisCycle(supabase: CronSupabaseClient): Promise<CronCycleSummary> {
-  const { data: proSubscriptions } = await supabase
+  // bkz. src/lib/billing/plan-access.ts — 'canceled' status'ü sorguda dışlamıyoruz:
+  // LemonSqueezy'de iptal, dönem sonuna kadar erişim demektir; current_period_end
+  // geçmiş satırlar aşağıda hasProAccess ile elenir, kalanlar haftalık döngüsüne
+  // devam eder.
+  const { data: subscriptions } = await supabase
     .from("subscriptions")
-    .select("user_id")
-    .eq("plan", "pro")
-    .eq("status", "active");
+    .select("user_id, plan, status, current_period_end")
+    .in("plan", ["pro", "agency"])
+    .in("status", ["active", "past_due", "canceled"]);
 
-  const proUserIds = (proSubscriptions ?? []).map((s) => s.user_id);
+  const proUserIds = (subscriptions ?? []).filter((s) => hasProAccess(s)).map((s) => s.user_id);
 
   // Uygunluk filtreleri sorguda: enrich edilmiş (google_place_id + lat) VE
   // daha önce en az bir kez analiz edilmiş (last_scraped_at NOT NULL — ilk

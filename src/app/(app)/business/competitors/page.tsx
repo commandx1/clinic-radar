@@ -1,3 +1,4 @@
+import { hasProAccess } from "@/lib/billing/plan-access";
 import { FREE_PLAN_MAX_COMPETITORS, PRO_PLAN_MAX_COMPETITORS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,14 +13,18 @@ export default async function CompetitorsPage() {
   // business ve subscription ikisi de user.id'ye bağlı — paralel çalıştır.
   const [{ data: business }, { data: subscription }] = await Promise.all([
     supabase.from("businesses").select("id").eq("user_id", user!.id).maybeSingle(),
-    supabase.from("subscriptions").select("plan").eq("user_id", user!.id).maybeSingle(),
+    supabase
+      .from("subscriptions")
+      .select("plan, status, current_period_end")
+      .eq("user_id", user!.id)
+      .maybeSingle(),
   ]);
 
   const { data: competitors } = await supabase
     .from("competitors")
     .select("id, google_place_id, name, rating, review_count")
     .eq("business_id", business!.id);
-  const planMaxCompetitors = subscription?.plan === "pro" ? PRO_PLAN_MAX_COMPETITORS : FREE_PLAN_MAX_COMPETITORS;
+  const planMaxCompetitors = hasProAccess(subscription) ? PRO_PLAN_MAX_COMPETITORS : FREE_PLAN_MAX_COMPETITORS;
 
   return (
     <CompetitorsManager

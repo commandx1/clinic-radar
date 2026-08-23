@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { hasProAccess } from "@/lib/billing/plan-access";
 import { createClient } from "@/lib/supabase/server";
 
 import { CancelSubscriptionButton } from "./cancel-subscription-button";
@@ -30,7 +31,10 @@ export default async function BillingPage({
     getTranslations("business.billing"),
   ]);
   const plan = subscription?.plan ?? "free";
-  const isPro = plan === "pro";
+  // Rozet metni ham `plan` değerini gösterir (Agency planı ayrı bir rozet
+  // metnine sahip) — erişim kararı için `hasProAccess` kullanılır, "pro"
+  // string eşleşmesi değil (bkz. src/lib/billing/plan-access.ts).
+  const isPro = hasProAccess(subscription);
   const isActive = subscription?.status === "active";
   const isPastDue = subscription?.status === "past_due";
 

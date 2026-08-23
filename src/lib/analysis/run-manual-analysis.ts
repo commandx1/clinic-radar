@@ -4,6 +4,7 @@ import { acquireAnalysisRun } from "@/lib/analysis/acquire-analysis-run";
 import { toAnalysisDeltaColumn } from "@/lib/analysis/analysis-delta";
 import { executeAnalysis } from "@/lib/analysis/execute-analysis";
 import { toScrapeMetricColumns } from "@/lib/analysis/scrape-metrics";
+import { hasProAccess, resolvePlanAccess } from "@/lib/billing/plan-access";
 import { MIN_COMPETITORS } from "@/lib/constants";
 import { getNextAnalysisAvailableAt } from "@/lib/task-engine/analysis-cooldown";
 import type { Database } from "@/types/database.types";
@@ -42,12 +43,19 @@ export async function runManualAnalysisForBusiness(
   }
 
   const [{ data: subscription }, { data: ownerUser }] = await Promise.all([
-    supabase.from("subscriptions").select("plan").eq("user_id", userId).maybeSingle(),
+    supabase
+      .from("subscriptions")
+      .select("plan, status, current_period_end")
+      .eq("user_id", userId)
+      .maybeSingle(),
     supabase.from("users").select("email").eq("id", userId).maybeSingle(),
   ]);
 
   if (business.last_scraped_at) {
-    const nextAvailableAt = getNextAnalysisAvailableAt(business.last_scraped_at, subscription?.plan);
+    const nextAvailableAt = getNextAnalysisAvailableAt(
+      business.last_scraped_at,
+      resolvePlanAccess(subscription),
+    );
 
     if (nextAvailableAt && nextAvailableAt.getTime() > Date.now()) {
       return {
@@ -60,7 +68,7 @@ export async function runManualAnalysisForBusiness(
   // bkz. docs/02-business-rules.md Bölüm G kural 3 — kritik sinyal e-postası
   // yalnızca Pro/Agency planlarda gönderilir.
   const notifyContext = {
-    isPro: subscription?.plan === "pro" || subscription?.plan === "agency",
+    isPro: hasProAccess(subscription),
     ownerEmail: ownerUser?.email ?? null,
   };
 

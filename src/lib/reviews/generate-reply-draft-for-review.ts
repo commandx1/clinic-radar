@@ -1,6 +1,7 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
 
 import { generateReplyDraft } from "@/lib/ai-pipeline/provider";
+import { hasProAccess } from "@/lib/billing/plan-access";
 import { canGenerateReplyDraft } from "@/lib/reviews/reply-draft-quota";
 import type { Database } from "@/types/database.types";
 
@@ -59,7 +60,11 @@ export async function generateReplyDraftForReview(
 
   const [{ data: business }, { data: subscription }] = await Promise.all([
     supabase.from("businesses").select("id, name, category").eq("id", review.business_id).eq("user_id", userId).maybeSingle(),
-    supabase.from("subscriptions").select("plan").eq("user_id", userId).maybeSingle(),
+    supabase
+      .from("subscriptions")
+      .select("plan, status, current_period_end")
+      .eq("user_id", userId)
+      .maybeSingle(),
   ]);
 
   if (!business) {
@@ -70,7 +75,7 @@ export async function generateReplyDraftForReview(
     return { status: 409, body: { error: "already_replied" } };
   }
 
-  const isPro = subscription?.plan === "pro" || subscription?.plan === "agency";
+  const isPro = hasProAccess(subscription);
   const cutoffIso = new Date(Date.now() - REPLY_DRAFT_QUOTA_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const { count } = await supabase
     .from("reviews")

@@ -138,3 +138,32 @@ Tek paragraf, 2-3 cümlelik bir yönetici özeti yaz. Somut bir sayı veya trend
 ```
 
 `title`/`description`'daki iki dilli üretim gerekçesi burada da geçerli: özet `output_language`'dan bağımsız her zaman `{tr, en}` üretilir ve `clinic_score_history.executive_summary`'ye yazılır.
+
+---
+
+## Yorum Yanıt Taslağı (Faz 2.2) — Review Reply Assistant
+
+`POST /api/reviews/:id/reply-draft` bunu tetikler (`04-api.md`). Yukarıdaki "Ortak kurallar"ın **istisnası**: çıktı dili `output_language`'a (kullanıcının arayüz dili) değil, **yorumun kendi diline** bağlıdır — yanıt o yorumun altına yazılacağı için. Bu yüzden sistem promptu (bilinçli olarak) İngilizce yazılmıştır (`src/lib/ai-pipeline/reply-draft-schema.ts`, `buildReplyDraftSystemPrompt`), diğer aşamaların Türkçe promptlarının aksine.
+
+**Sistem promptu (özet):**
+> Sen bir klinik sahibinin yorumlara verdiği kamuya açık yanıtları yazıyorsun. Yorumla AYNI dilde yanıt ver, en fazla 110 kelime, sıcak ve profesyonel bir üslupla, yorumcunun övdüğü/şikayet ettiği konuya özel ol ama yorumdan asla birebir alıntı yapma. Yorumcunun hasta olup olmadığını asla doğrulama/reddetme, teşhis/tedavi/tarih ya da başka bir kişisel/sağlık detayından bahsetme, tıbbi tavsiye verme, indirim/hediye/teşvik teklif etme, yorumun değiştirilmesini isteme. Olumsuz yorumda: anla, yasal hata kabul etmeden özür dile, `[iletişim]`/`[contact]` placeholder'ı üzerinden özel iletişime davet et. Olumlu yorumda: teşekkür et, somut bir olumlu temayı pekiştir. Emoji/hashtag yok. Sadece belirtilen JSON şemasında yanıt ver.
+
+**Kullanıcı promptu (yapı):**
+```
+Clinic name: {business_name}
+Category: {category}
+Review rating: {rating}/5
+Review language (hint): {review_language}
+Desired tone: {warm and personable | formal and reserved}
+Review text:
+{review_text}
+
+Write the clinic owner's public reply to this review, following all system rules.
+```
+
+**Beklenen çıktı şeması:**
+```json
+{ "reply": "Teşekkür ederiz! Randevu sürecinin hızlı işlemesinden memnun kalmanıza sevindik..." }
+```
+
+Eşik/filtreleme mantığı burada da uygulama kodunda: hangi yorumun taslak alabileceği (own + yanıtlanmamış + kota altında) route tarafında (`src/lib/reviews/generate-reply-draft-for-review.ts`) belirlenir, prompt'a hiçbir uygunluk kuralı yazdırılmaz. Şema uyuşmazlığında (null) bir kez daha denenir (`withRetryOnce` deseni, `execute-analysis.ts`'teki ile aynı mantık), iki deneme de başarısızsa taslak kaydedilmez ve `502 draft_failed` döner.

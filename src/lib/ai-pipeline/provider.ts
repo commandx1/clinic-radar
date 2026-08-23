@@ -1,10 +1,12 @@
 import { getClaudeClient } from "@/lib/claude/client";
 import * as claudeExecutiveSummary from "@/lib/claude/executive-summary";
 import * as claudeGapAnalysis from "@/lib/claude/gap-analysis";
+import * as claudeReplyDraft from "@/lib/claude/reply-draft";
 import * as claudeThemeExtraction from "@/lib/claude/theme-extraction";
 import { getGeminiClient } from "@/lib/gemini/client";
 import * as geminiExecutiveSummary from "@/lib/gemini/executive-summary";
 import * as geminiGapAnalysis from "@/lib/gemini/gap-analysis";
+import * as geminiReplyDraft from "@/lib/gemini/reply-draft";
 import * as geminiThemeExtraction from "@/lib/gemini/theme-extraction";
 
 export type {
@@ -13,6 +15,7 @@ export type {
   ThemeTrendInput,
 } from "@/lib/ai-pipeline/executive-summary-schema";
 export type { CompetitorThemeInput, GapAnalysisOutput, TaskCandidate } from "@/lib/ai-pipeline/gap-analysis-schema";
+export type { ReplyDraftInput, ReplyDraftOutput } from "@/lib/ai-pipeline/reply-draft-schema";
 export type { ReviewInput, ThemeExtractionOutput, ThemeItem } from "@/lib/ai-pipeline/theme-extraction-schema";
 
 // Tek geçiş noktası: hangi AI sağlayıcısının kullanıldığı AI_PROVIDER env
@@ -44,3 +47,6 @@ export const generateExecutiveSummary: typeof claudeExecutiveSummary.generateExe
   resolveProvider() === "gemini"
     ? geminiExecutiveSummary.generateExecutiveSummary(input)
     : claudeExecutiveSummary.generateExecutiveSummary(input);
+
+export const generateReplyDraft: typeof claudeReplyDraft.generateReplyDraft = (input) =>
+  resolveProvider() === "gemini" ? geminiReplyDraft.generateReplyDraft(input) : claudeReplyDraft.generateReplyDraft(input);

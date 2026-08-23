@@ -83,7 +83,26 @@
       "executiveSummaryTitle": "Executive Summary",
       "topTasksTitle": "Top priorities",
       "topTasksEmpty": "No open tasks. Run analysis to generate some.",
-      "trendPreviewTitle": "Trend"
+      "trendPreviewTitle": "Trend",
+      "delta": {
+        "title": "What changed in this analysis",
+        "windowLabel": "Last {days} days",
+        "ownNewReviews": "{count} new reviews for you",
+        "competitorNewReviews": "{count} new reviews for competitors",
+        "competitorNewReviewsTop": "most: {name} +{count}",
+        "tasksSummary": "{created} new tasks, {updated} updated, {reopened} reopened",
+        "worseningThemesTitle": "Worsening themes",
+        "improvingThemesTitle": "Improving themes",
+        "criticalThemesTitle": "Critical themes",
+        "unrepliedReviews": "{count} unreplied reviews",
+        "unrepliedReviewsLink": "Go to reviews",
+        "zeroTasksReason": {
+          "no_new_signal": "No new problem signal — that's good news. Focus on your existing open tasks and unreplied reviews.",
+          "all_themes_below_threshold": "New themes showed up, but none are strong enough yet to become a task — they'll be reconsidered once more reviews come in.",
+          "own_analysis_failed": "We couldn't finish analyzing your own reviews this cycle, so no new tasks were generated. We'll retry on the next analysis.",
+          "stage2_failed": "We couldn't finish the competitor comparison this cycle, so no new tasks were generated. We'll retry on the next analysis."
+        }
+      }
     },
     "form": {
       "name": "Business name",
@@ -275,6 +294,33 @@
         "sortLabel": "Sort",
         "sortNewest": "Newest first",
         "sortOldest": "Oldest first"
+      },
+      "replyDraft": {
+        "generateButton": "Generate reply draft",
+        "generating": "Generating draft…",
+        "toneLabel": "Tone",
+        "toneWarm": "Warm",
+        "toneFormal": "Formal",
+        "textareaLabel": "Reply draft",
+        "copyButton": "Copy",
+        "copied": "Copied",
+        "openSourceLink": "Reply on {source}",
+        "openSourceLinkGeneric": "Reply on source",
+        "markAsRepliedButton": "I replied",
+        "markedBadge": "Marked as replied",
+        "undoMarkedButton": "Undo",
+        "errors": {
+          "not_found": "This review no longer exists.",
+          "no_review_text": "This review has no text, a draft can't be generated.",
+          "already_replied": "This review already has a reply.",
+          "quota_exceeded": "You've used your free plan's draft quota for this month.",
+          "draft_failed": "Couldn't generate a draft. Please try again.",
+          "ai_provider_not_configured": "The AI service is currently unavailable.",
+          "invalid_body": "Invalid request.",
+          "genericError": "Something went wrong."
+        },
+        "quotaUpsell": "Upgrade to Pro for unlimited reply drafts.",
+        "quotaUpsellLink": "View plans"
       }
     },
     "satisfaction": {

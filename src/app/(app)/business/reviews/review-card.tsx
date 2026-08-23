@@ -4,7 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ReviewSource } from "@/lib/reviews/types";
 
-type ReviewsTranslator = Awaited<ReturnType<typeof getTranslations<"business.reviews">>>;
+import { ReplyDraftPanel } from "./reply-draft-panel";
+
+export type ReviewsTranslator = Awaited<ReturnType<typeof getTranslations<"business.reviews">>>;
 
 // Kaynak adı çeviri anahtarları. Record<ReviewSource, ...> bilinçli: `ReviewSource`
 // birliğine yeni bir kaynak eklendiğinde burası derleme hatası verir, böylece
@@ -30,11 +32,15 @@ export function ReviewCard({
   t: ReviewsTranslator;
   locale: string;
   review: {
+    id: string;
     source: string;
     rating: number | null;
     published_at: string | null;
     owner_reply: string | null;
     review_url: string | null;
+    reply_draft: string | null;
+    reply_draft_generated_at: string | null;
+    reply_marked_at: string | null;
   };
 }) {
   const labelKey = sourceLabelKey(review.source);
@@ -63,6 +69,16 @@ export function ReviewCard({
           >
             {labelKey ? t("viewOnSource", { source: t(labelKey) }) : t("viewSource")}
           </a>
+        )}
+        {!review.owner_reply && (
+          <ReplyDraftPanel
+            reviewId={review.id}
+            initialDraft={review.reply_draft}
+            initialMarkedAt={review.reply_marked_at}
+            reviewUrl={review.review_url}
+            sourceLabel={labelKey ? t(labelKey) : null}
+            t={t}
+          />
         )}
       </CardContent>
     </Card>

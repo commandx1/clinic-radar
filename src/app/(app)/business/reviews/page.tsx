@@ -24,6 +24,9 @@ interface ReviewRow {
   published_at: string | null;
   owner_reply: string | null;
   review_url: string | null;
+  reply_draft: string | null;
+  reply_draft_generated_at: string | null;
+  reply_marked_at: string | null;
 }
 
 async function loadReviews(
@@ -33,7 +36,9 @@ async function loadReviews(
 ): Promise<ReviewRow[]> {
   let query = supabase
     .from("reviews")
-    .select("id, source, rating, published_at, owner_reply, review_url")
+    .select(
+      "id, source, rating, published_at, owner_reply, review_url, reply_draft, reply_draft_generated_at, reply_marked_at",
+    )
     .eq("business_id", businessId)
     .eq("owner_type", "own");
 

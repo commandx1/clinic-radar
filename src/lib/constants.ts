@@ -94,3 +94,9 @@ export const SCRAPE_SUCCESS_RATE_ALERT_THRESHOLD = 0.5;
 // büyük çekim yerine sayfa sayısı sınırlanır. 2 sayfa ≈ 25 yorum; tema
 // çıkarımı (TASK_MENTION_THRESHOLD) için yeterli sinyal sağlar.
 export const TRUSTPILOT_FETCH_MAX_PAGES = 2;
+
+// Yorum yanıt taslağı — bkz. docs/02-business-rules.md Bölüm A, Bölüm J.
+// Free plan ayda en fazla bu kadar taslak üretebilir (30 günlük hareketli
+// pencere, takvim ayı değil); Pro/Agency sınırsız. Aynı yoruma tekrar taslak
+// üretmek de kotadan düşer (bilinçli olarak basit tutuldu).
+export const FREE_PLAN_REPLY_DRAFTS_PER_MONTH = 5;

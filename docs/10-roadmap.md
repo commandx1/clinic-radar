@@ -112,6 +112,20 @@ Detay: `02-business-rules.md` Bölüm I, `03-database.md`, `04-api.md`.
   (mahalle ölçeğinde) klinikler için çoğu zaman profil bulunmaz ve akış sessizce yalnızca Google ile
   devam eder. Bu beklenen davranış, hata değil.
 
+## Faz 2.2 — Yorum yanıt asistanı (2026-08)
+- [x] **Review Reply Assistant.** Kullanıcının kendi (`owner_type='own'`) yanıtlanmamış yorumları için AI'ın taslak bir sahibi yanıtı ürettiği özellik — Reviews sekmesinde her yanıtsız yorum kartında "Yanıt taslağı oluştur" aksiyonu, düzenlenebilir taslak, "Kopyala", kaynağa dış link ve "Yanıtladım" işareti (`POST /api/reviews/:id/reply-draft`, `PATCH /api/reviews/:id`, bkz. `04-api.md`, `02-business-rules.md` Bölüm J, `06-prompts.md`).
+- [x] **Şema/prompt sağlayıcıdan bağımsız** (`src/lib/ai-pipeline/reply-draft-schema.ts`), Claude/Gemini implementasyonları executive-summary ile birebir aynı kontratı paylaşıyor (`src/lib/claude/reply-draft.ts`, `src/lib/gemini/reply-draft.ts`, `provider.ts`'e eklendi).
+- [x] **Gizlilik kısıtları prompt'a gömülü:** taslak asla birebir alıntı yapmaz, hasta olup olmadığını doğrulamaz/reddetmez, teşhis/tedavi/tarih içermez, tıbbi tavsiye vermez, indirim/teşvik teklif etmez.
+- [x] **Kota:** Free plan ayda **5** taslak (`FREE_PLAN_REPLY_DRAFTS_PER_MONTH`, 30 günlük hareketli pencere, saf fonksiyon `reply-draft-quota.ts` + birim test), Pro/Agency sınırsız.
+- [x] **Şema:** `reviews.reply_draft`, `reply_draft_generated_at`, `reply_marked_at` (migration `20260823000000_reviews_reply_draft.sql`) — mevcut "reviews update own" RLS policy'si ve `authenticated`/`service_role` grant'ları (tablo bazlı) yeni kolonları otomatik kapsadığı için yeni bir policy/grant gerekmedi.
+
+## Faz 2.3 — Analiz delta kartı (2026-08)
+- [x] **"Bu analizde ne değişti" kartı.** Her analiz koşusu bir önceki (succeeded/partial) koşuya göre yapılandırılmış bir delta hesaplar ve saklar; Overview'da executive özet/istatistik alanının hemen altında gösterilir (`AnalysisDeltaCard`, bkz. `08-dashboard.md`).
+- [x] **Şema:** `analysis_runs.delta jsonb` (migration `20260823000100_analysis_runs_delta.sql`) — sadece succeeded/partial run'larda dolu, mevcut RLS policy/grant'ları tablo bazlı olduğu için yeni bir policy/grant gerekmedi.
+- [x] **Hesaplama** yeni bir modülde (`src/lib/analysis/analysis-delta.ts`, `execute-analysis.ts`'in şişmemesi için ayrı): saf/test edilebilir `buildAnalysisDelta` + DB'den okuyan ince `computeAnalysisDelta`. "Yeni yorum" sayımı `published_at` değil `scraped_at` baz alır (gerekçe: `05-ai-pipeline.md` "Delta adımı"). "Önceki koşu" referansı ayrı bir sorgu değil, `executeAnalysis`'in kendi güncellemesinden ÖNCEki `businesses.last_scraped_at`.
+- [x] **Sıfır yeni görev durumunda sessiz kalınmaz:** `zero_new_tasks_reason` (`no_new_signal` | `all_themes_below_threshold` | `own_analysis_failed` | `stage2_failed`) kullanıcıya "hiçbir şey olmadı" ile "her şey zaten iyi gidiyor"u ayırt ettiren bir cümle olarak gösterilir.
+- [x] Birim test: `analysis-delta.test.ts` (zero_new_tasks_reason eşlemesi, top-3 rakip sıralaması, tema başına 5 sınırı).
+
 ## Faz 3
 - AI arama görünürlüğü modülü (ChatGPT/Gemini/Perplexity'de klinik nasıl öneriliyor)
 - Tema taksonomisi ölçeklenirse embedding/clustering katmanı (`05-ai-pipeline.md`'deki gerekçeye bkz.)

@@ -83,7 +83,26 @@
       "executiveSummaryTitle": "Yönetici Özeti",
       "topTasksTitle": "Öncelikli görevler",
       "topTasksEmpty": "Açık görev yok. Görev üretmek için analizi çalıştır.",
-      "trendPreviewTitle": "Trend"
+      "trendPreviewTitle": "Trend",
+      "delta": {
+        "title": "Bu analizde ne değişti",
+        "windowLabel": "Son {days} gün",
+        "ownNewReviews": "{count} yeni yorum sende",
+        "competitorNewReviews": "{count} yeni yorum rakiplerde",
+        "competitorNewReviewsTop": "en çok: {name} +{count}",
+        "tasksSummary": "{created} yeni görev, {updated} güncellendi, {reopened} yeniden açıldı",
+        "worseningThemesTitle": "Kötüleşen temalar",
+        "improvingThemesTitle": "İyileşen temalar",
+        "criticalThemesTitle": "Kritik temalar",
+        "unrepliedReviews": "{count} yanıtlanmamış yorum",
+        "unrepliedReviewsLink": "Yorumlara git",
+        "zeroTasksReason": {
+          "no_new_signal": "Yeni bir sorun sinyali yok — bu iyi haber. Mevcut açık görevlere ve yanıtlanmamış yorumlara odaklanın.",
+          "all_themes_below_threshold": "Yeni temalar görüldü ama henüz görev oluşturacak kadar güçlü bir sinyal yok — birkaç yorum daha birikince değerlendirilecek.",
+          "own_analysis_failed": "Bu döngüde kendi yorumlarının analizi tamamlanamadı, bu yüzden yeni görev üretilemedi. Bir sonraki analizde tekrar denenecek.",
+          "stage2_failed": "Bu döngüde rakip karşılaştırması tamamlanamadı, bu yüzden yeni görev üretilemedi. Bir sonraki analizde tekrar denenecek."
+        }
+      }
     },
     "form": {
       "name": "İşletme adı",
@@ -275,6 +294,33 @@
         "sortLabel": "Sırala",
         "sortNewest": "En yeni",
         "sortOldest": "En eski"
+      },
+      "replyDraft": {
+        "generateButton": "Yanıt taslağı oluştur",
+        "generating": "Taslak oluşturuluyor…",
+        "toneLabel": "Ton",
+        "toneWarm": "Sıcak",
+        "toneFormal": "Resmi",
+        "textareaLabel": "Yanıt taslağı",
+        "copyButton": "Kopyala",
+        "copied": "Kopyalandı",
+        "openSourceLink": "{source}'da yanıtla",
+        "openSourceLinkGeneric": "Kaynakta yanıtla",
+        "markAsRepliedButton": "Yanıtladım",
+        "markedBadge": "Yanıtlandı olarak işaretlendi",
+        "undoMarkedButton": "Geri al",
+        "errors": {
+          "not_found": "Bu yorum artık mevcut değil.",
+          "no_review_text": "Bu yorumun metni yok, taslak oluşturulamıyor.",
+          "already_replied": "Bu yoruma zaten yanıt verilmiş.",
+          "quota_exceeded": "Bu ay için ücretsiz plan taslak kotanız doldu.",
+          "draft_failed": "Taslak oluşturulamadı. Lütfen tekrar dene.",
+          "ai_provider_not_configured": "AI servisi şu anda kullanılamıyor.",
+          "invalid_body": "Geçersiz istek.",
+          "genericError": "Bir şeyler ters gitti."
+        },
+        "quotaUpsell": "Sınırsız yanıt taslağı için Pro'ya geçin.",
+        "quotaUpsellLink": "Planları görüntüle"
       }
     },
     "satisfaction": {

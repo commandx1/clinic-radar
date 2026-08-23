@@ -98,7 +98,10 @@ reviews (
   is_local_guide boolean,
   review_url text,
   published_at timestamptz,
-  scraped_at timestamptz
+  scraped_at timestamptz,
+  reply_draft text,              -- Review Reply Assistant: Claude/Gemini'nin ürettiği taslak yanıt (Faz 2.2), yalnızca owner_type='own' satırlarda dolar
+  reply_draft_generated_at timestamptz,  -- kota sayımı bunu okur (son 30 gün) — bkz. 02-business-rules.md Bölüm A/J
+  reply_marked_at timestamptz    -- kullanıcı "yanıtladım" dediğinde set edilir, geri alınabilir (null'a çekilir)
 )
 
 -- ============ Analiz Katmanı (iki seviyeli) ============
@@ -155,7 +158,8 @@ analysis_runs (
   scrape_success boolean,      -- Apify job'ı başarılı mı; scrape hiç denenmediyse (örn. insufficient_competitors) null — Risk 3 sinyali (11-risks-assumptions.md)
   fetched_reviews int,         -- Apify'dan dönen ham yorum sayısı (yorum başına maliyet trendinin paydası)
   scrape_latency_ms int,       -- fetchReviewsForPlaces duvar saati süresi
-  scrape_cost_usd numeric      -- tahmini maliyet: fetched_reviews × APIFY_PRICE_PER_REVIEW_USD; env tanımsızsa null (run-sync yanıtı gerçek usage taşımaz)
+  scrape_cost_usd numeric,     -- tahmini maliyet: fetched_reviews × APIFY_PRICE_PER_REVIEW_USD; env tanımsızsa null (run-sync yanıtı gerçek usage taşımaz)
+  delta jsonb                  -- "Bu analizde ne değişti" kartı için yapılandırılmış özet; şekil src/lib/analysis/analysis-delta.ts AnalysisDelta — sadece status in ('succeeded','partial') run'larda dolu, running/failed'de null (bkz. 05-ai-pipeline.md "Delta adımı", 08-dashboard.md)
 )
 
 -- ============ Görevler ============

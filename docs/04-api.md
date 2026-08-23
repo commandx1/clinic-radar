@@ -36,6 +36,21 @@ Kullanıcının otomatik bulunan Trustpilot eşleşmesini elle düzeltmesi için
 | PATCH | `/api/tasks/:id` | Durum güncelleme (`open` → `done` / `dismissed`). Gerçekten implemente edildi — kullanıcı etkileşimiyle tetiklenen bir yazma işlemi olduğu için CLAUDE.md kuralına göre gerçek bir endpoint + TanStack Query mutation. |
 | GET | `/api/business/:id/tasks/history` | Tamamlanan/reddedilen görevlerin geçmişi (Faz 1.1). |
 
+## Yorumlar (Faz 2.2 — Review Reply Assistant)
+
+| Method | Path | Açıklama |
+|---|---|---|
+| POST | `/api/reviews/:id/reply-draft` | Kullanıcının kendi (`owner_type='own'`) yanıtlanmamış bir yorumu için AI taslak yanıt üretir ve `reviews.reply_draft`/`reply_draft_generated_at`'e yazar. Gövde: `{ tone?: "warm" \| "formal" }` (varsayılan `"warm"`). Ham yorum metni yanıt gövdesinde asla dönmez, sadece `{ reply_draft }`. |
+| PATCH | `/api/reviews/:id` | `{ replyMarked: boolean }` — kullanıcı taslağı elle kaynağa yapıştırdıktan sonra "Yanıtladım" işaretler/geri alır (`reviews.reply_marked_at`). `owner_reply`'i doldurmaz, sadece UI sinyali. |
+
+**`POST /api/reviews/:id/reply-draft` detayları** (bkz. `02-business-rules.md` Bölüm J, `06-prompts.md`):
+- **Sahiplik:** review `owner_type='own'` olmalı ve bağlı olduğu `businesses.user_id` istek sahibiyle eşleşmeli, aksi halde `404 not_found`.
+- **Metin yoksa:** `reviews.text IS NULL` ise `400 no_review_text`.
+- **Zaten yanıtlanmışsa:** `reviews.owner_reply IS NOT NULL` ise `409 already_replied`.
+- **Kota aşıldıysa:** Free plan, son 30 günde üretilen taslak sayısı `FREE_PLAN_REPLY_DRAFTS_PER_MONTH`'a ulaştıysa `403 quota_exceeded`. Aynı yoruma tekrar taslak üretmek (regenerate) de kotadan düşer.
+- **Üretim başarısızsa:** şema uyuşmazlığında bir kez daha denenir; iki deneme de başarısızsa `502 draft_failed`, hiçbir şey kaydedilmez.
+- **AI sağlayıcı yapılandırılmamışsa:** `502 ai_provider_not_configured` (diğer AI route'larıyla aynı desen).
+
 ## Dashboard
 
 | Method | Path | Açıklama |

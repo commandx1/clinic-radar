@@ -37,6 +37,7 @@ export type Database = {
       analysis_runs: {
         Row: {
           business_id: string
+          delta: Json | null
           error: string | null
           fetched_reviews: number | null
           finished_at: string | null
@@ -50,6 +51,7 @@ export type Database = {
         }
         Insert: {
           business_id: string
+          delta?: Json | null
           error?: string | null
           fetched_reviews?: number | null
           finished_at?: string | null
@@ -63,6 +65,7 @@ export type Database = {
         }
         Update: {
           business_id?: string
+          delta?: Json | null
           error?: string | null
           fetched_reviews?: number | null
           finished_at?: string | null
@@ -350,6 +353,9 @@ export type Database = {
           owner_type: string
           published_at: string | null
           rating: number | null
+          reply_draft: string | null
+          reply_draft_generated_at: string | null
+          reply_marked_at: string | null
           review_id: string
           review_url: string | null
           scraped_at: string
@@ -370,6 +376,9 @@ export type Database = {
           owner_type: string
           published_at?: string | null
           rating?: number | null
+          reply_draft?: string | null
+          reply_draft_generated_at?: string | null
+          reply_marked_at?: string | null
           review_id: string
           review_url?: string | null
           scraped_at?: string
@@ -390,6 +399,9 @@ export type Database = {
           owner_type?: string
           published_at?: string | null
           rating?: number | null
+          reply_draft?: string | null
+          reply_draft_generated_at?: string | null
+          reply_marked_at?: string | null
           review_id?: string
           review_url?: string | null
           scraped_at?: string

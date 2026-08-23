@@ -287,6 +287,7 @@
       "outcome": {
         "theme": "Oluşturulduğunda olumsuz bahsedilme %{baseline} → şimdi %{latest}",
         "themeAbsent": "Oluşturulduğunda olumsuz bahsedilme %{baseline} → artık bahsedilmiyor",
+        "competitiveGap": "Bu konuda olumlu bahsedilme: {baseline} → {latest}",
         "replyRate": "Yanıt oranı %{baseline} → %{latest}",
         "website": "Web sitesi eklendi",
         "verdict": {

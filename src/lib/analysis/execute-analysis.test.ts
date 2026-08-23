@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { buildOwnerMap, upsertTasks } from "@/lib/analysis/execute-analysis";
+import { buildOwnerMap, buildThemeVocabulary, upsertTasks } from "@/lib/analysis/execute-analysis";
 import type { ScoredTaskCandidate } from "@/lib/analysis/task-candidates";
+import { STAGE1_KNOWN_THEME_VOCABULARY_LIMIT } from "@/lib/constants";
 import type { BuildOutcomeMetricContext } from "@/lib/task-engine/task-outcome";
 
 describe("buildOwnerMap", () => {
@@ -157,5 +158,53 @@ describe("upsertTasks (fuzzy dedup güvenlik ağı)", () => {
     );
     // Var olan (alakasız kabul edilen) görev HİÇ güncellenmedi.
     expect(openTasksList.update).not.toHaveBeenCalled();
+  });
+});
+
+// bkz. docs/05-ai-pipeline.md "tema kanonikleştirme" — bir tema hâlâ AÇIK bir
+// görevin etiketiyse, sadece mention sayısına göre sıralanan sözlük onu es
+// geçip görevi bir sonraki döngüde sessizce "absent"a düşürebilir. `pinnedLabels`
+// (fetchPreviousThemeData'nın açık görev temalarından geçirdiği liste) bu
+// yüzden cap'ten bağımsız olarak HER ZAMAN sonuca dahil edilir.
+describe("buildThemeVocabulary", () => {
+  it("pinnedLabels boşsa eskisi gibi mention sayısına göre sıralı, cap'e kadar döner", () => {
+    const result = buildThemeVocabulary([
+      { theme: "az", total: 1 },
+      { theme: "çok", total: 10 },
+      { theme: "orta", total: 5 },
+    ]);
+    expect(result).toEqual(["çok", "orta", "az"]);
+  });
+
+  it("pinned bir etiket cap'i dolduracak kadar yüksek mention'lı satır olsa bile listeden düşmez (en düşük mention'lı satır feda edilir)", () => {
+    // Cap'i (40) tek başına dolduracak kadar satır + mention toplamı bunların
+    // hepsinden düşük (theme_summary'de bile karşılığı olmayabilecek) pinned
+    // bir açık görev teması. Toplam uzunluk cap'te (40) kalır — pinned öne
+    // alınır, kalan bütçeyi en yüksek mention'lı satırlar doldurur; en düşük
+    // mention'lı satır (`tema-39`) cap'ten düşürülür, ama pinned ASLA düşmez.
+    const rows = Array.from({ length: STAGE1_KNOWN_THEME_VOCABULARY_LIMIT }, (_, i) => ({
+      theme: `tema-${i.toString()}`,
+      total: 100 - i,
+    }));
+    const result = buildThemeVocabulary(rows, ["pinlenmiş-açık-görev-teması"]);
+    expect(result).toContain("pinlenmiş-açık-görev-teması");
+    expect(result.length).toBe(STAGE1_KNOWN_THEME_VOCABULARY_LIMIT);
+    expect(result).not.toContain(`tema-${(STAGE1_KNOWN_THEME_VOCABULARY_LIMIT - 1).toString()}`);
+  });
+
+  it("pinned etiket zaten normal sıralamada varsa mükerrer eklenmez", () => {
+    const result = buildThemeVocabulary(
+      [
+        { theme: "Bekleme süresi", total: 10 },
+        { theme: "Hijyen", total: 5 },
+      ],
+      ["Bekleme süresi"],
+    );
+    expect(result).toEqual(["Bekleme süresi", "Hijyen"]);
+  });
+
+  it("pinned etiketler kendi aralarında tekilleştirilir (normalize edilmiş)", () => {
+    const result = buildThemeVocabulary([], ["Hijyen", "  hijyen "]);
+    expect(result).toEqual(["Hijyen"]);
   });
 });

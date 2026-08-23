@@ -81,6 +81,8 @@ Her tekrar eden tema için:
 
 **Not (coverage kuralı):** Sistem promptuna, yukarıdaki Ortak kurallar'daki "filtreleme kod tarafında" ilkesinin Aşama 2 karşılığı eklendi: model bulduğu **tüm** anlamlı fırsatları aday olarak döndürür, önem/emin-olma elemesini kendi içinde yapmaz (tema başına en fazla bir aday). Eşik (`TASK_MENTION_THRESHOLD`), dedup ve döngü başına 5 görev limiti zaten uygulama kodunda uygulandığı için modelin cömert davranması UI'a gürültü sızdırmaz — aksine az aday üretmesi, kod tarafındaki önceliklendirmenin seçim havuzunu daraltıyordu (2026-07 gözlemi: 55 tema → 2 aday).
 
+**Not (Faz 2.9 — "theme" alanı VERBATIM olmalı, tema kanonikleştirme).** Sistem promptuna bir kural daha eklendi (`gap-analysis-schema.ts` `buildStage2SystemPrompt`) — `theme` alanı, girdi olarak verilen klinik/rakip tema listelerindeki bir etikete **REFERANSTIR, serbest metin değildir**: model ilişkili olduğu temanın adını bu listelerden **karakter karakter (birebir/verbatim)** kopyalamalı, yeniden ifade etmemeli, kısaltmamalı, eş anlamlısını kullanmamalı ya da yeni bir isim uydurmamalıdır. **Gerekçe (gerçek veriyle bulundu):** Aşama 1'e known-theme vocabulary eklenmiş olsa da (Faz 2.8), Aşama 2 modeli `theme` alanına kendi ifadesini yazabiliyordu — bu etiket sonraki döngülerde Aşama 1'in gerçek `theme_summary` etiketlerinden kayıyor, tema-tabanlı her eşleştirmeyi (dedup, sonuç takibi, trend) sessizce kırıyordu. **Modele bu kuralla birlikte de güvenilmez** — Aşama 2 çıktısı `filterCandidates`'a girmeden ÖNCE kod tarafında ayrıca kanonikleştirilir (`canonicalizeCandidateThemes`, bkz. `05-ai-pipeline.md`, `09-task-engine.md` "Faz 2.9").
+
 **Kullanıcı promptu (yapı):**
 ```
 Klinik temaları: {own_theme_summary}
@@ -91,7 +93,7 @@ Her fırsat için:
 - description: neden önemli, ne yapılmalı (2-3 cümle, kendi cümlelerinle) — hem tr hem en olarak {tr, en} şeklinde
 - source_type: "competitive_gap" (rakip farkı) veya "absolute_quality" (mutlak sorun, rakip farkı olmasa da)
 - based_on_competitor_id: competitive_gap ise yukarıda geçilen rakip listesindeki id'lerden biri; absolute_quality ise null
-- theme: ilişkili tema adı
+- theme: ilişkili tema adı — yukarıdaki klinik ya da rakip tema listelerinden birinin etiketine birebir (verbatim) eşit olmalı, yeniden ifade etme
 - impact_score: 0-100 (bu iyileştirilirse puan/itibar üzerindeki tahmini etki)
 - effort_score: 1-5 (1=kolay/hızlı, 5=zor/uzun soluklu)
 ```

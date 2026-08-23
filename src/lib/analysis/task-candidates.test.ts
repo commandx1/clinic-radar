@@ -4,6 +4,7 @@ import type { AggregatedTheme } from "@/lib/ai-pipeline/aggregate-competitor-the
 import type { TaskCandidate, ThemeTrendInput } from "@/lib/ai-pipeline/provider";
 import {
   attachImpactScores,
+  canonicalizeCandidateThemes,
   filterCandidates,
   rankCandidates,
   type ScoredTaskCandidate,
@@ -53,6 +54,49 @@ function makeTrend(overrides: Partial<ThemeTrendInput> = {}): ThemeTrendInput {
     ...overrides,
   };
 }
+
+// bkz. docs/05-ai-pipeline.md "tema kanonikleştirme" — Aşama 2 promptu
+// "theme'i verilen listelerden birebir kopyala" der ama modele güvenilmez;
+// filterCandidates'a girmeden ÖNCE (execute-analysis.ts runStage2AndUpsertTasks)
+// aday temaları own+rakip AGREGAT etiketlerinin birleşimine kanonikleştirilir.
+describe("canonicalizeCandidateThemes", () => {
+  it("normalize edilmiş tam eşleşme varsa adayın theme'i known-label'a değiştirilir", () => {
+    const [result] = canonicalizeCandidateThemes(
+      [makeCandidate({ theme: "  Temizlik " })],
+      [makeTheme({ theme: "temizlik" })],
+      [],
+    );
+    expect(result.theme).toBe("temizlik");
+  });
+
+  it("tam eşleşme yoksa ama morfolojik olarak benzer bir known-label varsa (fuzzy güvenlik ağı) ona kanonikleştirilir", () => {
+    // theme-similarity.test.ts'te jaccard=1.0 olarak doğrulanan morfolojik
+    // varyant çifti — model bu döngüde "Randevu sürecinde" üretti, ama
+    // own/rakip agregatlarında bilinen etiket "Randevu süreci".
+    const [result] = canonicalizeCandidateThemes(
+      [makeCandidate({ theme: "Randevu sürecinde", source_type: "competitive_gap" })],
+      [],
+      [makeTheme({ theme: "Randevu süreci" })],
+    );
+    expect(result.theme).toBe("Randevu süreci");
+  });
+
+  it("hiçbir known-label ile eşleşmiyorsa (gerçekten yeni bir tema) aday değiştirilmeden döner", () => {
+    const candidate = makeCandidate({ theme: "Bambaşka bir konu" });
+    const [result] = canonicalizeCandidateThemes([candidate], [makeTheme({ theme: "temizlik" })], []);
+    expect(result.theme).toBe("Bambaşka bir konu");
+    expect(result).toBe(candidate);
+  });
+
+  it("own ve rakip etiketleri birlikte aranır (own+competitor birleşimi)", () => {
+    const [result] = canonicalizeCandidateThemes(
+      [makeCandidate({ theme: "hijyen " })],
+      [],
+      [makeTheme({ theme: "Hijyen" })],
+    );
+    expect(result.theme).toBe("Hijyen");
+  });
+});
 
 describe("filterCandidates — absolute_quality", () => {
   it("own tarafında tema yoksa aday elenir", () => {

@@ -111,18 +111,24 @@ mantığı `src/lib/task-engine/task-outcome.ts`'te; supabase'e dokunan taze­le
   `normalizeTheme` ile own tarafının o döngüdeki `theme_summary` kırılımına
   eşleştirilir (bkz. `02-business-rules.md` Bölüm C tema eşleştirme kuralı).
   Eşleşme bulunursa `positive`/`negative`/`negative_ratio` (`negative /
-  (positive + negative)`, toplam 0 ise 0) ve `absent: false`; bulunamazsa (tema
-  artık own yorumlarında hiç geçmiyor) `absent: true` ve sayılar sıfır.
+  (positive + negative)`, toplam 0 ise 0), `positive_ratio` (aynı mantık,
+  `positive / (positive + negative)`) ve `absent: false`; bulunamazsa (tema
+  artık own yorumlarında hiç geçmiyor) `absent: true` ve sayılar sıfır. Metric
+  ayrıca görevin `source_type`'ını (`competitive_gap` | `absolute_quality`) ve
+  `own_theme_count`'u (bu ölçümün alındığı döngüde own Aşama 1'in ürettiği
+  TOPLAM/aggregate tema sayısı — bu temanın kendisiyle eşleşip eşleşmediğinden
+  bağımsız) taşır; ikisi de aşağıdaki Verdict mantığının girdisidir.
   **Faz 2.8:** exact eşleşme kaçarsa, "absent" sonucuna varmadan ÖNCE
   `findSimilarTheme` (`src/lib/task-engine/theme-similarity.ts`) ile bir
   benzerlik denemesi daha yapılır — gerekçe: eski bir etiket sessizce yeniden
   adlandırılmışsa (bkz. `05-ai-pipeline.md` "known-theme vocabulary" — gerçek
-  Mersin pilotunda gözlemlendi), `absent: true` `compareOutcome`'ın "tema
-  tamamen kayboldu → improved" kısayolunu (aşağıdaki Verdict eşikleri) yanlış
-  tetikleyip sahte bir "işe yaradı!" verdict'i üretiyordu. Benzerlik ağı sadece
-  dar morfolojik varyantları yakalar (eşik `THEME_SIMILARITY_THRESHOLD = 0.6`)
-  — tam rephrasing'lerde (gerçek pilot örnekleri) yine de `absent: true` kalır,
-  bunun asıl çözümü kaynağındaki (Aşama 1) known-theme vocabulary'dir.
+  Mersin pilotunda gözlemlendi), `absent: true` sahte bir "işe yaradı!"
+  verdict'i üretebiliyordu. Benzerlik ağı sadece dar morfolojik varyantları
+  yakalar (eşik `THEME_SIMILARITY_THRESHOLD = 0.6`) — tam rephrasing'lerde
+  yine de `absent: true` kalabilir; **Faz 2.9**'da bunun asıl çözümü hem
+  kaynağında (Aşama 1 known-theme vocabulary + Aşama 2 tema kanonikleştirme,
+  bkz. `05-ai-pipeline.md`) hem de burada (aşağıdaki `own_theme_count` kuralı)
+  ele alındı.
 - **`reply_rate`** (`theme = "profile:reply_rate"`): own'un o pencerede
   `total`/`replied` yorum sayısı ve `rate = replied/total` (total 0 ise 0).
 - **`website`** (`theme = "profile:website"`): own'un `website` alanının dolu
@@ -130,21 +136,88 @@ mantığı `src/lib/task-engine/task-outcome.ts`'te; supabase'e dokunan taze­le
 - Diğer tüm `theme`/`source_type` kombinasyonları için `null` (metric
   üretilmez, outcome kaydedilmez).
 
+### Faz 2.9 — iki tema metriği ailesi (kaynak tipine göre ters sinyal)
+
+Üç gerçek analiz döngüsü çalıştırılan bir pilot işletmede 11 tema-tabanlı
+görevin 8'inde `outcome_latest.absent = true` bulundu — özellik ölçüm olarak
+gürültüden ibaretti. İki ayrı kök neden tespit edildi ve ayrı ayrı çözüldü:
+
+**1) `competitive_gap` görevleri YAPISAL OLARAK own tarafında `absent` başlar.**
+Bir `competitive_gap` görevi tam olarak şu yüzden var olur: rakip(ler) bu
+temada güçlü, klinik ise zayıf/sessiz — yani own genelde bu temada HİÇ mention
+almaz (`filterCandidates`, `02-business-rules.md` Bölüm D, own eşleşmesi
+şart koşulmaz). Bu görevin `negative_ratio`'sunu izlemek anlamsızdır: baseline
+%0 → latest %0, verdict hep `flat`, UI'da "olumsuz bahsedilme %0 → %0" gibi
+gürültülü bir satır basılırdı. Gerçek iyileşme sinyali own tarafında OLUMLU
+mention'ların başlaması/artmasıdır — bu yüzden `compareOutcome` artık
+`latest.source_type`'a göre İKİ AYRI karşılaştırıcıya dallanır:
+
+- **`absolute_quality`** (Faz 2.6-2.8 semantiği, DEĞİŞMEDİ): "işe yaradı" own
+  NEGATİF oranın düşmesi ya da temanın kaybolmasıdır (aşağıdaki Verdict
+  eşikleri).
+- **`competitive_gap`** (yeni): "işe yaradı" own OLUMLU mention'ların
+  başlaması/artmasıdır — own hiç mention almadıysa (`absent`/sıfır) izlenecek
+  bir şey yoktur.
+
+**2) Aşama 2 (gap analizi) kendi tema ifadesini uyduruyordu.** Aşama 1'e
+known-theme vocabulary eklenmiş olsa da (Faz 2.8), Aşama 2 modeli `theme`
+alanına serbestçe yeni bir ifade yazabiliyordu — bu etiket sonraki döngülerde
+Aşama 1'in `theme_summary` etiketlerinden kayabiliyor, aynı konuyu takip eden
+görev sahte bir `absent`'a düşüyordu (gerçek pilot örneği: "Sahte online yorum
+iddiası" görevi cycle 1'de oluştu, cycle 2/3'te Aşama 1 aynı konuyu "Sahte
+yorum ve itibar manipülasyonu şüphesi" etiketledi — eski kod bunu `absent` VE
+`compareOutcome`'ın "tema kayboldu ⇒ improved" kısayolu yüzünden **sahte bir
+"improved"** sayardı). Çözüm iki parçalı, bkz. `05-ai-pipeline.md`: (a) Aşama
+2 çıktısı `filterCandidates`'a girmeden ÖNCE kod tarafında own+rakip AGREGAT
+etiketlerine kanonikleştirilir (`canonicalizeCandidateThemes`,
+`src/lib/analysis/task-candidates.ts`), (b) Aşama 1'in known-theme
+vocabulary'sine, hâlâ AÇIK bir görevin kullandığı etiketler PIN'lenir (cap'ten
+düşürülmez) — bir tema hâlâ takip edilen bir görevin konusuysa, sözlükten
+sadece düşük mention sayısı yüzünden düşmemeli.
+
+**Absence'ı "ölçemedik"ten ayırmak — `own_theme_count`.** İki düzeltme
+(kanonikleştirme + vocabulary pinning) etiket kaymasını büyük ölçüde önler,
+ama own Aşama 1'in bir döngü TAMAMEN başarısız olduğu (ya da gerçekten hiç
+tekrar eden tema bulunmadığı) durumlarda own aggregate boş kalabilir — bu
+durumda HER tema `absent` görünür, ama bu "kayboldu" değil "bu döngü hiç
+ölçemedik" demektir. `own_theme_count` (own Aşama 1'in o döngüde ürettiği
+TOPLAM tema sayısı) bu ayrımı taşır: `0` ise `absent`'a asla güvenilmez,
+verdict `null` döner (satır UI'da hiç gösterilmez) — sahte bir "improved"
+iddia etmektense sessiz kalmak tercih edilir.
+
 **Verdict eşikleri** (`compareOutcome`, `OutcomeVerdict = "improved" |
 "worsened" | "flat"`; `kind` uyuşmazlığında `null`):
-- **theme:** `improved` — `latest.negative_ratio <= baseline.negative_ratio -
-  THEME_TREND_DELTA_THRESHOLD` **VEYA** (`latest.absent` **VE**
-  `baseline.negative >= TASK_MENTION_THRESHOLD`, yani tema eşik üstü bir
-  hacimle konuşuluyorken tamamen kaybolduysa da iyileşme sayılır). `worsened`
-  — `latest.negative_ratio >= baseline.negative_ratio +
-  THEME_TREND_DELTA_THRESHOLD`. Aksi halde `flat`. (Aynı eşikler
+- **theme / absolute_quality:** `improved` — `latest.negative_ratio <=
+  baseline.negative_ratio - THEME_TREND_DELTA_THRESHOLD` **VEYA**
+  (`latest.absent` **VE** `latest.own_theme_count > 0` **VE**
+  `baseline.negative >= TASK_MENTION_THRESHOLD`). `latest.absent` VE
+  `latest.own_theme_count === 0` ise verdict her zaman `null` (own bu döngü
+  hiçbir şey ölçmedi — "kayboldu" ile "ölçemedik" karıştırılmaz). `worsened` —
+  `latest.negative_ratio >= baseline.negative_ratio +
+  THEME_TREND_DELTA_THRESHOLD`. Aksi halde `flat`. (Ratio eşikleri
   `theme_summary.trend`'i de belirler — bkz. `02-business-rules.md` Bölüm C.)
+- **theme / competitive_gap:** `improved` — `latest.positive >=
+  TASK_MENTION_THRESHOLD` **VE** `latest.positive - baseline.positive >=
+  TASK_MENTION_THRESHOLD`. `worsened` — `baseline.positive - latest.positive
+  >= TASK_MENTION_THRESHOLD`. Her ikisi de own hiç mention almadıysa
+  (`baseline.positive === 0 && latest.positive === 0`) verdict `null` (anlamsız
+  "%0 → %0" satırı gösterilmez). Aksi halde `flat`.
 - **reply_rate:** oran `THEME_TREND_DELTA_THRESHOLD` (10 yüzde puanı) ya da
   fazlası yükselirse `improved`, aynı miktarda düşerse `worsened`, aksi halde
   `flat`.
 - **website:** baseline'da yoktu, latest'te varsa `improved`; aksi halde
   `flat` (bu görev zaten sadece own website'ı yokken üretildiği için baseline
   pratikte hep `has_website: false`'tur — bkz. Bölüm D madde 3).
+
+**Geriye dönük uyumluluk:** Faz 2.6-2.8'de yazılmış eski satırlarda
+`positive_ratio`/`source_type`/`own_theme_count` yok — `parseOutcomeMetric`
+(zod, `source_type`/`positive_ratio`/`own_theme_count` opsiyonel şema alanları)
+bunları güvenli varsayılanlarla doldurur: `source_type` eksikse `absolute_quality`
+(önceki tek davranış), `own_theme_count` eksikse `0` (bilinçli olarak temkinli
+— eski veride bu bilgi hiç kaydedilmedi, "improved" iddia etmektense satırı
+gizlemek tercih edilir), `positive_ratio` eksikse `positive/(positive+negative)`
+ile yeniden hesaplanır. Bu satırlar bir sonraki gerçek analiz döngüsünde
+`refreshTaskOutcomes` tarafından tam alan setiyle yeniden yazılır.
 
 **Yazma akışı** (`execute-analysis.ts`): `upsertTasks` bir görevi ilk kez
 INSERT ederken `outcome_baseline`'ı o anki own kırılımından hesaplar ve donar
@@ -157,9 +230,13 @@ yazılır (geriye dönük veri yok, ilk gördüğümüz an baseline kabul edilir
 
 **Okuma/UI:** `resolve-tasks-shared.ts`, jsonb kolonlarını `parseOutcomeMetric`
 (zod) ile güvenli parse eder — şemaya uymayan/bozuk veri asla UI'a sızmaz.
-Kart satırı (`task-outcome-line.tsx`) yalnızca hem baseline hem latest mevcutsa
-VE `measured_at`'leri farklıysa (yani en az bir analiz döngüsü geçtiyse)
-gösterilir — bkz. `08-dashboard.md`.
+Kart satırı (`task-outcome-line.tsx`) yalnızca hem baseline hem latest mevcutsa,
+`measured_at`'leri farklıysa (yani en az bir analiz döngüsü geçtiyse) VE
+`compareOutcome` `null` dönmediyse (yukarıdaki "ölçemedik"/"anlamsız 0→0"
+durumları) gösterilir — bkz. `08-dashboard.md`. Metnin kendisi de kaynak
+tipine göre değişir: `absolute_quality` "olumsuz bahsedilme %B → %L" (ya da
+kayboldu varyantı), `competitive_gap` own olumlu mention sayısını gösterir
+("Bu konuda olumlu bahsedilme: B → L").
 
 ## Clinic Score formülü (ilk versiyon, kalibre edilecek)
 ```

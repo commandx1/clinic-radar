@@ -11,6 +11,41 @@ import {
   type ThemeTrend,
 } from "@/lib/task-engine/impact-score";
 import { normalizeTheme } from "@/lib/task-engine/reopen";
+import { findSimilarTheme } from "@/lib/task-engine/theme-similarity";
+
+// bkz. docs/05-ai-pipeline.md "tema kanonikleştirme", docs/06-prompts.md
+// Aşama 2 — promptta "theme alanını verilen listelerden birebir kopyala"
+// kuralı istense de modele asla güvenilmez (bkz. CLAUDE.md); Aşama 2 çıktısı
+// filterCandidates'a girmeden ÖNCE burada kod tarafında zorlanır. Her adayın
+// `theme`'i own+rakip AGREGAT etiketlerinin birleşiminde ÖNCE tam (normalize
+// edilmiş) eşleşmeyle, bulunamazsa `findSimilarTheme` (theme-similarity.ts,
+// aynı fuzzy güvenlik ağı upsertTasks/buildOutcomeMetric'te kullanılan) ile
+// aranır; ikisi de kaçarsa aday olduğu gibi bırakılır (yeni, gerçekten farklı
+// bir tema olabilir — zorla birleştirme yapılmaz). Bu, kanıt satırları, dedup,
+// outcome metrikleri ve trendin AYNI etiketler üzerinden çalışmasını sağlar.
+export function canonicalizeCandidateThemes(
+  candidates: TaskCandidate[],
+  ownAggregated: AggregatedTheme[],
+  competitorAggregated: AggregatedTheme[],
+): TaskCandidate[] {
+  const canonicalByNormalized = new Map<string, string>();
+  for (const t of [...ownAggregated, ...competitorAggregated]) {
+    const key = normalizeTheme(t.theme);
+    if (!canonicalByNormalized.has(key)) {
+      canonicalByNormalized.set(key, t.theme);
+    }
+  }
+  const knownLabels = Array.from(canonicalByNormalized.values());
+
+  return candidates.map((candidate) => {
+    const exact = canonicalByNormalized.get(normalizeTheme(candidate.theme));
+    if (exact) {
+      return exact === candidate.theme ? candidate : { ...candidate, theme: exact };
+    }
+    const similar = findSimilarTheme(candidate.theme, knownLabels);
+    return similar && similar !== candidate.theme ? { ...candidate, theme: similar } : candidate;
+  });
+}
 
 // bkz. docs/02-business-rules.md Bölüm D — eşik/filtreleme mantığı promptta
 // değil burada uygulanıyor.

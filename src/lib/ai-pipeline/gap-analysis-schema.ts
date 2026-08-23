@@ -91,8 +91,14 @@ export function buildStage2SystemPrompt(hasCompetitors: boolean): string {
     'adımdan oluşan "checklist" üret (her adım {"tr": "...", "en": "..."} ' +
     "şeklinde, hem tr hem en). Alt adımlar sıralı, kısa ve doğrudan " +
     "yapılabilir eylemler olmalı (ör. \"Resepsiyon ekibine X konusunda kısa " +
-    'bir bilgilendirme yap"), soyut tavsiye olmamalı. Sadece belirtilen JSON ' +
-    "şemasında yanıt ver.";
+    'bir bilgilendirme yap"), soyut tavsiye olmamalı. ÖNEMLİ — "theme" alanı: ' +
+    "sana verilen klinik ve rakip tema listelerindeki bir etikete bir " +
+    "REFERANSTIR, serbest metin DEĞİLDİR. Bu alana, ilişkili olduğun temanın " +
+    "adını aşağıda verilen listelerden (klinik ya da rakip temaları) birebir, " +
+    "karakter karakter (verbatim) kopyala — yeniden ifade etme, kısaltma, eş " +
+    "anlamlısını kullanma ya da yeni bir isim uydurma; bu kural görev " +
+    "tekilleştirme, sonuç takibi ve tema trendinin doğru çalışması için " +
+    "kritiktir. Sadece belirtilen JSON şemasında yanıt ver.";
 
   if (!hasCompetitors) {
     return `${base} Bu döngüde hiçbir rakip verisi yok — sadece "absolute_quality" fırsatlarını değerlendir, "competitive_gap" üretme.`;
@@ -117,7 +123,7 @@ export function buildStage2UserPrompt(params: {
     "- description: neden önemli, ne yapılmalı (2-3 cümle, kendi cümlelerinle) — hem tr hem en olarak {tr, en} şeklinde",
     '- source_type: "competitive_gap" (rakip farkı) veya "absolute_quality" (mutlak sorun, rakip farkı olmasa da)',
     "- based_on_competitor_id: competitive_gap ise yukarıdaki rakip listesindeki id'lerden biri; absolute_quality ise null",
-    "- theme: ilişkili tema adı",
+    "- theme: ilişkili tema adı — yukarıdaki klinik ya da rakip tema listelerinden birinin etiketine birebir (verbatim) eşit olmalı, yeniden ifade etme",
     "- effort_score: 1-5 (1=kolay/hızlı, 5=zor/uzun soluklu)",
     "- checklist: 3-5 somut, uygulanabilir alt adımdan oluşan bir dizi — her biri hem tr hem en olarak {tr, en} şeklinde, sıralı ve doğrudan yapılabilir eylem cümleleri",
   ].join("\n");

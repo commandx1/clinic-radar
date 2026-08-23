@@ -78,6 +78,28 @@ Klasik NLP mimarisinde (embedding → ayrı theme detection → ayrı intent det
   eşleştirmesinde kullanılır, trend/reopen KASITLI OLARAK hâlâ exact match kullanır. Bu ağın bilinen sınırı:
   tam yeniden ifade etmeleri (yukarıdaki gerçek pilot örnekleri) yakalamaz — onlar için asıl savunma
   yukarıdaki vocabulary kuralıdır. Detay ve eşikler: `02-business-rules.md` Bölüm C/D/E, `09-task-engine.md`.
+- **Açık görev etiketleri sözlükte PIN'lenir (Faz 2.9).** Yukarıdaki sözlük sadece en çok bahsedilen
+  `STAGE1_KNOWN_THEME_VOCABULARY_LIMIT` (40) temayla sınırlıydı — bir tema hâlâ AÇIK bir görevin konusu olsa
+  bile, mention sayısı düşükse (görev oluştuğu andan bu yana own tarafında az konuşuluyorsa) bu cap'ten
+  düşebiliyor, görev bir sonraki döngüde yine sessizce etiket kayması riskiyle karşılaşabiliyordu. Çözüm:
+  `fetchPreviousThemeData` (`execute-analysis.ts`) artık aynı sorguda business'ın `status='open'` görevlerinin
+  `theme` değerlerini de okur (`profile:*` sabit anahtarları hariç — bunlar AI'a hiç gösterilmez) ve own
+  sözlüğüne (`buildThemeVocabulary`) PIN olarak geçirir: pinned etiketler ÖNCE eklenir, cap'in geri kalanı
+  mention sayısına göre sıralı temalarla doldurulur — yani bir görev hâlâ açıkken onun etiketi sözlükten asla
+  düşürülmez (cap toplamı sabit kalır, düşen taraf en düşük mention'lı sıradan temalardır).
+- **Aşama 2 çıktısı kod tarafında kanonikleştirilir (Faz 2.9).** Yukarıdaki vocabulary kuralı Aşama 1'in
+  `theme_summary` etiketlerinin döngüler arası tutarlılığını hedefler, ama Aşama 2 (gap analizi) modeli
+  `theme` alanına kendi serbest ifadesini yazabiliyordu — bu, Aşama 1'in gerçek etiketlerinden bağımsız bir
+  üçüncü kaynak drift'i yaratıyordu (görev dedup'u kaçırıyor, `buildOutcomeMetric` sahte `absent` üretiyordu).
+  Prompt artık `theme` alanının verilen own/rakip tema listelerinden BİREBİR (verbatim) kopyalanması gerektiğini
+  açıkça istiyor (bkz. `06-prompts.md`), ama **modele bu kuralla birlikte de güvenilmez**: `runStage2AndUpsertTasks`
+  (`execute-analysis.ts`), Aşama 2'nin ham çıktısını `filterCandidates`'a geçirmeden ÖNCE
+  `canonicalizeCandidateThemes` (`src/lib/analysis/task-candidates.ts`) ile kod tarafında zorlar — her adayın
+  `theme`'i own+rakip AGREGAT etiketlerinin birleşiminde ÖNCE tam (normalize edilmiş) eşleşmeyle, bulunamazsa
+  `findSimilarTheme` (yukarıdaki aynı fuzzy güvenlik ağı) ile aranır; ikisi de kaçarsa aday olduğu gibi
+  bırakılır (gerçekten yeni bir tema olabilir, zorla birleştirilmez). Bu, kanıt satırları/dedup/outcome
+  metrikleri/trendin hepsinin AYNI etiketler üzerinden çalışmasını garanti eder. Detay ve verdict mantığı:
+  `09-task-engine.md` "Faz 2.9 — iki tema metriği ailesi".
 
 ## Aşama 2 detayı
 - **Ne zaman çalışır:** Aşama 1 tüm seçili işletmeler için tamamlandıktan sonra.

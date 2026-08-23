@@ -34,6 +34,7 @@ import { resolveTrustpilotRefs } from "@/lib/analysis/resolve-trustpilot-refs";
 import { estimateScrapeCostUsd, type ScrapeMetrics } from "@/lib/analysis/scrape-metrics";
 import {
   attachImpactScores,
+  canonicalizeCandidateThemes,
   filterCandidates,
   rankCandidates,
   type ScoredTaskCandidate,
@@ -356,12 +357,39 @@ interface PreviousThemeData {
 }
 
 // En çok bahsedilen (positive+negative toplamı en yüksek) temadan başlayarak
-// sınırlar — bkz. STAGE1_KNOWN_THEME_VOCABULARY_LIMIT.
-function buildThemeVocabulary(rows: { theme: string; total: number }[]): string[] {
-  return [...rows]
-    .sort((a, b) => b.total - a.total)
-    .slice(0, STAGE1_KNOWN_THEME_VOCABULARY_LIMIT)
-    .map((row) => row.theme);
+// sınırlar — bkz. STAGE1_KNOWN_THEME_VOCABULARY_LIMIT. `pinnedLabels` (bkz.
+// docs/05-ai-pipeline.md "tema kanonikleştirme" — açık görev etiketleri) HER
+// ZAMAN listeye dahil edilir ve KAPSAM DIŞI tutulur: bir tema hâlâ açık bir
+// görevin etiketiyse, o etiket cap yüzünden sözlükten düşerse görev bir
+// sonraki döngüde sessizce "absent" a düşebilir (bkz. task-outcome.ts). Cap
+// yalnızca pinned olmayan kalanı (mention sayısına göre sıralı) sınırlar.
+// export edilir: execute-analysis.test.ts pin/cap etkileşimini doğrudan test eder.
+export function buildThemeVocabulary(rows: { theme: string; total: number }[], pinnedLabels: string[] = []): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const label of pinnedLabels) {
+    const key = normalizeTheme(label);
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(label);
+    }
+  }
+
+  const sortedRows = [...rows].sort((a, b) => b.total - a.total);
+  for (const row of sortedRows) {
+    if (result.length >= STAGE1_KNOWN_THEME_VOCABULARY_LIMIT) {
+      break;
+    }
+    const key = normalizeTheme(row.theme);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(row.theme);
+  }
+
+  return result;
 }
 
 // Önceki döngünün satırları delete-then-reinsert ile silineceği için hem trend
@@ -375,10 +403,21 @@ async function fetchPreviousThemeData(
   supabase: AnalysisSupabaseClient,
   businessId: string,
 ): Promise<PreviousThemeData> {
-  const { data } = await supabase
-    .from("theme_summary")
-    .select("owner_type, competitor_id, theme, positive_mentions, negative_mentions")
-    .eq("business_id", businessId);
+  const [{ data }, { data: openTasks }] = await Promise.all([
+    supabase
+      .from("theme_summary")
+      .select("owner_type, competitor_id, theme, positive_mentions, negative_mentions")
+      .eq("business_id", businessId),
+    // bkz. docs/05-ai-pipeline.md "tema kanonikleştirme" — bir tema hâlâ AÇIK
+    // bir görevin etiketiyse, sadece bir önceki döngünün en çok bahsedilen
+    // STAGE1_KNOWN_THEME_VOCABULARY_LIMIT temasına dayanan sözlük onu es
+    // geçebilir (mention sayısı düşükse cap'ten düşer) ve görev bir sonraki
+    // döngüde sessizce "absent" a düşebilir. Bu yüzden açık görevlerin
+    // etiketleri own sözlüğüne PIN'lenir (cap tarafından düşürülmez, bkz.
+    // buildThemeVocabulary). `profile:*` anahtarları (profile_gap görevleri)
+    // AI'a hiç gösterilmeyen sabit dahili anahtarlardır, hariç tutulur.
+    supabase.from("tasks").select("theme").eq("business_id", businessId).eq("status", "open"),
+  ]);
 
   const counts = new Map<string, MentionCounts>();
   const ownRows: { theme: string; total: number }[] = [];
@@ -394,9 +433,13 @@ async function fetchPreviousThemeData(
     }
   }
 
+  const openTaskThemes = (openTasks ?? [])
+    .map((t) => t.theme)
+    .filter((theme): theme is string => theme !== null && !theme.startsWith("profile:"));
+
   return {
     counts,
-    ownVocabulary: buildThemeVocabulary(ownRows),
+    ownVocabulary: buildThemeVocabulary(ownRows, openTaskThemes),
     competitorAggregateVocabulary: buildThemeVocabulary(competitorAggregateRows),
   };
 }
@@ -721,8 +764,17 @@ async function runStage2AndUpsertTasks(
   }
 
   await setAnalysisStage(supabase, businessId, "tasks");
-  const filtered = filterCandidates(
+  // bkz. docs/05-ai-pipeline.md "tema kanonikleştirme" — promptun "theme'i
+  // verbatim kopyala" kuralına rağmen modele güvenilmez; filterCandidates'a
+  // (own/rakip tema eşleştirmesi normalize edilmiş exact match ile çalışır)
+  // girmeden ÖNCE aday temaları known-label kümesine kanonikleştirilir.
+  const canonicalizedTasks = canonicalizeCandidateThemes(
     stage2Result.tasks,
+    aggregates.ownAggregated,
+    aggregates.competitorAggregated,
+  );
+  const filtered = filterCandidates(
+    canonicalizedTasks,
     aggregates.ownAggregated,
     aggregates.competitorAggregated,
     aggregates.hasCompetitorData,

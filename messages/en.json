@@ -287,6 +287,7 @@
       "outcome": {
         "theme": "Negative mentions were {baseline}% when this task was created → now {latest}%",
         "themeAbsent": "Negative mentions were {baseline}% when this task was created → no longer mentioned",
+        "competitiveGap": "Positive mentions on this theme: {baseline} → {latest}",
         "replyRate": "Reply rate was {baseline}% → now {latest}%",
         "website": "Website added",
         "verdict": {

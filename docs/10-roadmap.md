@@ -252,6 +252,59 @@ Detay: `02-business-rules.md` Bölüm I, `03-database.md`, `04-api.md`.
   kuralı), `02-business-rules.md` Bölüm C/D/E ("fuzzy eşleştirme yok" notları revize edildi), `09-task-engine.md`
   (dedup + outcome eşleştirme).
 
+## Faz 2.9 — Sonuç metriği kaynak tipine göre + tema kanonikleştirme (2026-08)
+- [x] **Problem (gerçek pilotta ÜÇ ard arda analiz döngüsü çalıştırılarak bulundu, 12 görev):** 11 tema-tabanlı
+  görevin 8'inde `outcome_latest.absent = true` — özellik hiçbir şey ölçmüyordu. İki ayrı kök neden:
+  (1) `competitive_gap` görevleri TANIM GEREĞİ own tarafında zaten `absent` başlar (rakip güçlü, klinik bu
+  konuda hiç konuşmuyor) — `negative_ratio`'yu izlemek anlamsız (baseline %0 → latest %0, UI'da gürültülü bir
+  "olumsuz bahsedilme %0 → %0" satırı); gerçek sinyal own OLUMLU mention'ların başlaması/artmasıdır.
+  (2) Aşama 2 (gap analizi) `theme` alanına kendi serbest ifadesini yazabiliyordu (Aşama 1'e verilen known-theme
+  vocabulary'den BAĞIMSIZ bir üçüncü drift kaynağı) — gerçek pilot örneği: "Sahte online yorum iddiası" görevi
+  (cycle 1, `absolute_quality`, own negative_ratio 1.0) cycle 2/3'te Aşama 1 aynı konuyu "Sahte yorum ve itibar
+  manipülasyonu şüphesi" etiketledi, eski `compareOutcome`'ın "tema tamamen kayboldu ⇒ improved" kısayolu
+  yüzünden ürün gerçekleşmemiş bir kazanım ("improved") iddia ediyordu.
+- [x] **Çözüm 1 — Aşama 2 çıktısının kod tarafında kanonikleştirilmesi.** Sistem promptu artık `theme`
+  alanının verilen own/rakip tema listelerinden BİREBİR (verbatim) kopyalanması gerektiğini açıkça istiyor
+  (`gap-analysis-schema.ts` `buildStage2SystemPrompt`/`buildStage2UserPrompt`, bkz. `06-prompts.md`) — ama
+  modele bu kuralla birlikte de güvenilmez: `canonicalizeCandidateThemes` (`src/lib/analysis/task-candidates.ts`)
+  Aşama 2'nin ham çıktısını `filterCandidates`'a girmeden ÖNCE own+rakip AGREGAT etiketlerinin birleşimine
+  eşler (ÖNCE exact normalize eşleşme, bulunamazsa `findSimilarTheme` fuzzy güvenlik ağı, ikisi de kaçarsa
+  aday olduğu gibi bırakılır). Wiring: `runStage2AndUpsertTasks` (`execute-analysis.ts`).
+- [x] **Çözüm 2 — açık görev etiketleri Aşama 1 sözlüğünde PIN'lenir.** `fetchPreviousThemeData` artık
+  business'ın `status='open'` görevlerinin `theme`'lerini de okur (`profile:*` hariç) ve own known-theme
+  sözlüğüne (`buildThemeVocabulary`) PIN olarak geçirir — pinned etiketler ÖNCE eklenir, `STAGE1_KNOWN_THEME_VOCABULARY_LIMIT`
+  (40) cap'i sadece kalan (mention sayısına göre sıralı) sıradan temaları sınırlar; bir görev hâlâ açıkken onun
+  etiketi sözlükten asla düşürülmez.
+- [x] **Çözüm 3 — kaynak tipine göre iki ayrı outcome verdict mantığı.** `OutcomeMetric`'in `theme` varyantı
+  artık `positive_ratio`, `source_type` (`competitive_gap`/`absolute_quality`) ve `own_theme_count` (bu ölçümün
+  alındığı döngüde own Aşama 1'in ürettiği TOPLAM tema sayısı) taşıyor. `compareOutcome` `latest.source_type`'a
+  göre dallanır: `absolute_quality` eski ratio-tabanlı semantiği korur, tek fark eski "tema kayboldu ⇒ improved"
+  kısayolunun artık `latest.own_theme_count > 0` şartına bağlı olması (own bu döngü hiçbir tema üretmediyse —
+  own Aşama 1 başarısız oldu ya da gerçekten tekrar eden tema yoksa — `absent` güvenilir bir "kayboldu" sinyali
+  DEĞİLDİR, verdict `null` döner, satır gizlenir). `competitive_gap` YENİ bir karşılaştırıcı kullanır: own
+  OLUMLU mention'ları `TASK_MENTION_THRESHOLD` (3) eşiğini geçip aynı miktarda arttıysa `improved`, aynı miktarda
+  düştüyse `worsened`, own her iki döngüde de hiç mention almadıysa (`positive === 0` iki tarafta da) `null`
+  (anlamsız "%0 → %0" satırı gösterilmez). Detay ve tam eşik tablosu: `09-task-engine.md` "Faz 2.9".
+- [x] **Geriye dönük uyumluluk.** Faz 2.6-2.8'de yazılmış eski satırlarda (local DB'de gerçekten 12 görev)
+  `positive_ratio`/`source_type`/`own_theme_count` yok — `parseOutcomeMetric` zod şeması bu üç alanı opsiyonel
+  bırakır, eksik olanları güvenli varsayılanlarla doldurur (`source_type` → `absolute_quality`, `own_theme_count`
+  → `0` — bilinçli olarak temkinli, eski veride bu bilgi hiç kaydedilmedi). Migration yok (ikisi de zaten
+  `jsonb`, additive).
+- [x] **UI:** `task-outcome-line.tsx` artık `latest.source_type`'a göre farklı bir cümle render eder —
+  `absolute_quality` eski "olumsuz bahsedilme %B → %L" metnini korur, `competitive_gap` own olumlu mention
+  sayısını gösterir ("Bu konuda olumlu bahsedilme: B → L"); `compareOutcome` `null` dönerse (yukarıdaki
+  "ölçemedik"/"anlamsız 0→0" durumları) satır hiç render edilmez. `messages/tr.json`+`en.json`'a yeni
+  `business.tasks.outcome.competitiveGap` anahtarı eklendi (iki locale'de de aynı anahtar).
+- [x] **Şema/migration yok** — additive kod değişikliği, `tasks.outcome_baseline`/`outcome_latest` zaten `jsonb`.
+- [x] Birim test: `task-outcome.test.ts` (37 test — competitive_gap improved/worsened/flat/null, absolute_quality
+  own_theme_count-gated absent kısayolu, gerçek pilot false-positive senaryosunun regresyon testi, eski format
+  JSON'un crash etmeden absolute_quality'e düştüğü), `task-candidates.test.ts`'e eklenen `canonicalizeCandidateThemes`
+  testleri (exact eşleşme, fuzzy eşleşme, no-match passthrough), `execute-analysis.test.ts`'e eklenen
+  `buildThemeVocabulary` pin/cap etkileşim testleri.
+- [x] Docs senkronu: `09-task-engine.md` (outcome bölümü yeniden yazıldı — iki metrik ailesi, absence kuralı),
+  `06-prompts.md` (Aşama 2 theme-verbatim kuralı), `05-ai-pipeline.md` (kanonikleştirme adımı + açık görev
+  etiketlerinin sözlükte pin'lenmesi), `02-business-rules.md` Bölüm D (dedup notuna Faz 2.9 eklendi).
+
 ## Faz 3
 - AI arama görünürlüğü modülü (ChatGPT/Gemini/Perplexity'de klinik nasıl öneriliyor)
 - Tema taksonomisi ölçeklenirse embedding/clustering katmanı (`05-ai-pipeline.md`'deki gerekçeye bkz.)

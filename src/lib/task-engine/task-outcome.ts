@@ -10,6 +10,16 @@ import type { AggregatedTheme } from "@/lib/ai-pipeline/aggregate-competitor-the
 import { TASK_MENTION_THRESHOLD, THEME_TREND_DELTA_THRESHOLD } from "@/lib/constants";
 import { findSimilarTheme, normalizeTheme } from "@/lib/task-engine/theme-similarity";
 
+// bkz. docs/09-task-engine.md "Görev sonuç takibi" — iki tema kaynağının
+// ("competitive_gap"/"absolute_quality") sonuç sinyali TERSTİR: absolute_quality
+// için "işe yaradı" = own negatif oranın düşmesi/temanın kaybolması;
+// competitive_gap için görev TANIM GEREĞİ own tarafında zaten "absent"
+// (rakip güçlü, klinik bu konuda zaten sessiz) başlar, o yüzden "işe yaradı" =
+// own OLUMLU mention'ların başlaması/artması. `source_type` metric üzerinde
+// saklanır ki `compareOutcome` (baseline/latest'ten başka context almaz)
+// doğru yöne bakabilsin.
+export type ThemeOutcomeSourceType = "competitive_gap" | "absolute_quality";
+
 export type OutcomeMetric =
   | {
       kind: "theme";
@@ -17,7 +27,16 @@ export type OutcomeMetric =
       positive: number;
       negative: number;
       negative_ratio: number;
+      positive_ratio: number;
       absent: boolean;
+      source_type: ThemeOutcomeSourceType;
+      // Bu ölçümün alındığı döngüde own Aşama 1'in ürettiği TOPLAM (aggregate)
+      // tema sayısı — bu temanın kendisiyle eşleşip eşleşmediğinden bağımsız.
+      // 0 ise own analiz bu döngüde hiçbir şey üretmedi demektir (own Aşama 1
+      // başarısız oldu ya da gerçekten hiç tekrar eden tema yok) — bu durumda
+      // "absent" güvenilir bir "kayboldu" sinyali DEĞİLDİR, sadece "ölçemedik"
+      // demektir. `compareOutcome` bu ayrımı yapmak için kullanır (bkz. aşağı).
+      own_theme_count: number;
       measured_at: string;
       window_days: number;
     }
@@ -37,13 +56,20 @@ export type OutcomeMetric =
 
 export type OutcomeVerdict = "improved" | "worsened" | "flat";
 
+// Eski (Faz 2.6-2.8) satırlarda `positive_ratio`/`source_type`/`own_theme_count`
+// yok — bu üç alan burada opsiyonel bırakılır, `parseOutcomeMetric` eksik
+// olanları güvenli varsayılanlarla doldurur (asla crash etmez, bkz. CLAUDE.md
+// "eski format çalışmaya devam etmeli").
 const themeOutcomeSchema = z.object({
   kind: z.literal("theme"),
   theme: z.string(),
   positive: z.number(),
   negative: z.number(),
   negative_ratio: z.number(),
+  positive_ratio: z.number().optional(),
   absent: z.boolean(),
+  source_type: z.enum(["competitive_gap", "absolute_quality"]).optional(),
+  own_theme_count: z.number().optional(),
   measured_at: z.string(),
   window_days: z.number(),
 });
@@ -79,7 +105,34 @@ export function parseOutcomeMetric(json: unknown): OutcomeMetric | null {
     return null;
   }
   const result = outcomeMetricSchema.safeParse(json);
-  return result.success ? result.data : null;
+  if (!result.success) {
+    return null;
+  }
+  const data = result.data;
+  if (data.kind !== "theme") {
+    return data;
+  }
+
+  // bkz. yukarıdaki şema notu — eski satırlarda eksik alanlar için varsayılan:
+  // `source_type` eksikse önceki (tek) davranış olan absolute_quality kabul
+  // edilir; `own_theme_count` eksikse 0 kabul edilir — bu BİLİNÇLİ OLARAK
+  // temkinli bir varsayımdır: 0, compareOutcome'da "bu döngü için ölçüm yok"
+  // anlamına gelir (verdict null, satır gizlenir), yani bilinmeyen eski
+  // veride sahte bir "improved" göstermek yerine sessiz kalmayı tercih eder.
+  const total = data.positive + data.negative;
+  return {
+    kind: "theme",
+    theme: data.theme,
+    positive: data.positive,
+    negative: data.negative,
+    negative_ratio: data.negative_ratio,
+    positive_ratio: data.positive_ratio ?? (total > 0 ? data.positive / total : 0),
+    absent: data.absent,
+    source_type: data.source_type ?? "absolute_quality",
+    own_theme_count: data.own_theme_count ?? 0,
+    measured_at: data.measured_at,
+    window_days: data.window_days,
+  };
 }
 
 export interface BuildOutcomeMetricContext {
@@ -133,6 +186,14 @@ export function buildOutcomeMetric(
     return null;
   }
 
+  // bkz. yukarıdaki OutcomeMetric "own_theme_count" notu — own Aşama 1'in bu
+  // döngüde ürettiği TOPLAM tema sayısı, bu temanın kendisiyle eşleşip
+  // eşleşmediğinden bağımsız olarak donar. 0 ise own analiz bu döngü hiçbir
+  // şey ölçmedi demektir (compareOutcome bunu "işe yaradı" ile "ölçemedik"i
+  // ayırt etmek için kullanır).
+  const ownThemeCount = ctx.ownAggregated.length;
+  const sourceType = task.source_type;
+
   const normalized = normalizeTheme(task.theme);
   let match = ctx.ownAggregated.find((t) => normalizeTheme(t.theme) === normalized);
 
@@ -151,7 +212,10 @@ export function buildOutcomeMetric(
       positive: 0,
       negative: 0,
       negative_ratio: 0,
+      positive_ratio: 0,
       absent: true,
+      source_type: sourceType,
+      own_theme_count: ownThemeCount,
       measured_at: ctx.measuredAt,
       window_days: ctx.windowDays,
     };
@@ -164,10 +228,58 @@ export function buildOutcomeMetric(
     positive: match.positive_mentions,
     negative: match.negative_mentions,
     negative_ratio: total > 0 ? match.negative_mentions / total : 0,
+    positive_ratio: total > 0 ? match.positive_mentions / total : 0,
     absent: false,
+    source_type: sourceType,
+    own_theme_count: ownThemeCount,
     measured_at: ctx.measuredAt,
     window_days: ctx.windowDays,
   };
+}
+
+type ThemeOutcomeMetric = Extract<OutcomeMetric, { kind: "theme" }>;
+
+// absolute_quality — "işe yaradı" own NEGATİF oranın düşmesi/temanın
+// kaybolmasıdır (Faz 2.6-2.8 semantiği, DEĞİŞMEDİ). Tek fark: eski "tema
+// tamamen kayboldu ⇒ improved" kısayolu artık own_theme_count > 0 şartına
+// bağlı — bkz. docs/09-task-engine.md "Görev sonuç takibi" ve pilot false
+// positive vakası (own_theme_count=0 iken absent, gerçek bir "kayboldu"
+// sinyali değil "bu döngü hiç ölçemedik" demektir).
+function compareAbsoluteQualityTheme(baseline: ThemeOutcomeMetric, latest: ThemeOutcomeMetric): OutcomeVerdict | null {
+  if (latest.absent) {
+    if (latest.own_theme_count === 0) {
+      return null;
+    }
+    if (baseline.negative >= TASK_MENTION_THRESHOLD) {
+      return "improved";
+    }
+  }
+  if (latest.negative_ratio <= baseline.negative_ratio - THEME_TREND_DELTA_THRESHOLD) {
+    return "improved";
+  }
+  if (latest.negative_ratio >= baseline.negative_ratio + THEME_TREND_DELTA_THRESHOLD) {
+    return "worsened";
+  }
+  return "flat";
+}
+
+// competitive_gap — görev TANIM GEREĞİ own tarafında "rakip güçlü, klinik bu
+// konuda zayıf/sessiz" olduğu için oluşturulur; own negatif oran genelde
+// hiç anlamlı değildir (bkz. docs/09-task-engine.md). Sinyal own OLUMLU
+// mention'ların başlaması/artmasıdır. Her iki tarafta da own hiç mention
+// almadıysa gösterilecek bir şey yoktur (anlamsız "%0 → %0" satırı yerine
+// null — satır UI'da hiç render edilmez).
+function compareCompetitiveGapTheme(baseline: ThemeOutcomeMetric, latest: ThemeOutcomeMetric): OutcomeVerdict | null {
+  if (baseline.positive === 0 && latest.positive === 0) {
+    return null;
+  }
+  if (latest.positive >= TASK_MENTION_THRESHOLD && latest.positive - baseline.positive >= TASK_MENTION_THRESHOLD) {
+    return "improved";
+  }
+  if (baseline.positive - latest.positive >= TASK_MENTION_THRESHOLD) {
+    return "worsened";
+  }
+  return "flat";
 }
 
 // bkz. docs/09-task-engine.md "Görev sonuç takibi" — verdict eşikleri
@@ -183,16 +295,14 @@ export function compareOutcome(baseline: OutcomeMetric | null, latest: OutcomeMe
   }
 
   if (baseline.kind === "theme" && latest.kind === "theme") {
-    const improved =
-      latest.negative_ratio <= baseline.negative_ratio - THEME_TREND_DELTA_THRESHOLD ||
-      (latest.absent && baseline.negative >= TASK_MENTION_THRESHOLD);
-    if (improved) {
-      return "improved";
-    }
-    if (latest.negative_ratio >= baseline.negative_ratio + THEME_TREND_DELTA_THRESHOLD) {
-      return "worsened";
-    }
-    return "flat";
+    // bkz. yukarıdaki iki yardımcı fonksiyon — hangi yöne bakılacağı `latest`
+    // üzerindeki source_type'a göre belirlenir (görevin kendi kimliği, bir
+    // döngüden diğerine DEĞİŞMEZ; latest kullanılır çünkü eski satırlarda
+    // baseline'ın source_type'ı hiç yazılmamış olabilir — bkz. parseOutcomeMetric
+    // varsayılanı — latest her zaman en güncel/doğru değeri taşır).
+    return latest.source_type === "competitive_gap"
+      ? compareCompetitiveGapTheme(baseline, latest)
+      : compareAbsoluteQualityTheme(baseline, latest);
   }
 
   if (baseline.kind === "reply_rate" && latest.kind === "reply_rate") {

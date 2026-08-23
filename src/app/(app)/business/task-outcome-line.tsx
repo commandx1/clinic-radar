@@ -17,9 +17,12 @@ function pct(ratio: number): number {
 
 // bkz. docs/09-task-engine.md "Görev sonuç takibi" — ürünün "işe yaradı mı?"
 // kanıtı: görev oluşturulduğundaki ölçüm (baseline) ile en güncel ölçüm
-// (latest) arasındaki kıyas. `outcome` undefined ise (baseline/latest eksik ya
-// da henüz ikinci bir ölçüm yapılmamış — bkz. resolve-tasks-shared.ts
-// computeOutcome) satır hiç render edilmez.
+// (latest) arasındaki kıyas. `outcome` undefined ise (baseline/latest eksik,
+// henüz ikinci bir ölçüm yapılmamış, ya da `compareOutcome` null döndüyse —
+// bkz. resolve-tasks-shared.ts computeOutcome — competitive_gap'te own hiç
+// mention almadıysa ya da absolute_quality'de own analiz bu döngüde hiçbir
+// şey ölçmediyse gösterilecek anlamlı bir şey yok demektir) satır hiç render
+// edilmez.
 export function TaskOutcomeLine({ outcome }: { outcome?: TaskOutcomeData }) {
   const t = useTranslations("business.tasks.outcome");
 
@@ -31,9 +34,17 @@ export function TaskOutcomeLine({ outcome }: { outcome?: TaskOutcomeData }) {
   let text: string;
 
   if (baseline.kind === "theme" && latest.kind === "theme") {
-    text = latest.absent
-      ? t("themeAbsent", { baseline: pct(baseline.negative_ratio) })
-      : t("theme", { baseline: pct(baseline.negative_ratio), latest: pct(latest.negative_ratio) });
+    if (latest.source_type === "competitive_gap") {
+      // bkz. docs/09-task-engine.md — competitive_gap görevi TANIM GEREĞİ own
+      // tarafında zaten "absent"/sessiz başlar (rakip güçlü, klinik konuşmuyor);
+      // negatif oran burada göstermeye değer bir sinyal değil, own OLUMLU
+      // mention'ların başlaması/artmasıdır.
+      text = t("competitiveGap", { baseline: baseline.positive, latest: latest.positive });
+    } else if (latest.absent) {
+      text = t("themeAbsent", { baseline: pct(baseline.negative_ratio) });
+    } else {
+      text = t("theme", { baseline: pct(baseline.negative_ratio), latest: pct(latest.negative_ratio) });
+    }
   } else if (baseline.kind === "reply_rate" && latest.kind === "reply_rate") {
     text = t("replyRate", { baseline: pct(baseline.rate), latest: pct(latest.rate) });
   } else if (baseline.kind === "website" && latest.kind === "website") {

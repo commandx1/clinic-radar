@@ -29,7 +29,7 @@ Değişmeyen ilkeler: ham yorum metni UI'da gösterilmez; eşikler kodda, prompt
 |---|---|---|
 | 1A | Yorum Yanıt Asistanı (`POST /api/reviews/:id/reply-draft`, Free 5/ay, Pro sınırsız) | ✅ `f84548a` |
 | 1B | "Bu analizde ne değişti" kartı (`analysis_runs.delta`) + 0-görev açıklaması | ✅ `24e968c` |
-| 1C | Profil farkı görevleri (`source_type='profile_gap'`: yanıt oranı, web sitesi) | ✅ `d5949f3` |
+| 1C | Profil farkı görevleri (`source_type='profile_gap'`: yanıt oranı, web sitesi) | ✅ `d5949f3` + kalibrasyon `95c9824` |
 | 2D | Görev sonuç takibi (`tasks.outcome_baseline` / `outcome_latest`) | ✅ `4c503e3` |
 | 2E | Tahmini hasta/gelir fırsatı kartı (bantlı, şeffaf formül) | ✅ `00033c7` |
 | 3F | Canlı puan + rakip uyarıları → haftalık özet, Trend, Overview | ✅ `d37ff9e` |
@@ -60,3 +60,28 @@ snapshot + 5 bildirim yazıldı. Süre ~257 sn (300 sn Vercel tavanının altın
    canlı puan (Faz 2.7) tam olarak bunu görünür kılmak için var; eski ortalama gerilemeyi gizliyor.
 4. **Adaptif pencere doğrulandı:** own tarafında son 90 günde yalnızca 1-2 metinli yorum vardı,
    pencere otomatik 365 güne genişledi ve analiz boş dönmedi (Risk 1 panzehiri gerçek veride çalıştı).
+
+## 5. Çok döngülü doğrulama (7 gerçek analiz koşusu, aynı klinik)
+
+Aynı veri üzerinde art arda 7 gerçek döngü koşuldu (Apify + AI). Amaç: ürünün ikinci, üçüncü,
+dördüncü haftada da mantıklı davranıp davranmadığını görmek — tek koşu bunu göstermez.
+
+| Döngü | Sağlayıcı | Yeni görev | Güncellenen | Not |
+|---|---|---|---|---|
+| 1 | Claude | 5 | 0 | ilk analiz, 720 yorum çekildi |
+| 2 | Claude | 5 | 0 | **kusur:** tema etiketi kayması → 5 kopya görev |
+| 3 | Claude | 2 | 4 | tema sözlüğü devrede |
+| 4 | Claude | — | 1 | Anthropic kredisi bitti → Aşama 2 düştü; profil görevi yine de güncellendi |
+| 5 | Gemini | 2 | 4 | yedek sağlayıcı tam pipeline'da çalıştı (110 sn) |
+| 6 | Gemini | 1 | 5 | rakip sözlüğüne pin sonrası |
+| 7 | Gemini | **0** | 7 | açık görev tavanı devrede |
+
+**Bu koşularda bulunan ve düzeltilen gerçek kusurlar** (hiçbiri birim testiyle yakalanamazdı):
+1. `service_role`'de `competitors` UPDATE grant'ı yok (`d16b944`) — canlı puan + **mevcut** Trustpilot cache'i cron'da kırıktı.
+2. Yanıt oranı kuralı fazla katı (`95c9824`) — 169/169 yanıt veren rakip varken görev üretmiyordu.
+3. Tema etiketi kayması (`c1fe046`, `082311a`) — kopya görevler + sahte "iyileşti" iddiası.
+4. Sonuç metriği `competitive_gap` görevlerinde anlamsızdı (`2c29f73`) — artık olumlu bahsedilme izleniyor, sinyal yoksa satır gizleniyor.
+5. Açık görev tavanı yoktu (`7559a46`) — 6 döngüde 15 açık görev birikti.
+6. Gemini yedek sağlayıcı modeli kapatılmıştı (`fd3f2bf`) — yedek yol tamamen kırıktı, tam da krediler bitince ihtiyaç duyulacakken.
+
+**Süre:** Claude ile 246–270 sn, Gemini ile 110 sn (Vercel 300 sn tavanı — Claude'da pay çok dar).

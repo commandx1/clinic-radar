@@ -140,3 +140,25 @@ export const OPPORTUNITY_REVIEW_VELOCITY_GAP_RATIO = 0.7;
 // adaptif pencere büyütmesine (AI_ANALYSIS_WINDOW_DAYS_STEPS) bağlı değil,
 // sabit 90 günlük bir "son dönem" kıyası.
 export const OPPORTUNITY_VELOCITY_WINDOW_DAYS = 90;
+
+// ============ Canlı puan (recent rating) + rakip uyarıları (Faz 2.7) — bkz.
+// docs/02-business-rules.md Bölüm F/G, docs/09-task-engine.md, src/lib/analysis/
+// recent-ratings.ts, src/lib/analysis/competitor-alerts.ts.
+// Analiz penceresi içindeki taze yorumlardan hesaplanan `recent_rating`,
+// gürültüyü elemek için en az bu kadar yorum gerektirir — altındaysa null
+// kalır (ör. tek bir 1 yıldızlı yorum "canlı puan"ı yanlış temsil etmesin).
+export const RECENT_RATING_MIN_REVIEWS = 5;
+// `competitor_rating_shift`: bir rakibin recent_rating'i bir önceki döngüye
+// göre bu kadar (veya fazla) değişirse (0-5 skalasında puan) uyarı üretilir.
+export const COMPETITOR_RATING_SHIFT_THRESHOLD = 0.3;
+// `competitor_review_surge`: bir rakip bu döngüde en az bu kadar yeni yorum
+// almalı (gürültü eşiği) — aşağıdaki çarpan koşuluyla BİRLİKTE uygulanır.
+export const COMPETITOR_REVIEW_SURGE_MIN_REVIEWS = 5;
+// ...VE bu döngüdeki yeni yorum sayısı, rakibin olağan aylık yorum hızının
+// (pencere içindeki yorum sayısı / pencere günü × 30) en az bu katı olmalı.
+export const COMPETITOR_REVIEW_SURGE_MULTIPLIER = 2;
+// `competitor_negative_spike`: bir rakibin bir temadaki negatif mention'ı bu
+// katsayı (veya fazlası) kadar arttıysa uyarı üretilir — min mention eşiği
+// için THEME_TREND_MIN_MENTIONS (yukarıda) reuse edilir, ayrı bir sabit
+// tanımlanmaz (aynı gürültü toleransı, tema trendiyle tutarlı).
+export const COMPETITOR_NEGATIVE_SPIKE_MULTIPLIER = 2;

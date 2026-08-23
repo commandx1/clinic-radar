@@ -44,7 +44,11 @@ businesses (
   trustpilot_domain text,       -- Trustpilot'taki şirket kimliği (ör. 'natural.clinic'), `website`'ten türetilir; çözümlenemediyse null
   trustpilot_checked_at timestamptz  -- Trustpilot araması en son ne zaman denendi; null = hiç denenmedi. AYRI bir kolon: `trustpilot_domain IS NULL` tek başına "hiç bakmadık" ile "baktık, profili yok"u ayırt edemez — ayırt edilmezse profili olmayan her rakip için her analizde tekrar Apify parası ödenir (bkz. 02-business-rules.md Bölüm I)
   avg_patient_value_usd numeric,  -- Fırsat tahmini kartı için opsiyonel iş girdisi (USD), kullanıcı edit formunda girer; null = girilmedi. CHECK (>= 0). Dışarı paylaşılmaz, yalnızca $ bandı hesaplamak için okunur (09-task-engine.md "Opportunity Estimate")
-  monthly_new_patients integer   -- aynı kart için opsiyonel ikinci girdi (aylık yeni hasta sayısı), null = girilmedi. CHECK (>= 0)
+  monthly_new_patients integer,  -- aynı kart için opsiyonel ikinci girdi (aylık yeni hasta sayısı), null = girilmedi. CHECK (>= 0)
+  recent_rating numeric,          -- Faz 2.7 — "canlı puan": son analiz penceresindeki taze yorumların ortalaması (bkz. src/lib/analysis/recent-ratings.ts, 02-business-rules.md Bölüm F). `rating` (Google'ın tüm-zamanlar toplu puanı) İLE KARIŞTIRILMAMALI, o hiçbir zaman bu kolon tarafından güncellenmez. Pencerede RECENT_RATING_MIN_REVIEWS'ten az yorum varsa null.
+  recent_rating_reviews integer,  -- recent_rating'in dayandığı yorum sayısı (gürültü/güven göstergesi olarak UI'da gösterilir)
+  recent_rating_window_days integer,  -- o döngüde kullanılan analiz penceresi (adaptif olabilir, bkz. 02-business-rules.md Bölüm C) — recent_rating ile birlikte "Son N gün" etiketi için
+  recent_rating_updated_at timestamptz  -- recent_rating'in en son ne zaman hesaplandığı
 )
 
 clinic_score_history (
@@ -53,6 +57,7 @@ clinic_score_history (
   score int,                   -- Clinic Score (0-100), bkz. 09-task-engine.md
   competitor_rank int,
   executive_summary jsonb,     -- {tr, en} | null — Aşama 3 çıktısı (05-ai-pipeline.md); başarısızlıkta null, UI o zaman kartı gizler
+  recent_ratings jsonb,        -- Faz 2.7 — o snapshot anındaki "canlı puan" anlık görüntüsü: { own: {rating, reviews} | null, competitors: [{competitor_id, name, rating, reviews}], recent_rank: number | null }. Trend grafiği own vs rakip-medyan canlı puan serisini buradan okur (bkz. src/lib/analysis/recent-ratings.ts, 08-dashboard.md Trend). `competitor_rank` (yukarıdaki, resmi rating'e göre) DEĞİŞMEDEN, `recent_ratings.recent_rank` AYRI bir sıralama olarak aynı satıra eklenir.
   snapshot_at timestamptz      -- haftalık snapshot, trend grafiği için
 )
 
@@ -77,7 +82,11 @@ competitors (
   selected_at timestamptz,
   website text,                 -- Google Places'ten gelen ham site URL'si (bkz. businesses.website)
   trustpilot_domain text,       -- bkz. businesses.trustpilot_domain
-  trustpilot_checked_at timestamptz  -- bkz. businesses.trustpilot_checked_at
+  trustpilot_checked_at timestamptz,  -- bkz. businesses.trustpilot_checked_at
+  recent_rating numeric,               -- bkz. businesses.recent_rating (Faz 2.7)
+  recent_rating_reviews integer,       -- bkz. businesses.recent_rating_reviews
+  recent_rating_window_days integer,   -- bkz. businesses.recent_rating_window_days
+  recent_rating_updated_at timestamptz -- bkz. businesses.recent_rating_updated_at
 )
 
 -- ============ Yorumlar ============

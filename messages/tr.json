@@ -101,6 +101,12 @@
           "all_themes_below_threshold": "Yeni temalar görüldü ama henüz görev oluşturacak kadar güçlü bir sinyal yok — birkaç yorum daha birikince değerlendirilecek.",
           "own_analysis_failed": "Bu döngüde kendi yorumlarının analizi tamamlanamadı, bu yüzden yeni görev üretilemedi. Bir sonraki analizde tekrar denenecek.",
           "stage2_failed": "Bu döngüde rakip karşılaştırması tamamlanamadı, bu yüzden yeni görev üretilemedi. Bir sonraki analizde tekrar denenecek."
+        },
+        "alerts": {
+          "title": "Uyarılar",
+          "competitor_review_surge": "{name}: {new_reviews} yeni yorum (olağan ayda ~{avg_monthly_reviews})",
+          "competitor_rating_shift": "{name}: puan {from} → {to}",
+          "competitor_negative_spike": "{name}: \"{theme}\" olumsuz bahsedilmesi {previous_negative} → {current_negative}"
         }
       },
       "opportunity": {
@@ -224,6 +230,7 @@
         "title": "Rakipler",
         "empty": "Henüz rakip yok.",
         "reviewCount": "{count} yorum",
+        "recentRating": "Son {window} gün: {rating} ★ ({count} yorum)",
         "manageButton": "Rakipleri yönet",
         "cancelButton": "Vazgeç"
       }
@@ -392,7 +399,9 @@
       "title": "Trend",
       "notEnoughData": "Henüz yeterli veri yok. Analiz döngüleri arttıkça trend anlamlı hale gelir.",
       "clinicScoreLabel": "Clinic Score",
-      "competitorRankLabel": "Rakip Sırası"
+      "competitorRankLabel": "Rakip Sırası",
+      "ownRecentRatingLabel": "Canlı Puan (Sen)",
+      "competitorMedianRecentRatingLabel": "Canlı Puan (Rakip Medyanı)"
     },
     "monthlyReport": {
       "downloadButton": "Aylık raporu indir (PDF)",
@@ -472,6 +481,9 @@
       "newTaskLine": "Yeni görev: {theme}",
       "dismissedLine": "Otomatik reddedildi (60 gün): {theme}",
       "themeSpikeLine": "Kritik sinyal: \"{theme}\" temasında ani artış",
+      "reviewSurgeLine": "{name} bu döngüde {count} yeni yorum aldı (olağan ayda ~{avg})",
+      "ratingShiftLine": "{name} canlı puanı {from} → {to} değişti",
+      "negativeSpikeLine": "{name}: \"{theme}\" olumsuz bahsedilmesi {prev} → {cur}",
       "empty": "Bu hafta yeni bildirim yok."
     },
     "themeSpike": {

@@ -18,10 +18,68 @@ interface NotificationRow {
   payload: Record<string, unknown>;
 }
 
+function numberField(payload: Record<string, unknown>, key: string): number {
+  const value = payload[key];
+  return typeof value === "number" ? value : 0;
+}
+
+function stringField(payload: Record<string, unknown>, key: string): string {
+  const value = payload[key];
+  return typeof value === "string" ? value : "";
+}
+
+// bkz. docs/02-business-rules.md Bölüm G kural 1-6 — her bildirim türü
+// haftalık özette kendi satır şablonunu kullanır (bkz. messages/{locale}.json
+// emails.weeklyDigest). Faz 2.7 üç yeni türü (competitor_review_surge/
+// rating_shift/negative_spike) burada eklendi; payload şekli
+// src/lib/analysis/competitor-alerts.ts + execute-analysis.ts
+// recordCompetitorAlerts'te üretilir (`competitor_id`, `competitor_name` +
+// alert'e özel sayısal alanlar).
+function buildDigestLine(
+  row: NotificationRow,
+  messages: (typeof tr)["emails"]["weeklyDigest"],
+  locale: "tr" | "en",
+): string {
+  const theme = stringField(row.payload, "theme");
+
+  if (row.type === "task_auto_dismissed") {
+    const title = row.payload.title_i18n as Record<string, string> | undefined;
+    return fillTemplateHtml(messages.dismissedLine, { theme: title?.[locale] ?? theme });
+  }
+  if (row.type === "theme_spike") {
+    return fillTemplateHtml(messages.themeSpikeLine, { theme });
+  }
+  if (row.type === "competitor_review_surge") {
+    return fillTemplateHtml(messages.reviewSurgeLine, {
+      name: stringField(row.payload, "competitor_name"),
+      count: numberField(row.payload, "new_reviews"),
+      avg: numberField(row.payload, "avg_monthly_reviews"),
+    });
+  }
+  if (row.type === "competitor_rating_shift") {
+    return fillTemplateHtml(messages.ratingShiftLine, {
+      name: stringField(row.payload, "competitor_name"),
+      from: numberField(row.payload, "from"),
+      to: numberField(row.payload, "to"),
+    });
+  }
+  if (row.type === "competitor_negative_spike") {
+    return fillTemplateHtml(messages.negativeSpikeLine, {
+      name: stringField(row.payload, "competitor_name"),
+      theme,
+      prev: numberField(row.payload, "previous_negative"),
+      cur: numberField(row.payload, "current_negative"),
+    });
+  }
+  return fillTemplateHtml(messages.newTaskLine, { theme });
+}
+
 // bkz. docs/02-business-rules.md Bölüm G — haftalık özet, `emailed_at IS NULL`
-// olan (yani anlık gönderilmemiş: 'competitor_review_delta' ve
-// 'task_auto_dismissed') bildirimleri işletme başına toplayıp tek e-postada
-// gönderir, ardından hepsini `emailed_at` ile işaretler (idempotent — bir
+// olan (yani anlık gönderilmemiş: 'competitor_review_delta', 'task_auto_dismissed'
+// ve Faz 2.7 rakip uyarıları — 'competitor_review_surge'/'rating_shift'/
+// 'negative_spike'; 'theme_spike' hariç, o `recordNotification` çağrısında
+// `markEmailedNow: true` ile anlık işaretlenir) bildirimleri işletme başına
+// toplayıp tek e-postada gönderir, ardından hepsini `emailed_at` ile işaretler (idempotent — bir
 // sonraki çağrıda aynı satırlar tekrar gönderilmez). Locale, işletme
 // sahibinin `users.preferred_locale` sütunundan okunur (UI'daki dil
 // değiştirici bu sütunu günceller — bkz. api/locale/route.ts);
@@ -83,17 +141,7 @@ export async function sendWeeklyDigests(
       rawLocale === "tr" || rawLocale === "en" ? rawLocale : fallbackLocale;
     const messages = templatesByLocale[locale].emails.weeklyDigest;
 
-    const lines = businessRows.map((row) => {
-      const theme = typeof row.payload.theme === "string" ? row.payload.theme : "";
-      if (row.type === "task_auto_dismissed") {
-        const title = row.payload.title_i18n as Record<string, string> | undefined;
-        return fillTemplateHtml(messages.dismissedLine, { theme: title?.[locale] ?? theme });
-      }
-      if (row.type === "theme_spike") {
-        return fillTemplateHtml(messages.themeSpikeLine, { theme });
-      }
-      return fillTemplateHtml(messages.newTaskLine, { theme });
-    });
+    const lines = businessRows.map((row) => buildDigestLine(row, messages, locale));
 
     const html = `<h1>${fillTemplateHtml(messages.heading, { businessName: business.name })}</h1><p>${escapeHtml(messages.intro)}</p><ul>${lines
       .map((l) => `<li>${l}</li>`)

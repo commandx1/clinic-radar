@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { extractRecentRatingTrendPoint, type RecentRatingsSnapshot } from "@/lib/analysis/recent-ratings";
 import { hasProAccess, resolvePlanAccess } from "@/lib/billing/plan-access";
 import { createClient } from "@/lib/supabase/server";
 import { getNextAnalysisAvailableAt, isAnalysisCooldownActive } from "@/lib/task-engine/analysis-cooldown";
@@ -45,7 +46,7 @@ async function loadExecutiveMetrics(supabase: SupabaseClient, businessId: string
   ] = await Promise.all([
     supabase
       .from("clinic_score_history")
-      .select("score, competitor_rank, snapshot_at, executive_summary")
+      .select("score, competitor_rank, snapshot_at, executive_summary, recent_ratings")
       .eq("business_id", businessId)
       .order("snapshot_at", { ascending: true }),
     supabase
@@ -90,6 +91,7 @@ async function loadExecutiveMetrics(supabase: SupabaseClient, businessId: string
       snapshotAt: s.snapshot_at,
       score: s.score,
       competitorRank: s.competitor_rank,
+      ...extractRecentRatingTrendPoint(s.recent_ratings as unknown as RecentRatingsSnapshot | null),
     })),
   };
 }

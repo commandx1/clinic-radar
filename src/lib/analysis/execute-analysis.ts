@@ -11,9 +11,25 @@ import {
   type ThemeItem,
   type ThemeTrendInput,
 } from "@/lib/ai-pipeline/provider";
-import { computeAnalysisDelta, type AnalysisDelta } from "@/lib/analysis/analysis-delta";
+import {
+  computeAnalysisDelta,
+  countNewCompetitorReviews,
+  type AnalysisDelta,
+  type AnalysisDeltaAlert,
+  type AnalysisDeltaCompetitorReviewCount,
+} from "@/lib/analysis/analysis-delta";
+import {
+  detectCompetitorAlerts,
+  type CompetitorAlert,
+  type DetectCompetitorAlertsInput,
+} from "@/lib/analysis/competitor-alerts";
 import { buildProfileGapCandidates } from "@/lib/analysis/profile-gap-candidates";
 import { loadProfileGapStats } from "@/lib/analysis/profile-gap-stats";
+import {
+  computeAndPersistRecentRatings,
+  type RecentRatingsResult,
+  type RecentRatingsSnapshot,
+} from "@/lib/analysis/recent-ratings";
 import { resolveTrustpilotRefs } from "@/lib/analysis/resolve-trustpilot-refs";
 import { estimateScrapeCostUsd, type ScrapeMetrics } from "@/lib/analysis/scrape-metrics";
 import {
@@ -269,6 +285,11 @@ interface ThemeSummaryPersistResult {
   hasCompetitorData: boolean;
   ownThemeTrends: ThemeTrendInput[];
   previousCounts: Map<string, MentionCounts>;
+  // Rakip bazlı (competitor_id dolu) tema satırları — competitor-alerts.ts
+  // competitor_negative_spike girdisi için (bkz. runAnalysisPipeline). Görev
+  // kartı kanıt satırı için zaten hesaplanıyordu (perCompetitorRows), burada
+  // sadece DIŞARI da döndürülüyor — hesaplama DEĞİŞMEDİ.
+  perCompetitorThemeRows: ThemeTrendInput[];
 }
 
 interface MentionCounts {
@@ -390,14 +411,16 @@ async function persistThemeSummary(
     ? aggregateCompetitorThemes(succeededCompetitors.map((r) => ({ competitorId: r.owner.id, themes: r.result.themes })))
     : [];
 
+  let perCompetitorThemeRows: ThemeTrendInput[] = [];
   if (hasCompetitorData) {
     // Toplulaştırılmış satır (competitor_id = NULL) — skorlama/filtreleme/
     // bildirim/Themes-sayfası bunu okumaya devam eder, davranış DEĞİŞMEDİ.
     const aggregatedRows = toThemeTrendRows(competitorAggregated, "competitor", previousCounts);
-    // Rakip bazlı satırlar (competitor_id dolu) — YENİ, sadece görev kartı
-    // kanıt satırı ("N rakibinden M'i güçlü") için. `aggregateCompetitorThemes`
+    // Rakip bazlı satırlar (competitor_id dolu) — sadece görev kartı kanıt
+    // satırı ("N rakibinden M'i güçlü") ve competitor-alerts.ts
+    // competitor_negative_spike girdisi için. `aggregateCompetitorThemes`
     // tek rakiplik girdiyle çağrılır — o rakibin kendi mention kırılımını verir.
-    const perCompetitorRows = succeededCompetitors.flatMap((r) =>
+    perCompetitorThemeRows = succeededCompetitors.flatMap((r) =>
       toThemeTrendRows(
         aggregateCompetitorThemes([{ competitorId: r.owner.id, themes: r.result.themes }]),
         "competitor",
@@ -409,13 +432,13 @@ async function persistThemeSummary(
       supabase,
       businessId,
       "competitor",
-      [...aggregatedRows, ...perCompetitorRows],
+      [...aggregatedRows, ...perCompetitorThemeRows],
       periodStart,
       periodEnd,
     );
   }
 
-  return { ownAggregated, competitorAggregated, hasCompetitorData, ownThemeTrends, previousCounts };
+  return { ownAggregated, competitorAggregated, hasCompetitorData, ownThemeTrends, previousCounts, perCompetitorThemeRows };
 }
 
 // bkz. docs/02-business-rules.md Bölüm E — `dismissed` bir görev, aynı temada
@@ -647,6 +670,11 @@ async function computeAndStoreClinicScoreSnapshot(
   competitors: { id: string; rating: number | null }[],
   cutoffIso: string,
   ownThemeTrends: ThemeTrendInput[],
+  // Faz 2.7 — bkz. src/lib/analysis/recent-ratings.ts. Resmi `rating`
+  // (yukarıdaki competitor_rank hesabı) DEĞİŞMEDEN, aynı satıra ayrıca
+  // "canlı puan" anlık görüntüsü yazılır (Trend grafiği own vs rakip-medyan
+  // canlı puan serisini buradan okur — bkz. docs/08-dashboard.md).
+  recentRatingsSnapshot: RecentRatingsSnapshot | null,
 ): Promise<void> {
   const { count: taskTotalCount } = await supabase
     .from("tasks")
@@ -710,11 +738,91 @@ async function computeAndStoreClinicScoreSnapshot(
     score,
     competitor_rank: rank,
     executive_summary: summary?.summary ?? null,
+    recent_ratings: recentRatingsSnapshot as unknown as Json,
   });
 
   if (error) {
     console.error("Failed to store clinic_score_history snapshot:", error);
   }
+}
+
+// bkz. docs/02-business-rules.md Bölüm G kural 4/5/6, src/lib/analysis/
+// competitor-alerts.ts, src/lib/analysis/recent-ratings.ts. Girdi üç ayrı
+// kaynaktan derlenir: bu döngüdeki yeni yorum sayısı (analysis-delta.ts
+// countNewCompetitorReviews — TÜM rakipler, delta kartındaki top-3
+// kesintisine tabi DEĞİL), canlı puan önce/sonra (recent-ratings.ts) ve
+// rakip bazlı negatif mention önce/sonra (persistThemeSummary'nin
+// perCompetitorThemeRows'u + previousCounts).
+function buildCompetitorAlertInput(
+  competitors: { id: string; name: string }[],
+  competitorNewReviewCounts: AnalysisDeltaCompetitorReviewCount[],
+  windowDays: number,
+  recentRatings: RecentRatingsResult,
+  perCompetitorThemeRows: ThemeTrendInput[],
+  previousCounts: Map<string, MentionCounts>,
+  previousRunAt: string | null,
+): DetectCompetitorAlertsInput {
+  // bkz. competitor-alerts.ts cycleDays — ilk analizde null (surge kuralı
+  // atlanır), sonrasında önceki analizden bu yana geçen gün (en az 1).
+  const cycleDays =
+    previousRunAt === null
+      ? null
+      : Math.max(1, (Date.now() - new Date(previousRunAt).getTime()) / (24 * 60 * 60 * 1000));
+  const newReviewsByCompetitorId = new Map(competitorNewReviewCounts.map((c) => [c.competitor_id, c.count]));
+  const recentRatingByCompetitorId = new Map(recentRatings.competitors.map((c) => [c.id, c]));
+
+  const themeRowsByCompetitorId = new Map<string, ThemeTrendInput[]>();
+  for (const row of perCompetitorThemeRows) {
+    if (!row.competitor_id) {
+      continue;
+    }
+    const list = themeRowsByCompetitorId.get(row.competitor_id) ?? [];
+    list.push(row);
+    themeRowsByCompetitorId.set(row.competitor_id, list);
+  }
+
+  return {
+    competitors: competitors.map((c) => {
+      const recentRating = recentRatingByCompetitorId.get(c.id);
+      const negativeThemeSpikes = (themeRowsByCompetitorId.get(c.id) ?? []).map((row) => ({
+        theme: row.theme,
+        previousNegative:
+          previousCounts.get(`competitor|${c.id}|${normalizeTheme(row.theme)}`)?.negative_mentions ?? 0,
+        currentNegative: row.negative_mentions,
+      }));
+      const reviewsInWindow = recentRating?.current.reviews ?? 0;
+
+      return {
+        id: c.id,
+        name: c.name,
+        newReviewsThisCycle: newReviewsByCompetitorId.get(c.id) ?? 0,
+        avgMonthlyReviews: windowDays > 0 ? (reviewsInWindow / windowDays) * 30 : 0,
+        cycleDays,
+        previousRecentRating: recentRating?.previous?.rating ?? null,
+        currentRecentRating: recentRating?.current.rating ?? null,
+        negativeThemeSpikes,
+      };
+    }),
+  };
+}
+
+// Her alert bir `notifications` satırı olarak kaydedilir (haftalık özet
+// bunları toplar — bkz. weekly-digest.ts) ve AnalysisDelta.alerts için
+// hafifletilmiş bir şekle indirgenir (competitor_id olmadan — kart yalnızca
+// isim gösterir).
+async function recordCompetitorAlerts(
+  supabase: AnalysisSupabaseClient,
+  businessId: string,
+  alerts: CompetitorAlert[],
+): Promise<AnalysisDeltaAlert[]> {
+  for (const alert of alerts) {
+    await recordNotification(supabase, {
+      businessId,
+      type: alert.type,
+      payload: { competitor_id: alert.competitor_id, competitor_name: alert.competitor_name, ...alert.detail },
+    });
+  }
+  return alerts.map((alert) => ({ type: alert.type, competitor_name: alert.competitor_name, detail: alert.detail }));
 }
 
 async function runAnalysisPipeline(
@@ -749,7 +857,15 @@ async function runAnalysisPipeline(
   );
 
   await setAnalysisStage(supabase, business.id, "themes");
-  const stage1Results = await runStage1ForOwners(owners, reviewsByOwnerId, outputLanguage, windowDays);
+  // bkz. src/lib/analysis/recent-ratings.ts — own+rakip Aşama 1 tema
+  // analiziyle bağımsız, aynı anda çalıştırılır (ikisi de sadece bu
+  // döngünün pencere içindeki yorumlarını okur). Önceki recent_rating
+  // değerleri bu çağrı içinde UPDATE'ten ÖNCE okunur (rakip uyarıları
+  // competitor_rating_shift için gerekli).
+  const [stage1Results, recentRatings] = await Promise.all([
+    runStage1ForOwners(owners, reviewsByOwnerId, outputLanguage, windowDays),
+    computeAndPersistRecentRatings(supabase, business, competitors, cutoffIso, windowDays),
+  ]);
   const ownStage1 = stage1Results.find((r) => r.owner.ownerType === "own") ?? null;
   const competitorStage1Results = stage1Results.filter((r) => r.owner.ownerType === "competitor");
 
@@ -820,6 +936,14 @@ async function runAnalysisPipeline(
   // bkz. docs/05-ai-pipeline.md "Delta adımı" — Aşama 2/görev üretiminden
   // sonra, aynı analiz isteği içinde hesaplanır ve analysis_runs.delta'ya
   // yazılmak üzere döndürülür (bkz. run-manual-analysis.ts, run-cron-analysis-cycle.ts).
+  // Rakip başına yeni yorum sayısı burada TEK sefer hesaplanır — hem delta'nın
+  // top-3 listesi (competitorNewReviewsByCompetitor param'ı) hem de aşağıdaki
+  // competitor_review_surge uyarısı (TÜM rakipler) aynı sonucu paylaşır.
+  const competitorNewReviewCounts = await countNewCompetitorReviews(
+    supabase,
+    competitors,
+    previousRunAt ?? cutoffIso,
+  );
   const delta = await computeAnalysisDelta(supabase, {
     businessId: business.id,
     competitors,
@@ -832,7 +956,26 @@ async function runAnalysisPipeline(
     ownThemeTrends: aggregates.ownThemeTrends,
     taskGenerationStatus: taskGeneration.status,
     filteredCandidateCount: taskGeneration.filteredCount,
+    competitorNewReviewsByCompetitor: competitorNewReviewCounts,
   });
+
+  // bkz. docs/02-business-rules.md Bölüm G kural 4/5/6 — delta hesaplandıktan
+  // SONRA, aynı per-competitor yeni yorum verisi + canlı puan + tema
+  // kırılımından rakip uyarıları türetilir; her biri bir bildirim satırı
+  // olarak kaydedilir (haftalık özete dahil olur) ve delta.alerts'e eklenir.
+  const competitorAlerts = detectCompetitorAlerts(
+    buildCompetitorAlertInput(
+      competitors,
+      competitorNewReviewCounts,
+      windowDays,
+      recentRatings,
+      aggregates.perCompetitorThemeRows,
+      aggregates.previousCounts,
+      previousRunAt,
+    ),
+  );
+  const deltaAlerts = await recordCompetitorAlerts(supabase, business.id, competitorAlerts);
+  const deltaWithAlerts: AnalysisDelta = deltaAlerts.length > 0 ? { ...delta, alerts: deltaAlerts } : delta;
 
   return {
     themeAnalysis: {
@@ -845,7 +988,8 @@ async function runAnalysisPipeline(
     },
     taskGeneration,
     ownThemeTrends: aggregates.ownThemeTrends,
-    delta,
+    delta: deltaWithAlerts,
+    recentRatingsSnapshot: recentRatings.snapshot,
   };
 }
 
@@ -985,7 +1129,7 @@ export async function executeAnalysis(
       console.error("last_scraped_at güncellenemedi:", touchError);
     }
 
-    const { themeAnalysis, taskGeneration, ownThemeTrends, delta } = await runAnalysisPipeline(
+    const { themeAnalysis, taskGeneration, ownThemeTrends, delta, recentRatingsSnapshot } = await runAnalysisPipeline(
       supabase,
       { id: business.id, name: business.name, category: business.category, website: business.website },
       competitors,
@@ -998,7 +1142,14 @@ export async function executeAnalysis(
     const clinicScoreCutoffIso = new Date(
       Date.now() - AI_ANALYSIS_WINDOW_DAYS * 24 * 60 * 60 * 1000,
     ).toISOString();
-    await computeAndStoreClinicScoreSnapshot(supabase, business, competitors, clinicScoreCutoffIso, ownThemeTrends);
+    await computeAndStoreClinicScoreSnapshot(
+      supabase,
+      business,
+      competitors,
+      clinicScoreCutoffIso,
+      ownThemeTrends,
+      recentRatingsSnapshot,
+    );
 
     const status = taskGeneration.status !== "ok" || themeAnalysis.ownersFailed.length > 0 ? "partial" : "succeeded";
 

@@ -104,6 +104,10 @@ export type Database = {
           name: string
           normalized_category: string | null
           rating: number | null
+          recent_rating: number | null
+          recent_rating_reviews: number | null
+          recent_rating_updated_at: string | null
+          recent_rating_window_days: number | null
           review_count: number | null
           trustpilot_checked_at: string | null
           trustpilot_domain: string | null
@@ -126,6 +130,10 @@ export type Database = {
           name: string
           normalized_category?: string | null
           rating?: number | null
+          recent_rating?: number | null
+          recent_rating_reviews?: number | null
+          recent_rating_updated_at?: string | null
+          recent_rating_window_days?: number | null
           review_count?: number | null
           trustpilot_checked_at?: string | null
           trustpilot_domain?: string | null
@@ -148,6 +156,10 @@ export type Database = {
           name?: string
           normalized_category?: string | null
           rating?: number | null
+          recent_rating?: number | null
+          recent_rating_reviews?: number | null
+          recent_rating_updated_at?: string | null
+          recent_rating_window_days?: number | null
           review_count?: number | null
           trustpilot_checked_at?: string | null
           trustpilot_domain?: string | null
@@ -170,6 +182,7 @@ export type Database = {
           competitor_rank: number | null
           executive_summary: Json | null
           id: string
+          recent_ratings: Json | null
           score: number | null
           snapshot_at: string
         }
@@ -178,6 +191,7 @@ export type Database = {
           competitor_rank?: number | null
           executive_summary?: Json | null
           id?: string
+          recent_ratings?: Json | null
           score?: number | null
           snapshot_at?: string
         }
@@ -186,6 +200,7 @@ export type Database = {
           competitor_rank?: number | null
           executive_summary?: Json | null
           id?: string
+          recent_ratings?: Json | null
           score?: number | null
           snapshot_at?: string
         }
@@ -206,6 +221,10 @@ export type Database = {
           id: string
           name: string
           rating: number | null
+          recent_rating: number | null
+          recent_rating_reviews: number | null
+          recent_rating_updated_at: string | null
+          recent_rating_window_days: number | null
           review_count: number | null
           selected_at: string
           trustpilot_checked_at: string | null
@@ -218,6 +237,10 @@ export type Database = {
           id?: string
           name: string
           rating?: number | null
+          recent_rating?: number | null
+          recent_rating_reviews?: number | null
+          recent_rating_updated_at?: string | null
+          recent_rating_window_days?: number | null
           review_count?: number | null
           selected_at?: string
           trustpilot_checked_at?: string | null
@@ -230,6 +253,10 @@ export type Database = {
           id?: string
           name?: string
           rating?: number | null
+          recent_rating?: number | null
+          recent_rating_reviews?: number | null
+          recent_rating_updated_at?: string | null
+          recent_rating_window_days?: number | null
           review_count?: number | null
           selected_at?: string
           trustpilot_checked_at?: string | null

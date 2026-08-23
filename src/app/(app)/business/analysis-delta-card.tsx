@@ -4,6 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 
+import { AnalysisDeltaAlerts } from "./analysis-delta-alerts";
 import { AnalysisDeltaThemeChips } from "./analysis-delta-theme-chips";
 import { resolveAnalysisDelta } from "./resolve-analysis-delta";
 
@@ -68,6 +69,8 @@ export async function AnalysisDeltaCard({ businessId }: { businessId: string }) 
           themesImproving={delta.themes_improving}
           themesCritical={delta.themes_critical}
         />
+
+        <AnalysisDeltaAlerts t={t} alerts={delta.alerts} />
 
         {delta.tasks_created === 0 && delta.zero_new_tasks_reason && (
           <p className="text-sm text-muted-foreground">{t(`zeroTasksReason.${delta.zero_new_tasks_reason}`)}</p>

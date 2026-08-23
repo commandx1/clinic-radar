@@ -101,6 +101,12 @@
           "all_themes_below_threshold": "New themes showed up, but none are strong enough yet to become a task — they'll be reconsidered once more reviews come in.",
           "own_analysis_failed": "We couldn't finish analyzing your own reviews this cycle, so no new tasks were generated. We'll retry on the next analysis.",
           "stage2_failed": "We couldn't finish the competitor comparison this cycle, so no new tasks were generated. We'll retry on the next analysis."
+        },
+        "alerts": {
+          "title": "Alerts",
+          "competitor_review_surge": "{name}: {new_reviews} new reviews (usual monthly pace ~{avg_monthly_reviews})",
+          "competitor_rating_shift": "{name}: rating {from} → {to}",
+          "competitor_negative_spike": "{name}: negative mentions of \"{theme}\" jumped {previous_negative} → {current_negative}"
         }
       },
       "opportunity": {
@@ -224,6 +230,7 @@
         "title": "Competitors",
         "empty": "No competitors yet.",
         "reviewCount": "{count} reviews",
+        "recentRating": "Last {window} days: {rating} ★ ({count} reviews)",
         "manageButton": "Manage competitors",
         "cancelButton": "Cancel"
       }
@@ -392,7 +399,9 @@
       "title": "Trend",
       "notEnoughData": "Not enough data yet. Trend becomes meaningful as more analysis cycles run.",
       "clinicScoreLabel": "Clinic Score",
-      "competitorRankLabel": "Competitor Rank"
+      "competitorRankLabel": "Competitor Rank",
+      "ownRecentRatingLabel": "Live Rating (You)",
+      "competitorMedianRecentRatingLabel": "Live Rating (Competitor Median)"
     },
     "monthlyReport": {
       "downloadButton": "Download monthly report (PDF)",
@@ -472,6 +481,9 @@
       "newTaskLine": "New task: {theme}",
       "dismissedLine": "Auto-dismissed (60 days): {theme}",
       "themeSpikeLine": "Critical signal: sudden spike in \"{theme}\"",
+      "reviewSurgeLine": "{name} got {count} new reviews this cycle (usual monthly pace ~{avg})",
+      "ratingShiftLine": "{name}'s live rating moved {from} → {to}",
+      "negativeSpikeLine": "{name}: negative mentions of \"{theme}\" jumped {prev} → {cur}",
       "empty": "No new notifications this week."
     },
     "themeSpike": {

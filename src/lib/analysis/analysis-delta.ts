@@ -19,6 +19,15 @@ export interface AnalysisDeltaCompetitorReviewCount {
   count: number;
 }
 
+// bkz. src/lib/analysis/competitor-alerts.ts, docs/02-business-rules.md
+// Bölüm G kural 4/5/6 — Overview "Bu analizde ne değişti" kartındaki
+// "Uyarılar" listesi bu şekli birebir kullanır (bkz. docs/08-dashboard.md).
+export interface AnalysisDeltaAlert {
+  type: "competitor_review_surge" | "competitor_rating_shift" | "competitor_negative_spike";
+  competitor_name: string;
+  detail: Record<string, number | string>;
+}
+
 export type ZeroNewTasksReason =
   | "no_new_signal"
   | "all_themes_below_threshold"
@@ -45,6 +54,13 @@ export interface AnalysisDelta {
   themes_improving: string[];
   themes_critical: string[];
   zero_new_tasks_reason: ZeroNewTasksReason | null;
+  // Faz 2.7 — rakip uyarıları (competitor_review_surge/rating_shift/negative_spike).
+  // Opsiyonel: bu alan eklenmeden ÖNCE yazılmış eski `analysis_runs.delta`
+  // satırlarında yok (resolveAnalysisDelta bunu `as unknown as AnalysisDelta`
+  // ile cast ediyor, şema validasyonu yok) — UI undefined/boş diziyi aynı
+  // şekilde ("uyarı yok") ele almalı. `version` hâlâ 1 (şekle geriye dönük
+  // uyumlu, opsiyonel bir alan eklemek breaking değil).
+  alerts?: AnalysisDeltaAlert[];
 }
 
 export type TaskGenerationStatus = "ok" | "skipped_own_failed" | "skipped_stage2_failed";
@@ -158,7 +174,11 @@ async function countNewOwnReviews(
   return count ?? 0;
 }
 
-async function countNewCompetitorReviews(
+// export edilir: execute-analysis.ts runAnalysisPipeline aynı sonucu hem
+// buradaki (computeAnalysisDelta) top-3 listesi hem de competitor-alerts.ts
+// competitor_review_surge girdisi (newReviewsThisCycle, TÜM rakipler — top-3
+// kesintisine tabi değil) için tek sorguda hesaplayıp iki tarafa da geçirir.
+export async function countNewCompetitorReviews(
   supabase: AnalysisDeltaSupabaseClient,
   competitors: { id: string; name: string }[],
   sinceIso: string,
@@ -214,6 +234,12 @@ export interface ComputeAnalysisDeltaParams {
   ownThemeTrends: ThemeTrendLike[];
   taskGenerationStatus: TaskGenerationStatus;
   filteredCandidateCount: number;
+  // Önceden hesaplanmış rakip başına yeni yorum sayısı (bkz.
+  // countNewCompetitorReviews) — verilirse bu fonksiyon aynı sorguyu tekrar
+  // atmaz. execute-analysis.ts hem bu delta'nın top-3 listesi hem de
+  // competitor-alerts.ts'in competitor_review_surge girdisi için aynı
+  // sonucu tek seferde hesaplayıp buraya iletir.
+  competitorNewReviewsByCompetitor?: AnalysisDeltaCompetitorReviewCount[];
 }
 
 // İnce DB katmanı — executeAnalysis'in pipeline sonunda çağırdığı tek giriş
@@ -228,7 +254,7 @@ export async function computeAnalysisDelta(
 
   const [ownNewReviews, competitorNewReviewsByCompetitor, ownUnrepliedReviews] = await Promise.all([
     countNewOwnReviews(supabase, params.businessId, sinceIso),
-    countNewCompetitorReviews(supabase, params.competitors, sinceIso),
+    params.competitorNewReviewsByCompetitor ?? countNewCompetitorReviews(supabase, params.competitors, sinceIso),
     countOwnUnrepliedReviews(supabase, params.businessId, params.windowStartIso),
   ]);
 

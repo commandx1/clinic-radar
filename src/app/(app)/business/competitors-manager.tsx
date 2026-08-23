@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 import { CompetitorOnboarding } from "./competitor-onboarding";
+import { CompetitorRecentRatingLine } from "./competitor-recent-rating-line";
 
 export interface CompetitorListItem {
   id: string;
@@ -16,6 +17,12 @@ export interface CompetitorListItem {
   name: string;
   rating: number | null;
   review_count: number | null;
+  // Faz 2.7 — bkz. src/lib/analysis/recent-ratings.ts, docs/08-dashboard.md
+  // Competitors. `recent_rating` null ise (henüz pencere içinde
+  // RECENT_RATING_MIN_REVIEWS'e ulaşmadıysa) satır hiç gösterilmez.
+  recent_rating: number | null;
+  recent_rating_reviews: number | null;
+  recent_rating_window_days: number | null;
 }
 
 export function CompetitorsManager({
@@ -78,6 +85,11 @@ export function CompetitorsManager({
                 <p className="text-xs text-muted-foreground">
                   {t("reviewCount", { count: competitor.review_count ?? 0 })}
                 </p>
+                <CompetitorRecentRatingLine
+                  recentRating={competitor.recent_rating}
+                  recentRatingReviews={competitor.recent_rating_reviews}
+                  recentRatingWindowDays={competitor.recent_rating_window_days}
+                />
               </CardContent>
             </Card>
           ))}

@@ -22,7 +22,9 @@ export default async function CompetitorsPage() {
 
   const { data: competitors } = await supabase
     .from("competitors")
-    .select("id, google_place_id, name, rating, review_count")
+    .select(
+      "id, google_place_id, name, rating, review_count, recent_rating, recent_rating_reviews, recent_rating_window_days",
+    )
     .eq("business_id", business!.id);
   const planMaxCompetitors = hasProAccess(subscription) ? PRO_PLAN_MAX_COMPETITORS : FREE_PLAN_MAX_COMPETITORS;
 

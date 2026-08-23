@@ -175,6 +175,33 @@ Detay: `02-business-rules.md` Bölüm I, `03-database.md`, `04-api.md`.
 - [x] Birim test: `task-outcome.test.ts` (üç metric türü, absent/eşik davranışı, verdict eşikleri, zod parse
   güvenliği).
 
+## Faz 2.7 — Canlı puan ve rakip uyarıları (2026-08)
+- [x] **Problem:** `businesses.rating`/`competitors.rating` yalnızca ilk Apify enrichment'ında yazılıyordu —
+  Google yorum actor'ü yorum başına puan döndürür ama toplu puanı güncellemez. Sonuç: Competitor Rank, Trend
+  grafiği ve Competitors sayfası onboarding sonrası hiç değişmiyordu; rakip bir sıçrama yaşadığında da
+  kullanıcıya hiçbir uyarı gitmiyordu.
+- [x] **Şema:** `businesses`/`competitors`'a `recent_rating numeric`, `recent_rating_reviews integer`,
+  `recent_rating_window_days integer`, `recent_rating_updated_at timestamptz` (4'er kolon);
+  `clinic_score_history.recent_ratings jsonb`; `notifications.type` check constraint'i üç yeni değeri
+  (`competitor_review_surge`, `competitor_rating_shift`, `competitor_negative_spike`) kapsayacak şekilde
+  genişletildi (migration `20260823000500_recent_ratings_and_competitor_alerts.sql`, additive diff).
+- [x] **Canlı puan** (`src/lib/analysis/recent-ratings.ts` + birim test): analiz penceresindeki taze
+  yorumların `rating`lerinden hesaplanan ortalama (`RECENT_RATING_MIN_REVIEWS` altında null), own+rakip
+  `recent_rank`i (resmi Competitor Rank'ten AYRI). Detay: `02-business-rules.md` Bölüm F.
+- [x] **Rakip uyarıları** (`src/lib/analysis/competitor-alerts.ts` + birim test): yorum patlaması
+  (`competitor_review_surge`), puan sıçraması (`competitor_rating_shift`), negatif tema patlaması
+  (`competitor_negative_spike`) — eşikler `02-business-rules.md` Bölüm G. Her uyarı `notifications`'a
+  kaydedilir (haftalık özete dahil) ve `AnalysisDelta.alerts`'e eklenir (opsiyonel alan, `version: 1` korundu).
+- [x] **Wiring:** `execute-analysis.ts` `runAnalysisPipeline` — canlı puan hesaplaması Aşama 1 ile paralel;
+  rakip uyarıları delta hesaplandıktan hemen sonra (`countNewCompetitorReviews` export edilip iki tarafta da
+  reuse edildi, ekstra sorgu yok).
+- [x] **UI:** Competitors kartlarında "Son N gün" canlı puan satırı (null ise gizli); Trend grafiğinde own vs
+  rakip-medyan canlı puan serisi (iki ek çizgi, `connectNulls`); Overview "Bu analizde ne değişti" kartında
+  "Uyarılar" rozet listesi (`analysis-delta-alerts.tsx`).
+- [x] Haftalık özet e-postasına (tr/en) üç yeni satır şablonu eklendi.
+- [x] Birim test: `recent-ratings.test.ts` (15 test — `computeRecentRating`, `computeRecentRank`, `median`,
+  `extractRecentRatingTrendPoint`), `competitor-alerts.test.ts` (14 test — üç alert türü + çoklu rakip).
+
 ## Faz 3
 - AI arama görünürlüğü modülü (ChatGPT/Gemini/Perplexity'de klinik nasıl öneriliyor)
 - Tema taksonomisi ölçeklenirse embedding/clustering katmanı (`05-ai-pipeline.md`'deki gerekçeye bkz.)

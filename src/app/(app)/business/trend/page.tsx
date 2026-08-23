@@ -2,6 +2,7 @@ import { TrendingUpIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { EmptyState } from "@/components/empty-state";
+import { extractRecentRatingTrendPoint, type RecentRatingsSnapshot } from "@/lib/analysis/recent-ratings";
 import { createClient } from "@/lib/supabase/server";
 
 import { TrendChart } from "../trend-chart";
@@ -22,7 +23,7 @@ export default async function TrendPage() {
   const [{ data: snapshots }, t] = await Promise.all([
     supabase
       .from("clinic_score_history")
-      .select("score, competitor_rank, snapshot_at")
+      .select("score, competitor_rank, snapshot_at, recent_ratings")
       .eq("business_id", business!.id)
       .order("snapshot_at", { ascending: true }),
     getTranslations("business.trend"),
@@ -31,6 +32,7 @@ export default async function TrendPage() {
     snapshotAt: s.snapshot_at,
     score: s.score,
     competitorRank: s.competitor_rank,
+    ...extractRecentRatingTrendPoint(s.recent_ratings as unknown as RecentRatingsSnapshot | null),
   }));
 
   return (

@@ -11,7 +11,13 @@ type NotifySupabaseClient = SupabaseClient<Database>;
 export type NotificationType =
   | "competitor_review_delta"
   | "theme_spike"
-  | "task_auto_dismissed";
+  | "task_auto_dismissed"
+  // Faz 2.7 — rakip uyarıları (bkz. src/lib/analysis/competitor-alerts.ts,
+  // supabase/migrations/20260823000500_recent_ratings_and_competitor_alerts.sql,
+  // docs/02-business-rules.md Bölüm G).
+  | "competitor_review_surge"
+  | "competitor_rating_shift"
+  | "competitor_negative_spike";
 
 // bkz. docs/02-business-rules.md Bölüm G — tüm bildirim satırları tek bu
 // fonksiyondan geçer; ham yorum metni ASLA payload'a konmaz (bkz.

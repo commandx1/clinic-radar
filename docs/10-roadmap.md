@@ -154,6 +154,27 @@ Detay: `02-business-rules.md` Bölüm I, `03-database.md`, `04-api.md`.
   $ bandı yalnızca girdiler doluyken + 2 anlamlı basamak yuvarlama, 4.0 eşik uyarısı, yorum hızı oranı/null
   durumu).
 
+## Faz 2.6 — Görev sonuç takibi (2026-08)
+- [x] **Per-task outcome tracking.** Her görev, oluşturulduğu andaki ölçülebilir sinyal durumunu
+  (`tasks.outcome_baseline`) ve her sonraki analiz döngüsündeki en güncel durumu (`tasks.outcome_latest`)
+  saklar — ürünün "işe yaradı mı?" kanıtı ("oluşturulduğunda olumsuz bahsedilme %45 → şimdi %20, iyileşti").
+  Bkz. `09-task-engine.md` "Görev sonuç takibi".
+- [x] **Şema:** `tasks.outcome_baseline jsonb null`, `tasks.outcome_latest jsonb null` (migration
+  `20260823000400_tasks_outcome.sql`), additive diff.
+- [x] **Saf hesaplama katmanı** (`src/lib/task-engine/task-outcome.ts` + birim test, 24 test): görev
+  türüne göre üç metric türü (`theme` — own tema kırılımı, `reply_rate`, `website`), zod ile güvenli jsonb
+  okuma (`parseOutcomeMetric`), baseline→latest kıyasından verdict türetme (`compareOutcome`,
+  `THEME_TREND_DELTA_THRESHOLD`/`TASK_MENTION_THRESHOLD` reuse edilir, ayrı bir sabit ailesi açılmadı).
+- [x] **Yazma akışı** (`execute-analysis.ts`): yeni görev insert edilirken baseline donar; task upsert'inden
+  hemen sonra `refreshTaskOutcomes` (`src/lib/analysis/task-outcomes.ts`) tüm `open`/`done` görevlerin
+  `outcome_latest`'ini tazeler, migration öncesi görevlerde (`outcome_baseline` null) baseline'ı da aynı
+  ilk ölçümle doldurur. Skorlama/kota mantığına dokunulmadı.
+- [x] **UI:** Tasks ve History sayfalarında (`TaskCardBody`, ortak bileşen) kanıt satırının altında yeni bir
+  sonuç takibi satırı (`task-outcome-line.tsx`) + iyileşti/kötüleşti/değişmedi rozeti; baseline/latest eksikse
+  ya da henüz ikinci ölçüm yoksa (aynı `measured_at`) satır hiç render edilmez.
+- [x] Birim test: `task-outcome.test.ts` (üç metric türü, absent/eşik davranışı, verdict eşikleri, zod parse
+  güvenliği).
+
 ## Faz 3
 - AI arama görünürlüğü modülü (ChatGPT/Gemini/Perplexity'de klinik nasıl öneriliyor)
 - Tema taksonomisi ölçeklenirse embedding/clustering katmanı (`05-ai-pipeline.md`'deki gerekçeye bkz.)

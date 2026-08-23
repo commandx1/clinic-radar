@@ -83,6 +83,59 @@ Görev 60 gün `open` kalır ve `priority = low` ise → `status = dismissed`, k
 ## Dismissed görev reopen (2x negatif patlama kuralı)
 Bu kontrol analiz döngüsü içinde (`analysis/run` route'u) tema özeti (`theme_summary`) kaydından sonra, görev upsert'inden önce çalışır — bkz. `02-business-rules.md` Bölüm E.
 
+## Görev sonuç takibi (per-task outcome tracking)
+Ürünün "işe yaradı mı?" kanıtı — her görev, oluşturulduğu andaki ölçülebilir sinyal
+durumunu (`tasks.outcome_baseline`) ve her sonraki analiz döngüsündeki en güncel
+durumu (`tasks.outcome_latest`) saklar (ikisi de `jsonb`, şekil aşağıdaki
+`OutcomeMetric` union'ı — bkz. `03-database.md`). Saf/test edilebilir hesap
+mantığı `src/lib/task-engine/task-outcome.ts`'te; supabase'e dokunan taze­leme
+`src/lib/analysis/task-outcomes.ts`'te (`refreshTaskOutcomes`).
+
+**Metric türleri** (görevin `theme`/`source_type`'ına göre):
+- **`theme`** (`competitive_gap` / `absolute_quality`): görevin teması
+  `normalizeTheme` ile own tarafının o döngüdeki `theme_summary` kırılımına
+  eşleştirilir (bkz. `02-business-rules.md` Bölüm C tema eşleştirme kuralı).
+  Eşleşme bulunursa `positive`/`negative`/`negative_ratio` (`negative /
+  (positive + negative)`, toplam 0 ise 0) ve `absent: false`; bulunamazsa (tema
+  artık own yorumlarında hiç geçmiyor) `absent: true` ve sayılar sıfır.
+- **`reply_rate`** (`theme = "profile:reply_rate"`): own'un o pencerede
+  `total`/`replied` yorum sayısı ve `rate = replied/total` (total 0 ise 0).
+- **`website`** (`theme = "profile:website"`): own'un `website` alanının dolu
+  olup olmadığı (`has_website`).
+- Diğer tüm `theme`/`source_type` kombinasyonları için `null` (metric
+  üretilmez, outcome kaydedilmez).
+
+**Verdict eşikleri** (`compareOutcome`, `OutcomeVerdict = "improved" |
+"worsened" | "flat"`; `kind` uyuşmazlığında `null`):
+- **theme:** `improved` — `latest.negative_ratio <= baseline.negative_ratio -
+  THEME_TREND_DELTA_THRESHOLD` **VEYA** (`latest.absent` **VE**
+  `baseline.negative >= TASK_MENTION_THRESHOLD`, yani tema eşik üstü bir
+  hacimle konuşuluyorken tamamen kaybolduysa da iyileşme sayılır). `worsened`
+  — `latest.negative_ratio >= baseline.negative_ratio +
+  THEME_TREND_DELTA_THRESHOLD`. Aksi halde `flat`. (Aynı eşikler
+  `theme_summary.trend`'i de belirler — bkz. `02-business-rules.md` Bölüm C.)
+- **reply_rate:** oran `THEME_TREND_DELTA_THRESHOLD` (10 yüzde puanı) ya da
+  fazlası yükselirse `improved`, aynı miktarda düşerse `worsened`, aksi halde
+  `flat`.
+- **website:** baseline'da yoktu, latest'te varsa `improved`; aksi halde
+  `flat` (bu görev zaten sadece own website'ı yokken üretildiği için baseline
+  pratikte hep `has_website: false`'tur — bkz. Bölüm D madde 3).
+
+**Yazma akışı** (`execute-analysis.ts`): `upsertTasks` bir görevi ilk kez
+INSERT ederken `outcome_baseline`'ı o anki own kırılımından hesaplar ve donar
+— bir daha ÜZERİNE YAZILMAZ (baseline sabit bir başlangıç noktası olmalı).
+Task upsert'inden hemen sonra `refreshTaskOutcomes` **tüm** `open`/`done`
+görevler için `outcome_latest`'i tazeler; migration öncesi oluşmuş görevlerde
+(`outcome_baseline` hâlâ `null`) bu ilk ölçüm aynı zamanda baseline olarak da
+yazılır (geriye dönük veri yok, ilk gördüğümüz an baseline kabul edilir).
+`dismissed` görevler kapsam dışıdır.
+
+**Okuma/UI:** `resolve-tasks-shared.ts`, jsonb kolonlarını `parseOutcomeMetric`
+(zod) ile güvenli parse eder — şemaya uymayan/bozuk veri asla UI'a sızmaz.
+Kart satırı (`task-outcome-line.tsx`) yalnızca hem baseline hem latest mevcutsa
+VE `measured_at`'leri farklıysa (yani en az bir analiz döngüsü geçtiyse)
+gösterilir — bkz. `08-dashboard.md`.
+
 ## Clinic Score formülü (ilk versiyon, kalibre edilecek)
 ```
 clinic_score =

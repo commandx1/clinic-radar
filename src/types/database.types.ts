@@ -478,6 +478,8 @@ export type Database = {
           impact_score: number | null
           impact_score_breakdown: Json | null
           last_priority_recalc_at: string | null
+          outcome_baseline: Json | null
+          outcome_latest: Json | null
           priority: string | null
           source_type: string
           status: string
@@ -496,6 +498,8 @@ export type Database = {
           impact_score?: number | null
           impact_score_breakdown?: Json | null
           last_priority_recalc_at?: string | null
+          outcome_baseline?: Json | null
+          outcome_latest?: Json | null
           priority?: string | null
           source_type: string
           status?: string
@@ -514,6 +518,8 @@ export type Database = {
           impact_score?: number | null
           impact_score_breakdown?: Json | null
           last_priority_recalc_at?: string | null
+          outcome_baseline?: Json | null
+          outcome_latest?: Json | null
           priority?: string | null
           source_type?: string
           status?: string

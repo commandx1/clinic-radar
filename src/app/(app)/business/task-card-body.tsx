@@ -4,8 +4,10 @@ import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { OutcomeMetric, OutcomeVerdict } from "@/lib/task-engine/task-outcome";
 
 import { TaskEvidenceLine } from "./task-evidence-line";
+import { TaskOutcomeLine } from "./task-outcome-line";
 
 export interface TaskEvidence {
   ownPositive: number;
@@ -30,6 +32,16 @@ export interface TaskChecklistItem {
   done: boolean;
 }
 
+// bkz. docs/09-task-engine.md "Görev sonuç takibi" — ürünün "işe yaradı mı?"
+// kanıtı. Yalnızca hem baseline hem latest ölçümü mevcutsa VE en az bir analiz
+// döngüsü geçmişse (bkz. resolve-tasks-shared.ts computeOutcome) doldurulur;
+// aksi halde undefined kalır ve satır hiç render edilmez.
+export interface TaskOutcomeData {
+  baseline: OutcomeMetric;
+  latest: OutcomeMetric;
+  verdict: OutcomeVerdict;
+}
+
 export interface TaskCardData {
   title: string;
   description: string | null;
@@ -41,6 +53,7 @@ export interface TaskCardData {
   source_type?: "competitive_gap" | "absolute_quality" | "profile_gap" | null;
   evidence?: TaskEvidence;
   checklist?: TaskChecklistItem[];
+  outcome?: TaskOutcomeData;
 }
 
 const PRIORITY_BADGE_VARIANT: Record<string, "destructive" | "default" | "secondary"> = {
@@ -106,6 +119,7 @@ export function TaskCardBody({
         </p>
       )}
       <TaskEvidenceLine sourceType={task.source_type} evidence={task.evidence} />
+      <TaskOutcomeLine outcome={task.outcome} />
 
       {task.checklist && task.checklist.length > 0 && (
         <div className="flex flex-col gap-1.5 pt-1">

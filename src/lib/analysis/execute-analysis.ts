@@ -22,6 +22,7 @@ import {
   rankCandidates,
   type ScoredTaskCandidate,
 } from "@/lib/analysis/task-candidates";
+import { refreshTaskOutcomes } from "@/lib/analysis/task-outcomes";
 import {
   AI_ANALYSIS_MIN_OWN_REVIEWS_FOR_WINDOW,
   AI_ANALYSIS_WINDOW_DAYS,
@@ -38,6 +39,7 @@ import type { ReviewSource, ScrapedSourceReview } from "@/lib/reviews/types";
 import { calculateClinicScore, calculateCompetitorRank } from "@/lib/task-engine/clinic-score";
 import { derivePriority } from "@/lib/task-engine/priority";
 import { normalizeTheme, selectThemesToReopen } from "@/lib/task-engine/reopen";
+import { buildOutcomeMetric, type BuildOutcomeMetricContext } from "@/lib/task-engine/task-outcome";
 import type { Database, Json, TablesInsert } from "@/types/database.types";
 
 // bkz. docs/04-api.md — Apify çağrısının varsayılan zaman aşımı; manuel
@@ -471,6 +473,7 @@ async function upsertTasks(
   supabase: AnalysisSupabaseClient,
   businessId: string,
   candidates: ScoredTaskCandidate[],
+  outcomeCtx: BuildOutcomeMetricContext,
 ): Promise<{ created: number; updated: number }> {
   let created = 0;
   let updated = 0;
@@ -510,6 +513,12 @@ async function upsertTasks(
         .eq("id", existing.id);
       updated += 1;
     } else {
+      // bkz. supabase/migrations/20260823000400_tasks_outcome.sql, docs/09-task-engine.md
+      // "Görev sonuç takibi" — görev ilk oluştuğu andaki ölçülebilir sinyal
+      // durumu (baseline) burada donar; sonraki döngülerde SADECE outcome_latest
+      // güncellenir (bkz. refreshTaskOutcomes), baseline bir daha yazılmaz ki
+      // "işe yaradı mı?" kıyası hep aynı başlangıç noktasına göre kalsın.
+      const outcomeBaseline = buildOutcomeMetric(candidate, outcomeCtx);
       await supabase.from("tasks").insert({
         business_id: businessId,
         title_i18n: candidate.title,
@@ -526,6 +535,7 @@ async function upsertTasks(
         // (yukarıdaki "existing" dalı) checklist_i18n bilinçli olarak
         // ÜZERİNE YAZILMIYOR ki kullanıcının işaretlediği ilerleme kaybolmasın.
         checklist_i18n: candidate.checklist.map((item) => ({ ...item, done: false })),
+        outcome_baseline: outcomeBaseline,
       });
       // bkz. docs/02-business-rules.md Bölüm G kural 1 — yeni görev
       // oluştuğunda anlık değil, haftalık özete dahil edilecek şekilde kaydedilir.
@@ -559,9 +569,10 @@ async function upsertProfileGapOnly(
   businessId: string,
   status: Exclude<TaskGenerationSummary["status"], "ok">,
   profileGapCandidates: ScoredTaskCandidate[],
+  outcomeCtx: BuildOutcomeMetricContext,
 ): Promise<TaskGenerationSummary> {
   const ranked = rankCandidates(profileGapCandidates);
-  const { created, updated } = await upsertTasks(supabase, businessId, ranked);
+  const { created, updated } = await upsertTasks(supabase, businessId, ranked, outcomeCtx);
   return { status, created, updated, filteredCount: 0 };
 }
 
@@ -572,9 +583,10 @@ async function runStage2AndUpsertTasks(
   competitorStage1Results: Stage1Result[],
   aggregates: Omit<ThemeSummaryPersistResult, "hasCompetitorData"> & { hasCompetitorData: boolean },
   profileGapCandidates: ScoredTaskCandidate[],
+  outcomeCtx: BuildOutcomeMetricContext,
 ): Promise<TaskGenerationSummary> {
   if (!ownThemes) {
-    return upsertProfileGapOnly(supabase, businessId, "skipped_own_failed", profileGapCandidates);
+    return upsertProfileGapOnly(supabase, businessId, "skipped_own_failed", profileGapCandidates, outcomeCtx);
   }
 
   const competitorsForStage2: CompetitorThemeInput[] = competitorStage1Results
@@ -586,7 +598,7 @@ async function runStage2AndUpsertTasks(
   );
 
   if (!stage2Result) {
-    return upsertProfileGapOnly(supabase, businessId, "skipped_stage2_failed", profileGapCandidates);
+    return upsertProfileGapOnly(supabase, businessId, "skipped_stage2_failed", profileGapCandidates, outcomeCtx);
   }
 
   await setAnalysisStage(supabase, businessId, "tasks");
@@ -606,7 +618,7 @@ async function runStage2AndUpsertTasks(
   // birleştirilir ki MAX_NEW_TASKS_PER_CYCLE kotası için adil rekabet etsinler
   // (bkz. docs/02-business-rules.md Bölüm D).
   const ranked = rankCandidates([...scored, ...profileGapCandidates]);
-  const { created, updated } = await upsertTasks(supabase, businessId, ranked);
+  const { created, updated } = await upsertTasks(supabase, businessId, ranked, outcomeCtx);
 
   return { status: "ok", created, updated, filteredCount: filtered.length };
 }
@@ -777,6 +789,18 @@ async function runAnalysisPipeline(
   const profileGapStats = await loadProfileGapStats(supabase, business, competitors, cutoffIso, windowDays);
   const profileGapCandidates = buildProfileGapCandidates(profileGapStats);
 
+  // bkz. docs/09-task-engine.md "Görev sonuç takibi" — yeni oluşturulan
+  // görevlerin baseline'ı (upsertTasks) ve mevcut görevlerin en güncel ölçümü
+  // (refreshTaskOutcomes, aşağıda) AYNI ctx'ten üretilir ki iki ölçüm de aynı
+  // anlık görüntüyü (own tema kırılımı, yanıt oranı, website) referans alsın.
+  const outcomeCtx: BuildOutcomeMetricContext = {
+    ownAggregated: aggregates.ownAggregated,
+    ownReply: { total: profileGapStats.own.total, replied: profileGapStats.own.replied },
+    ownWebsite: profileGapStats.own.website,
+    measuredAt: now.toISOString(),
+    windowDays,
+  };
+
   await setAnalysisStage(supabase, business.id, "gap");
   const taskGeneration = await runStage2AndUpsertTasks(
     supabase,
@@ -785,7 +809,13 @@ async function runAnalysisPipeline(
     competitorStage1Results,
     aggregates,
     profileGapCandidates,
+    outcomeCtx,
   );
+
+  // Yeni görevler yukarıda kendi baseline'ını insert sırasında aldı; burada
+  // TÜM open/done görevler için outcome_latest tazelenir (mevcut görevlerin
+  // "işe yaradı mı?" kıyası güncel kalsın) — bkz. src/lib/analysis/task-outcomes.ts.
+  await refreshTaskOutcomes(supabase, business.id, outcomeCtx);
 
   // bkz. docs/05-ai-pipeline.md "Delta adımı" — Aşama 2/görev üretiminden
   // sonra, aynı analiz isteği içinde hesaplanır ve analysis_runs.delta'ya

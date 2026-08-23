@@ -1,9 +1,10 @@
 import type { BilingualText } from "@/lib/ai-pipeline/gap-analysis-schema";
 import type { createClient } from "@/lib/supabase/server";
 import { normalizeTheme } from "@/lib/task-engine/reopen";
+import { compareOutcome, parseOutcomeMetric } from "@/lib/task-engine/task-outcome";
 import type { Json } from "@/types/database.types";
 
-import type { TaskCardData, TaskChecklistItem, TaskEvidence } from "./task-card-body";
+import type { TaskCardData, TaskChecklistItem, TaskEvidence, TaskOutcomeData } from "./task-card-body";
 
 // (bkz. ThemeCompetitorBreakdownLookup tanımı aşağıda)
 
@@ -53,6 +54,8 @@ interface TaskRowBase {
   // union'a daraltılır.
   source_type?: string | null;
   checklist_i18n?: Json | null;
+  outcome_baseline?: Json | null;
+  outcome_latest?: Json | null;
 }
 
 interface RawChecklistItem {
@@ -142,6 +145,21 @@ function computeEvidence(
   return undefined;
 }
 
+// bkz. docs/09-task-engine.md "Görev sonuç takibi" — jsonb kolonlarını
+// (outcome_baseline/outcome_latest) şema doğrulaması yaparak okur; şemaya
+// uymayan/bozuk veri UI'a asla sızmaz (parseOutcomeMetric null döner). İkisi
+// de dolu değilse ya da henüz ikinci bir ölçüm yapılmadıysa (aynı measured_at)
+// satır tamamen gizlenir — bkz. task-outcome-line.tsx.
+function computeOutcome(task: TaskRowBase): TaskOutcomeData | undefined {
+  const baseline = parseOutcomeMetric(task.outcome_baseline ?? null);
+  const latest = parseOutcomeMetric(task.outcome_latest ?? null);
+  if (!baseline || !latest || baseline.measured_at === latest.measured_at) {
+    return undefined;
+  }
+  const verdict = compareOutcome(baseline, latest);
+  return verdict ? { baseline, latest, verdict } : undefined;
+}
+
 export async function resolveCompetitorNames(
   supabase: SupabaseClient,
   tasks: Pick<TaskRowBase, "based_on_competitor_id">[],
@@ -176,5 +194,6 @@ export function toTaskCardData(
       : null,
     evidence: computeEvidence(task, themeSummaryLookup, competitorBreakdownLookup),
     checklist: toChecklist(task.checklist_i18n, locale),
+    outcome: computeOutcome(task),
   };
 }

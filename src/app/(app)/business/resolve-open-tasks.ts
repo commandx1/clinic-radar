@@ -87,7 +87,7 @@ export async function resolveOpenTasks(
   const { data: openTasks } = await supabase
     .from("tasks")
     .select(
-      "id, title_i18n, description_i18n, theme, priority, impact_score, effort_score, based_on_competitor_id, source_type, checklist_i18n",
+      "id, title_i18n, description_i18n, theme, priority, impact_score, effort_score, based_on_competitor_id, source_type, checklist_i18n, outcome_baseline, outcome_latest",
     )
     .eq("business_id", businessId)
     .eq("status", "open");

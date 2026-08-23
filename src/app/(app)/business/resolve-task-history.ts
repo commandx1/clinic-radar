@@ -9,7 +9,7 @@ export async function resolveTaskHistory(
   const { data: historyTasks } = await supabase
     .from("tasks")
     .select(
-      "id, title_i18n, description_i18n, theme, priority, impact_score, effort_score, based_on_competitor_id, status, completed_at, created_at",
+      "id, title_i18n, description_i18n, theme, priority, impact_score, effort_score, based_on_competitor_id, status, completed_at, created_at, outcome_baseline, outcome_latest",
     )
     .eq("business_id", businessId)
     .in("status", ["done", "dismissed"]);

@@ -275,6 +275,17 @@
         "absoluteQuality": "Son {days} günde kendi yorumlarında bu temaya dair {ownNegative} olumsuz mention var.",
         "criticalBadge": "Kritik"
       },
+      "outcome": {
+        "theme": "Oluşturulduğunda olumsuz bahsedilme %{baseline} → şimdi %{latest}",
+        "themeAbsent": "Oluşturulduğunda olumsuz bahsedilme %{baseline} → artık bahsedilmiyor",
+        "replyRate": "Yanıt oranı %{baseline} → %{latest}",
+        "website": "Web sitesi eklendi",
+        "verdict": {
+          "improved": "İyileşti",
+          "worsened": "Kötüleşti",
+          "flat": "Değişmedi"
+        }
+      },
       "completeButton": "Tamamla",
       "dismissButton": "Reddet",
       "toasts": {

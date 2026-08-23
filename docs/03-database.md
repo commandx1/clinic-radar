@@ -180,7 +180,9 @@ tasks (
   status text,                   -- 'open' | 'done' | 'dismissed'
   created_at timestamptz,
   last_priority_recalc_at timestamptz,
-  completed_at timestamptz
+  completed_at timestamptz,
+  outcome_baseline jsonb,         -- görev oluştuğu andaki ölçülebilir sinyal durumu (OutcomeMetric), null = migration 20260823000400_tasks_outcome.sql öncesi görev, ilk refreshTaskOutcomes çağrısında doldurulur. bkz. 09-task-engine.md "Görev sonuç takibi"
+  outcome_latest jsonb            -- her analiz döngüsünde tazelenen en güncel ölçüm (aynı şekil), bkz. src/lib/analysis/task-outcomes.ts
 )
 ```
 

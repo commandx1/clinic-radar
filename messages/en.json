@@ -275,6 +275,17 @@
         "absoluteQuality": "In the last {days} days, this theme has {ownNegative} negative mentions in your own reviews.",
         "criticalBadge": "Critical"
       },
+      "outcome": {
+        "theme": "Negative mentions were {baseline}% when this task was created → now {latest}%",
+        "themeAbsent": "Negative mentions were {baseline}% when this task was created → no longer mentioned",
+        "replyRate": "Reply rate was {baseline}% → now {latest}%",
+        "website": "Website added",
+        "verdict": {
+          "improved": "Improved",
+          "worsened": "Worsened",
+          "flat": "No change"
+        }
+      },
       "completeButton": "Complete",
       "dismissButton": "Dismiss",
       "toasts": {

@@ -16,9 +16,20 @@ Executive özet/istatistik alanının hemen altında, `AnalysisDeltaCard` (`src/
 
 Gösterilenler: koşu tarihi + "Son {window_days} gün" pencere bağlamı; own/rakip yeni yorum sayısı (rakip tarafında en çok yeni yorum alan 3 rakip, "en çok: {isim} +{sayı}"); yeni/güncellenen/yeniden açılan görev sayısı; own temalardan kötüleşen/iyileşen/kritik chip listeleri (`Badge`, her biri en fazla 5); yanıtlanmamış own yorum sayısı + Reviews sekmesine link. **Yeni görev sayısı 0 ise** (`tasks_created === 0`), `zero_new_tasks_reason`'a göre açıklayıcı bir cümle gösterilir — ör. "Yeni bir sorun sinyali yok — bu iyi haber" (`no_new_signal`) — böylece kullanıcı sessizliği "bir şey bozuldu mu" diye yorumlamaz.
 
+## "Fırsat tahmini" kartı (Faz 2.5)
+"Bu analizde ne değişti" kartının hemen altında, `OpportunityEstimateCard` (`src/app/(app)/business/opportunity-estimate-card.tsx`). Rakip medyanına göre puan/yorum-hızı açığını **her zaman bantlı** gösterir, asla kesin bir öngörü olarak sunulmaz (CLAUDE.md, `10-roadmap.md` "asla '+0.18 yıldız' gibi kesin tahmin verilmez") — hesaplama `src/lib/task-engine/opportunity-estimate.ts`'te saf bir fonksiyon, formül ve sabitler `09-task-engine.md` "Opportunity Estimate"te. Kıyaslanabilir hiçbir veri yoksa (own/rakip puan karşılaştırması VE yorum hızı karşılaştırması ikisi de yoksa) kart hiç render edilmez.
+
+Gösterilenler:
+- Yöntem notu (bir satır, "yayınlanmış ortalamalara dayanan kaba bir tahmin" — kesinlik hissi vermez).
+- Own puan vs rakip medyanı + fark rozeti ("Rakip medyanının 0.3 puan altındasın" / "0.2 puan öndesin").
+- Fark pozitifse (rakip önde): tahmini gelir etkisi bandı (+1 yıldız ≈ %5-9 yayınlanmış yerel işletme elastikiyeti — bkz. `09-task-engine.md`), altında kaynak notu.
+- İki opsiyonel iş girdisi (ortalama hasta değeri, aylık yeni hasta sayısı — `businesses.avg_patient_value_usd`/`monthly_new_patients`, işletme düzenleme formunda) doluysa yıllık $ bandı (2 anlamlı basamağa yuvarlı, ör. "≈ $12.000–22.000 / yıl"); doldurulmamışsa girdileri girmeye yönlendiren bir CTA linki (işletme düzenleme formuna, `/business#business-edit`).
+- Own puan 4.0 eşiğinin altında VE rakip medyanı üstündeyse uyarı rozeti (hastaların büyük kısmının 4.0 altını filtrelediği kabul edilen eşik).
+- Son 90 günde own vs rakip ortalaması aylık yorum hızı satırı; own rakiplerin belirgin gerisindeyse (`OPPORTUNITY_REVIEW_VELOCITY_GAP_RATIO`) uyarı rozeti.
+
 ## Sekmeler — Faz 1 (MVP)
 
-**Overview** — Executive özet kartı + "Bu analizde ne değişti" kartı + en yüksek öncelikli 3 görev + kısa trend grafiği önizlemesi.
+**Overview** — Executive özet kartı + "Bu analizde ne değişti" kartı + "Fırsat tahmini" kartı + en yüksek öncelikli 3 görev + kısa trend grafiği önizlemesi.
 
 **Tasks** — Tüm görevler, `status`/`priority` filtreli liste. Her görev: başlık, açıklama, impact/effort göstergesi, hangi rakip(ler)den doğduğu, tamamla/reddet aksiyonları. Görev kartlarında ayrıca kod tarafında hesaplanan bir kanıt satırı gösterilir — `theme_summary`'den own vs rakip mention sayısı kıyası (`competitive_gap` için rakip pozitif/own pozitif, `absolute_quality` için own negatif). Görevin teması ile `theme_summary` satırları eşleşmezse (AI'ın ürettiği tema adı drift ederse) satır gösterilmez, uydurma sayı verilmez.
 

@@ -17,7 +17,9 @@ export default async function BusinessLayout({ children }: Readonly<{ children: 
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, lat, lng, name, google_place_id, category, trustpilot_domain")
+    .select(
+      "id, lat, lng, name, google_place_id, category, trustpilot_domain, avg_patient_value_usd, monthly_new_patients",
+    )
     .eq("user_id", user!.id)
     .maybeSingle();
 
@@ -48,6 +50,8 @@ export default async function BusinessLayout({ children }: Readonly<{ children: 
           google_place_id: business.google_place_id,
           category: business.category,
           trustpilot_domain: business.trustpilot_domain,
+          avg_patient_value_usd: business.avg_patient_value_usd,
+          monthly_new_patients: business.monthly_new_patients,
         }}
         isPro={isPro}
       />

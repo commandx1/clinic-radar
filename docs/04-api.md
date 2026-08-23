@@ -28,6 +28,19 @@ Kullanıcının otomatik bulunan Trustpilot eşleşmesini elle düzeltmesi için
 - **Hatalar:** Pro/Agency olmayan kullanıcı `403 { error: "pro_required" }`; parse edilemeyen girdi
   `400 { error: "invalid_trustpilot_domain" }`.
 
+### `PATCH /api/business/:id` — `avg_patient_value_usd` / `monthly_new_patients`
+
+Overview'daki "Fırsat tahmini" kartının $ bandını açan iki opsiyonel iş girdisi (bkz. `08-dashboard.md`,
+`09-task-engine.md` "Opportunity Estimate"). Trustpilot alanının aksine Pro'ya özel değildir, her plan
+girebilir.
+
+- Her ikisi de **nullable**: `null` gönderilmesi değeri temizler (kullanıcı daha önce girdiği bir değeri
+  silebilmeli), gövdede hiç yoksa dokunulmaz. `avg_patient_value_usd` ondalık (numeric, >= 0),
+  `monthly_new_patients` tamsayı (>= 0) — negatif veya `monthly_new_patients` için ondalık bir değer
+  `400 { error: "invalid_body" }` döner (zod).
+- Yalnızca Fırsat tahmini kartının $ hesaplaması için okunur, hiçbir yanıt gövdesinde/UI'da başka bir
+  yerde dışarı gösterilmez.
+
 ## Görevler
 
 | Method | Path | Açıklama |

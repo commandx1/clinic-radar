@@ -24,6 +24,8 @@ export function AnalysisRunTrigger({
     google_place_id: string | null;
     last_scraped_at: string | null;
     trustpilot_domain: string | null;
+    avg_patient_value_usd: number | null;
+    monthly_new_patients: number | null;
   };
   isPro: boolean;
   nextAnalysisAvailableAt: string | null;
@@ -39,7 +41,11 @@ export function AnalysisRunTrigger({
   return (
     <div className="flex max-w-md flex-col gap-2">
       <h1 className="text-xl font-semibold">{t("yourBusiness")}</h1>
-      <Card>
+      {/* Fırsat tahmini kartındaki "değerlerini gir" CTA'sı buraya link
+          verir (bkz. opportunity-estimate-sections.tsx) — işletme
+          düzenleme formu ayrı bir route değil, bu kartın "Düzenle"
+          butonuyla açılan in-page state'i. */}
+      <Card id="business-edit">
         <CardContent className="flex flex-col gap-2">
           {isEditing ? (
             <BusinessEditForm
@@ -49,6 +55,8 @@ export function AnalysisRunTrigger({
                 google_place_id: business.google_place_id,
                 category: business.category,
                 trustpilot_domain: business.trustpilot_domain,
+                avg_patient_value_usd: business.avg_patient_value_usd,
+                monthly_new_patients: business.monthly_new_patients,
               }}
               isPro={isPro}
               onCancel={() => {

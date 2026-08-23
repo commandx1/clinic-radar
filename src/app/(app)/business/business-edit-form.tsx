@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { CategorySelect } from "./category-select";
+import { OpportunityInputsFields } from "./opportunity-inputs-fields";
 import { PlaceSearchCombobox } from "./place-search-combobox";
 import { StepProgress } from "./step-progress";
 import { useBusinessEditForm, type EditableBusiness } from "./use-business-edit-form";
@@ -34,6 +35,10 @@ export function BusinessEditForm({
     setCategory,
     trustpilotDomain,
     setTrustpilotDomain,
+    avgPatientValueUsd,
+    setAvgPatientValueUsd,
+    monthlyNewPatients,
+    setMonthlyNewPatients,
     errorMessage,
     isPending,
     stepKey,
@@ -85,6 +90,13 @@ export function BusinessEditForm({
           {isPro ? tForm("trustpilotDomainHint") : tForm("trustpilotDomainProOnly")}
         </p>
       </div>
+
+      <OpportunityInputsFields
+        avgPatientValueUsd={avgPatientValueUsd}
+        setAvgPatientValueUsd={setAvgPatientValueUsd}
+        monthlyNewPatients={monthlyNewPatients}
+        setMonthlyNewPatients={setMonthlyNewPatients}
+      />
 
       {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 

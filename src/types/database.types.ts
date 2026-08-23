@@ -90,6 +90,7 @@ export type Database = {
       businesses: {
         Row: {
           analysis_stage: string | null
+          avg_patient_value_usd: number | null
           category: string | null
           current_tool: string | null
           geo_cell: string | null
@@ -98,6 +99,7 @@ export type Database = {
           last_scraped_at: string | null
           lat: number | null
           lng: number | null
+          monthly_new_patients: number | null
           monthly_report_emailed_at: string | null
           name: string
           normalized_category: string | null
@@ -110,6 +112,7 @@ export type Database = {
         }
         Insert: {
           analysis_stage?: string | null
+          avg_patient_value_usd?: number | null
           category?: string | null
           current_tool?: string | null
           geo_cell?: string | null
@@ -118,6 +121,7 @@ export type Database = {
           last_scraped_at?: string | null
           lat?: number | null
           lng?: number | null
+          monthly_new_patients?: number | null
           monthly_report_emailed_at?: string | null
           name: string
           normalized_category?: string | null
@@ -130,6 +134,7 @@ export type Database = {
         }
         Update: {
           analysis_stage?: string | null
+          avg_patient_value_usd?: number | null
           category?: string | null
           current_tool?: string | null
           geo_cell?: string | null
@@ -138,6 +143,7 @@ export type Database = {
           last_scraped_at?: string | null
           lat?: number | null
           lng?: number | null
+          monthly_new_patients?: number | null
           monthly_report_emailed_at?: string | null
           name?: string
           normalized_category?: string | null

@@ -11,6 +11,7 @@ import type { Json } from "@/types/database.types";
 
 import { AnalysisDeltaCard } from "./analysis-delta-card";
 import { AnalysisRunTrigger } from "./analysis-run-trigger";
+import { OpportunityEstimateCard } from "./opportunity-estimate-card";
 import { OverviewStatsGrid } from "./overview-stats-grid";
 import { resolveOpenTasks } from "./resolve-open-tasks";
 import { pickLocale } from "./resolve-tasks-shared";
@@ -104,7 +105,9 @@ export default async function OverviewPage() {
     await Promise.all([
       supabase
         .from("businesses")
-        .select("id, name, category, google_place_id, last_scraped_at, trustpilot_domain")
+        .select(
+          "id, name, category, google_place_id, last_scraped_at, trustpilot_domain, avg_patient_value_usd, monthly_new_patients",
+        )
         .eq("user_id", user!.id)
         .maybeSingle(),
       supabase
@@ -168,6 +171,8 @@ export default async function OverviewPage() {
       )}
 
       <AnalysisDeltaCard businessId={business!.id} />
+
+      <OpportunityEstimateCard businessId={business!.id} />
 
       <SatisfactionCard t={tSatisfaction} overview={satisfaction} compact />
 

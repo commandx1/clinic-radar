@@ -45,7 +45,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const { name, google_place_id, category, current_tool, trustpilot_domain_override } = parsed.data;
+  const {
+    name,
+    google_place_id,
+    category,
+    current_tool,
+    trustpilot_domain_override,
+    avg_patient_value_usd,
+    monthly_new_patients,
+  } = parsed.data;
 
   // Trustpilot domain'inin elle düzeltilmesi Pro'ya özel (bkz. docs/02-business-rules.md
   // hibrit eşleme kararı). Doğrudan API isteğiyle bile Free/Pro-olmayan kullanıcı
@@ -85,6 +93,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ...(google_place_id !== undefined && { google_place_id }),
       ...(category !== undefined && { category }),
       ...(current_tool !== undefined && { current_tool }),
+      ...(avg_patient_value_usd !== undefined && { avg_patient_value_usd }),
+      ...(monthly_new_patients !== undefined && { monthly_new_patients }),
       ...trustpilotDomainUpdate,
     })
     .eq("id", id)

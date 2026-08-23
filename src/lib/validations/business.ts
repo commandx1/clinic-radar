@@ -26,6 +26,12 @@ export const updateBusinessSchema = z
     // boş string GEÇERLİ bir değer, "eşleşmeyi temizle" anlamına gelir (bkz.
     // route.ts). Sadece Pro planlı kullanıcılar gönderebilir (route'ta 403).
     trustpilot_domain_override: z.string().optional(),
+    // Fırsat tahmini kartı için opsiyonel iş girdileri (bkz.
+    // docs/09-task-engine.md "Opportunity Estimate", opportunity-estimate.ts).
+    // `.nullable()` bilinçli: kullanıcı daha önce girdiği bir değeri
+    // temizleyebilmeli (boş input -> null gönderilir, bkz. use-business-edit-form.ts).
+    avg_patient_value_usd: z.number().min(0).nullable().optional(),
+    monthly_new_patients: z.number().int().min(0).nullable().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     error: "at_least_one_field_required",

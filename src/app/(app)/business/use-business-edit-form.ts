@@ -18,6 +18,25 @@ export interface EditableBusiness {
   google_place_id: string | null;
   category: string | null;
   trustpilot_domain: string | null;
+  avg_patient_value_usd: number | null;
+  monthly_new_patients: number | null;
+}
+
+// Boş input -> null (temizle), sayısal olmayan/negatif -> null (hatalı girdi
+// sessizce yok sayılır, input zaten type="number" min={0} ile kısıtlı).
+function parseOptionalNonNegativeNumber(value: string): number | null {
+  if (value.trim() === "") {
+    return null;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+// monthly_new_patients DB'de integer — zod `.int()` ondalık gönderilirse
+// 400 döner, bu yüzden client tarafında da tamsayıya yuvarlanır.
+function parseOptionalNonNegativeInteger(value: string): number | null {
+  const parsed = parseOptionalNonNegativeNumber(value);
+  return parsed !== null ? Math.round(parsed) : null;
 }
 
 async function updateBusiness(id: string, input: UpdateBusinessInput): Promise<void> {
@@ -67,6 +86,12 @@ export function useBusinessEditForm(business: EditableBusiness, isPro: boolean, 
   const [placeError, setPlaceError] = useState(false);
   const [category, setCategory] = useState(business.category ?? "");
   const [trustpilotDomain, setTrustpilotDomain] = useState(business.trustpilot_domain ?? "");
+  const [avgPatientValueUsd, setAvgPatientValueUsd] = useState(
+    business.avg_patient_value_usd !== null ? String(business.avg_patient_value_usd) : "",
+  );
+  const [monthlyNewPatients, setMonthlyNewPatients] = useState(
+    business.monthly_new_patients !== null ? String(business.monthly_new_patients) : "",
+  );
   const [step, setStep] = useState<BusinessSaveStepKey>(BUSINESS_SAVE_STEP_KEYS[0]);
 
   // use-business-form.ts (create) ile aynı desen: PATCH hızlı döner, place
@@ -115,6 +140,11 @@ export function useBusinessEditForm(business: EditableBusiness, isPro: boolean, 
       name,
       google_place_id: selectedPlace.google_place_id,
       category: category || undefined,
+      // trustpilot_domain_override'ın aksine bunlar Pro'ya özel değil ve
+      // null'a çekilmesi zararsız — bu yüzden koşulsuz her submit'te
+      // gönderilir (diğer sıradan alanlarla aynı desen).
+      avg_patient_value_usd: parseOptionalNonNegativeNumber(avgPatientValueUsd),
+      monthly_new_patients: parseOptionalNonNegativeInteger(monthlyNewPatients),
       // Sadece Pro kullanıcı ve SADECE değer gerçekten değiştiyse gönderilir.
       // Değişmediğinde göndermek zararsız değil: route boş string'i "Trustpilot
       // profilim yok" olarak yorumlayıp `trustpilot_checked_at`'i doldurur. O
@@ -146,6 +176,10 @@ export function useBusinessEditForm(business: EditableBusiness, isPro: boolean, 
     setCategory,
     trustpilotDomain,
     setTrustpilotDomain,
+    avgPatientValueUsd,
+    setAvgPatientValueUsd,
+    monthlyNewPatients,
+    setMonthlyNewPatients,
     errorMessage,
     isPending: mutation.isPending,
     stepKey: step,
